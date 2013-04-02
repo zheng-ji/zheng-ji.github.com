@@ -3,9 +3,9 @@
 # ----------------------- #
 
 url: http://zheng-ji.github.com
-title: My Octopress Blog
-subtitle: A blogging framework for hackers.
-author: Your Name
+title: 织网
+subtitle: 谈技术.
+author: Zheng Ji
 simple_search: http://google.com/search
 description:
 
@@ -85,7 +85,7 @@ delicious_user:
 delicious_count: 3
 
 # Disqus Comments
-disqus_short_name:
+disqus_short_name:zheng-ji
 disqus_show_comment_count: false
 
 # Google Analytics
