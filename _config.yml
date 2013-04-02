@@ -93,3 +93,6 @@ google_analytics_tracking_id:
 
 # Facebook Like
 facebook_like: false
+
+# Sina Weibo
+weibo_uid: 1906320835
