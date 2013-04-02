@@ -3,5 +3,9 @@ layout: post
 title: "折腾"
 date: 2013-04-02 13:53
 comments: true
-categories: 
+categories: 折腾 
 ---
+
+{% img /images/2013/panda.jpg %}
+
+这天我被折腾疯了
