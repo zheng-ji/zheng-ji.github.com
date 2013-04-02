@@ -85,7 +85,7 @@ delicious_user:
 delicious_count: 3
 
 # Disqus Comments
-disqus_short_name: zheng-ji.github.com
+disqus_short_name: zheng-ji
 disqus_show_comment_count: false
 
 # Google Analytics
