@@ -108,7 +108,12 @@ module Jekyll
       if self.layouts.key? 'category_index'
         dir = self.config['category_dir'] || 'categories'
         self.categories.keys.each do |category|
-          self.write_category_index(File.join(dir, category.to_url), category)
+          cate_dir = category.gsub(/_|\p{word}/,'-').gsub(/-{2,}/,'-').downcase
+          cate_dir = URI::escape(cate_dir)
+          cate_dir = URI::parse(cate_dir)
+          cate_dir = cate_dir.to_s
+          #self.write_category_index(File.join(dir, category.to_url), category)
+          self.write_category_index(File.join(dir, cate_dir), category)
         end
 
       # Throw an exception if the layout couldn't be found.

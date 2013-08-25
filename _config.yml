@@ -45,7 +45,7 @@ titlecase: true       # Converts page and post titles to titlecase
 
 # list each of the sidebar modules you want to include, in the order you want them to appear.
 # To add custom asides, create files in /source/_includes/custom/asides/ and add them to the list like 'custom/asides/custom_aside_name.html'
-default_asides: [asides/recent_posts.html, asides/github.html, asides/delicious.html, asides/pinboard.html, asides/googleplus.html]
+default_asides: [custom/asides/category_list.html,asides/recent_posts.html, asides/github.html, asides/delicious.html, asides/pinboard.html, asides/googleplus.html]
 
 # Each layout uses the default asides, but they can have their own asides instead. Simply uncomment the lines below
 # and add an array with the asides you want to use.
@@ -96,22 +96,5 @@ facebook_like: false
 
 # Sina Weibo
 weibo_uid: 1906320835
-
-# ----------------------- #
-#     Categories           #
-#  ----------------------- #
-#  create categories page
-category_list: true
-# use counter after categories
-category_counter: true
-# category title
-category_title: 分類
-# create an include categories list in @source/_includes/asides/categories_sidebar.html
-# and don't forget to add 'asides/categories_sidebar.html' into @default_asides if you want to enable it.
-category_sidebar: true
-# create an include categories tag cloud page in @source/_includes/asides/categories_tag.html
-# and don't forget to add 'asides/categories_tag.html' to @default_asides if you want to enable it.
-category_tag_cloud: true
-default_asides: [custom/asides/category_list.html, asides/recent_posts.html]
 
 

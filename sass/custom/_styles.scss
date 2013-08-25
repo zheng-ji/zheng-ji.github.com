@@ -1,12 +1,15 @@
 // This File is imported last, and will override other styles in the cascade
 // Add styles here to make changes without digging in too much
 .entry-title {
-    font-size: 40px;
-    font-family:Consolas;
+    font-size: 30px;
+    font-family:微软雅黑;
 }
 
 .entry-content {
     line-height: 1.8em;
     color: #444;
     font-size: 16px;
+}
+.entry-content h2 h3 {
+    color: #008800;
 }
