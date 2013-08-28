@@ -1,11 +1,10 @@
 ---
 layout: post
 title: "nginx模块开发"
-date: 2013-08-28 14:04
+date: 2013-02-17 14:04
 comments: true
 categories: Server 
 ---
-本文部分内容引用
 写这篇文章的时候，参考[链接](http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html)，特此鸣谢
 
 #### Why要开发Ngnix 模块：

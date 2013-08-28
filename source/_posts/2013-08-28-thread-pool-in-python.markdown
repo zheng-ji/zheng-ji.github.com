@@ -3,7 +3,7 @@ layout: post
 title: "Thread Pool in Python"
 date: 2012-12-27 13:40
 comments: true
-categories: Program
+categories: Programe
 ---
 #### python的创建多线程的方法
 使用线程有两种模式：

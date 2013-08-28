@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "做快乐的程序员"
-date: 2012-05-7 13:23
+date: 2012-05-07 13:23
 comments: true
 categories: Mental
 ---

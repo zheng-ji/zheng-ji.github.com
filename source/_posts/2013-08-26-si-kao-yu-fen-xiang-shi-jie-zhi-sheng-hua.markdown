@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "思考与分享使价值升华"
-date: 2013-08-26 00:45
+date: 2012-11-28 00:45
 comments: true
 categories: Mental
 ---
