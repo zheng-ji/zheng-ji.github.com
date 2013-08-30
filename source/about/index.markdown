@@ -1,0 +1,17 @@
+---
+layout: page
+title: About Me
+footer: false
+---
+#### Info
+郑纪  Scut,伪Geeker,Vim死忠,Unix信徒,喜吉他, @Tencent Game
+#### Motto
+>没有人比你更能改变自己
+
+* __@GitHub__ [链接](https://github.com/zheng-ji)
+
+* __@Sina__ [链接](http://weibo.com/u/1906320835)
+
+* __@Email__:zhengji91@gmail.com 
+
+<script type="text/javascript" src="http://www.douban.com/service/badge/51395713/?show=collection&amp;n=25&amp;columns=5&amp;cat=book" ></script> 
