@@ -3,7 +3,7 @@ layout: post
 title: "Redis是个好东西"
 date: 2013-02-17 14:10
 comments: true
-categories: server
+categories: Server
 ---
  :) 最近主动请缨做到一个关于Redis的东西，甚有收获，与大家分享：- ）
 
