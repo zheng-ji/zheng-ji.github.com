@@ -45,6 +45,7 @@ Environment::terminateEnvironment(env);
 env = Environment::createEnvironment( Environment::DEFAULT);
 以下是连接管理类的代码
 ```            
+#include<string.h>
 using namespace oracle::occi;
 class COraclconn
 {
@@ -106,6 +107,7 @@ class COraclconn
         Connection *conn ;
         Statement *stmt ;
 };
+```
 
 还好我做的是封装SQL，对于其诡异的语法可以不用涉及到。相信每个热爱技术的人儿碰到写相对非业务的代码会感到充实愉快的吧。
 

@@ -9,3 +9,8 @@ categories:
 {% img /images/2013/panda.jpg %}
 
 这天我被折腾疯了
+
+开始博客迁移，从innerbrilliant.sinaapp.com 迁移至 zheng-ji.info
+
+文档式编程的感觉爽 ：）
+

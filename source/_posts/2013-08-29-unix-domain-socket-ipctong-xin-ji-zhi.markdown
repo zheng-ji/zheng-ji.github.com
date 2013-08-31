@@ -24,13 +24,17 @@ fastcgi_pass unix:/tmp/php-cgi.sock;
 #fastcgi_pass 127.0.0.1:9000;
 ```
 + 在php-fpm.conf中修改配置为：
+```
 /tmp/php-cgi.sock
+```
+
 通信过程
+
 {% img /images/2013/08/ipc_unix_socket-300x300.png %}
 
 用Unix domain socket写的Demo
 
 使用UNIX Domain Socket的过程和网络socket十分相似，也要先调用socket()创建一个socket文件描述符，address family指定为AF_UNIX，type可以选择SOCK_DGRAM或SOCK_STREAM，protocol参数仍然指定为0即可。通常是指定/tmp/目录下的一个文件作为通信路径
 
-demo[链接](https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock)
+源码demo[链接](https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock)
 
