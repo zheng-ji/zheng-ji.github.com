@@ -87,7 +87,7 @@ lua_code_cache off;
 
 nginx.conf 里
 ```
-location /lua {
+location /getolNum {
     content_by_lua_file /conf/online.lua;  
 } 
 ```
@@ -105,7 +105,7 @@ end
 
 cache:set_timeout(30000)
 args = ngx.req.get_uri_args()
-user = args["qr"]
+user = args["user"]
 --设置用户 3 min 过期
 cache:setex(user,180,23)
 
@@ -118,6 +118,13 @@ for _ in pairs(res) do
 end
 ngx.say(count)
 local ok, err = cache:close()
+```
+结果
+```
+curl localhost/getOlnum?user=zj
+返回：1
+curl localhost/getOlnum?user=zhengji
+返回：2
 ```
 
 Happy Hacking :)
