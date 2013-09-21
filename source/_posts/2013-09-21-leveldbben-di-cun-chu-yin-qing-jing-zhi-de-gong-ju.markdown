@@ -6,13 +6,14 @@ comments: true
 categories: Server DataBase 
 ---
 
-leveldb是一个google实现的非常高效的kv数据库，能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，主要归功于它的良好的设计。特别是LSM算法。 LevelDB 是单进程的服务，性能非常之高，在一台4个Q6600的CPU机器上，每秒钟写数据超过40w，而随机读的性能每秒钟超过10w。@ideawu的ssdb就是基于Leveldb引擎开发的，看起来很NB的样子
+ leveldb是一个google实现的非常高效的kv数据库，能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，主要归功于它的良好的设计。特别是LSM算法。 LevelDB 是单进程的服务，性能非常之高，在一台4个Q6600的CPU机器上，每秒钟写数据超过40w，而随机读的性能每秒钟超过10w。@ideawu的ssdb就是基于Leveldb引擎开发的，看起来很NB的样子 
 
 它只是一个本地存储引擎:
-+ k/v db library，提供持久化
-+ No Server
-+ No cache
- 于是它精巧。
+
+* k/v db library，提供持久化 
+* No Server 
+* No cache 
+于是它精巧。 
 
 >talk is cheap ,Show me the Code
 
