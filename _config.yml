@@ -45,11 +45,11 @@ titlecase: true       # Converts page and post titles to titlecase
 
 # list each of the sidebar modules you want to include, in the order you want them to appear.
 # To add custom asides, create files in /source/_includes/custom/asides/ and add them to the list like 'custom/asides/custom_aside_name.html'
-default_asides: [custom/asides/category_list.html,asides/recent_posts.html,custom/asides/blogroll.html,asides/github.html, asides/delicious.html, asides/pinboard.html, asides/googleplus.html]
+default_asides: [custom/asides/category_list.html,asides/recent_posts.html,custom/asides/blogroll.html,asides/comment.html,asides/github.html, asides/delicious.html, asides/pinboard.html, asides/googleplus.html]
 
 # Each layout uses the default asides, but they can have their own asides instead. Simply uncomment the lines below
 # and add an array with the asides you want to use.
-# blog_index_asides:
+# blog_index_asides: 
 # post_asides:
 # page_asides:
 
@@ -85,8 +85,11 @@ delicious_user:
 delicious_count: 3
 
 # Disqus Comments
-disqus_short_name: zheng-ji
-disqus_show_comment_count: false
+#disqus_short_name: zheng-ji
+#disqus_show_comment_count: false
+
+duoshuo_comments: true
+duoshuo_short_name: zhengji
 
 # Google Analytics
 google_analytics_tracking_id:
@@ -95,6 +98,12 @@ google_analytics_tracking_id:
 facebook_like: false
 
 # Sina Weibo
-weibo_uid: 1906320835
+duoshuo_asides_num: 10      # 侧边栏评论显示条目数
+duoshuo_asides_avatars: 0   # 侧边栏评论是否显示头像
+duoshuo_asides_time: 0      # 侧边栏评论是否显示时间
+duoshuo_asides_title: 0     # 侧边栏评论是否显示标题
+duoshuo_asides_admin: 0     # 侧边栏评论是否显示作者评论
+duoshuo_asides_length: 18   # 侧边栏评论截取的长度
+
 
 

@@ -1,8 +1,12 @@
 ---
 layout: page
-title: About Me
-footer: false
+title: "About Me"
+date: 2013-10-08 21:08
+comments: true
+sharing: true
+footer: true
 ---
+
 #### Info
 郑纪  Scut,伪Geeker,Vim死忠,Unix信徒,喜吉他, @Tencent Game
 #### Motto
@@ -15,3 +19,4 @@ footer: false
 * __@Email__:zhengji91@gmail.com 
 
 <script type="text/javascript" src="http://www.douban.com/service/badge/51395713/?show=collection&amp;n=25&amp;columns=5&amp;cat=book" ></script> 
+
