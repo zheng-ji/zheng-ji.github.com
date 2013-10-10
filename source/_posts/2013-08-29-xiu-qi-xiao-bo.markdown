@@ -3,7 +3,7 @@ layout: post
 title: "修葺小博"
 date: 2013-05-30 23:20
 comments: true
-categories: Mental
+categories: Life
 ---
 #### 关于博客
 

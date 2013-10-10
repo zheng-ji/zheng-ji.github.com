@@ -3,7 +3,7 @@ layout: post
 title: "在路上"
 date: 2013-02-12 14:00
 comments: true
-categories: Mental
+categories: Life
 ---
 过去的一年里，我很刻意在锻炼一些不足的东西，即便如今还是无法和很多我崇拜的朋友那样成熟，但还是深切感受到成长带有一些痛。
 

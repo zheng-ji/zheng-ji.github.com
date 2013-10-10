@@ -8,9 +8,13 @@ footer: true
 ---
 
 #### Info
-郑纪  Scut,伪Geeker,Vim死忠,Unix信徒,喜吉他, @Tencent Game
+
+郑纪,Scut,奔向Geek,Vim铁杆,Unix信徒
+爱玩吉他
+@Tencent Game
+
 #### Motto
->没有人比你更能改变自己
+> 没有人比你更能改变自己
 
 * __@GitHub__ [链接](https://github.com/zheng-ji)
 

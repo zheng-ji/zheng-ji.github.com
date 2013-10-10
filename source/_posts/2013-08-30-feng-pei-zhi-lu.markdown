@@ -3,7 +3,7 @@ layout: post
 title: "封培之旅"
 date: 2013-07-15 19:32
 comments: true
-categories: Mental 
+categories: Life
 ---
 作为新入职的员工，参加了公司为期10天的封闭培训，此文记下这些日子的一些感悟。 因为 “思绪来地快，去地也快” by 云风。
 

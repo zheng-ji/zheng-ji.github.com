@@ -3,7 +3,7 @@ layout: post
 title: "折腾"
 date: 2013-04-02 13:53
 comments: true
-categories: Mental
+categories: Life
 ---
 
 {% img /images/2013/panda.jpg %}

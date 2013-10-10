@@ -3,7 +3,7 @@ layout: post
 title: "做快乐的程序员"
 date: 2012-05-07 13:23
 comments: true
-categories: Mental
+categories: Life
 ---
 看了一篇很不错的文章，忍不住转了，原文[链接](http://www.nowamagic.net/php/php_BeHappyProgrammer.php)
 ### 什么是程序员的基本功？

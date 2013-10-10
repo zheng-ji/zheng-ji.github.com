@@ -3,7 +3,7 @@ layout: post
 title: "思考与分享使价值升华"
 date: 2012-11-28 00:45
 comments: true
-categories: Mental
+categories: Life
 ---
 一个月匆匆过去了，还没来得及叹口气，又被生活推着向前走，耐不住很多思绪与感悟。抽空看看我冷清的博客，恍然间我已经4个月没上来过了，便有了个理由写篇东西算是为博客增点暖气。
 
