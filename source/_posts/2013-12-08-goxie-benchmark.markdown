@@ -6,7 +6,7 @@ comments: true
 categories: Programe 
 ---
 
-相比写C++/C，看到Go语言简直是感动，怀念那段写Go的时光。好久没有写Go了， 此次回眸，更觉得他可爱使用，这种感觉类似我第一次使用Python.最近在看一个Go的[IpLoc模块](https://github.com/slene/iplocll)，觉得帅!
+相比写C++/C，看到Go语言简直是感动，怀念那段写Go的时光。好久没有写Go了， 此次回眸，更觉得他可爱好用，这种感觉类似我第一次使用Python.最近在看一个Go的[IpLoc模块](https://github.com/slene/iplocll)，觉得帅!
 
 
 用到的模块
