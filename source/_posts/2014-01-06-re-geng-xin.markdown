@@ -21,7 +21,6 @@ def auto_reload():
         except:
             continue
         filename = module.__file__
-        # .pyc修改时间不会变,又不能删除.pyc,所以就用.py的修改时间,如果有更好的办法就谢谢了.
         print filename
         if filename.endswith(".pyc"):
             filename = filename.replace(".pyc", ".py")
