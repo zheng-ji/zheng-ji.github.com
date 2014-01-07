@@ -51,7 +51,7 @@ def validate(timestamp, nonce, signature):
     hashStr = sha1(tmpStr).hexdigest()
     return (hashStr == signature)
 ```
-验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起请求.做为首次验证,根据文档，需要将接收到的字符串原文返回
+验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回
 ```
 class serverHandler(BaseHandler):
     def get(self):
@@ -99,5 +99,6 @@ self.write(msg)是将要发给用户的信息返回给微信服务器，之后�
 - pyquery(做爬虫)
 - pymongo
 - lxml
+- urllib2
 
 
