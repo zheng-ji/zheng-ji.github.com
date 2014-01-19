@@ -146,7 +146,7 @@ concat('a','b')
 ```
 
 ####mysql的临时变量'@'
-
+以下sql是取各道具排前10的等级
 ```
 select * from (
     select dtStatDate,iRoleLevel,iUserNum,
