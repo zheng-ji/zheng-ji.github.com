@@ -4,6 +4,8 @@ title: "最近用到的mysql"
 date: 2013-12-05 23:01
 comments: true
 categories: DataBase
+keywords: 优化
+description: mysql优化
 ---
 该文章没有什么创造性营养，也没有什么技术沉淀，各位看官轻轻带过，仅仅经验之谈，看过用过的人都会，简单的事情就平滑地带过。怎么让索然无味的文章更好地被他人深入阅读,要么就是实用，要么就是深刻，不扯淡, 直奔主题。
 
@@ -156,4 +158,4 @@ where tno<=10 order by iRoleLevel asc
 ```
 
 ####其他
-union all 效率会比union高,因为其有去重功能
+union all 效率会比union高,因为union有去重功能,会耗时 

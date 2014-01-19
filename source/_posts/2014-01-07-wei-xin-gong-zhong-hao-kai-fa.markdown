@@ -4,6 +4,8 @@ title: "微信公众号开发"
 date: 2014-01-07 18:47
 comments: true
 categories: Server Programe
+keywords: 微信公众号开发
+description: 微信公众号开发 
 ---
 ### 微信公众账号开发
 
