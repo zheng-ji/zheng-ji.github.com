@@ -143,5 +143,17 @@ select * From tableA group by (round(field1/100,0));
 concat('a','b')
 ```
 
+####mysql的临时变量'@'
+
+```
+select * from (
+    select dtStatDate,iRoleLevel,iUserNum,
+    if(@templevel=a.iRoleLevel,@tno:=@tno+1,@tno:=1) as tno,@templevel:=a.iRoleLevel 
+    from tbl_a , (SELECT @tno:= 0,@templevel:=null) tbl_b
+    order by a.iRoleLevel asc,a.iUserNum desc
+) c
+where tno<=10 order by iRoleLevel asc
+```
+
 ####其他
 union all 效率会比union高,因为其有去重功能
