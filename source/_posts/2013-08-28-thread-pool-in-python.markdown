@@ -9,7 +9,7 @@ categories: Programe
 使用线程有两种模式：
 + 一种是创建线程要执行的函数，把这个函数传递进Thread对象里，让它来执行；
 + 一种是直接从Thread继承，创建一个新的class，把线程执行的代码放到这个新的 class里。
-```
+```python
 #-*- encoding: gb2312 -*-
 import string, threading, time
  

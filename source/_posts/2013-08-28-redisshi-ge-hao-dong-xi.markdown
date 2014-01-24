@@ -56,7 +56,7 @@ Redis的Pub/Sub系统可以构建实时的消息系统，比如很多用Pub/Sub�
 >python + redis + msgpack
 
 redis-py是个好东西
-```
+```python
 import redis
 #db是选择的数据库，Redis默认有16个库
 r = redis.Redis(host='localhost', port=6379, db=0)

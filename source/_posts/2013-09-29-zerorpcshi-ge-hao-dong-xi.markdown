@@ -55,7 +55,7 @@ zerorpc tcp://127.0.0.1:4242 hello RPC
 够见面易懂了吧
 再来一个返回连续字节流的例子
 ####server.py
-```
+```python
 import zerorpc
 
 class StreamingRPC(object):
@@ -69,7 +69,7 @@ s.run()
 ```
 
 ####client.py
-```
+```python
 import zerorpc
 
 c = zerorpc.Client()

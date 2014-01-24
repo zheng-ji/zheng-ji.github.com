@@ -10,7 +10,7 @@ categories: Programe
 1. 当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过,从而reload指定模块就可以在不重启服务的情况下读取修改的配置,
 2. sys.module['modname']返回的是该模块的pyc文件，而该文件是没有修改时间的，所以计算修改时间需要取py文件的属性
 
-```
+```python
 import time
 import sys, os
 def auto_reload():

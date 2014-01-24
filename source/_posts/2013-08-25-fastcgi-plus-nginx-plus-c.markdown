@@ -41,7 +41,7 @@ Nginx不支持对外部程序的直接调用或者解析，所有的外部程序
 写好的c 程序在spawn-fcgi（一种fastcgi管理工具）下转换为unix sock ,由nginx指定文件监听sock文件描述符。
 
 FastCGI 代码示例
-```
+```c
 #include "fcgi_stdio.h"
 int main(){
     int count = 0;

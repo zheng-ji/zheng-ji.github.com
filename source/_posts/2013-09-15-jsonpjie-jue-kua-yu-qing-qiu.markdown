@@ -13,7 +13,7 @@ categories: NetWork
 客户端使用Ajax技术向服务器发送请求，然后拉取数据
 
 Server端代码是php写的,
-```
+```php
 $arr = array(
         'user'=>'123',
         'friends' => 234
@@ -22,7 +22,7 @@ echo json_encode($arr);
 ```
 
 js代码,使用jquery发起get 请求,文件路径E:/mytest/test.html
-```
+```javascript
 $(function(){
     url = "http://127.0.0.1/test.php"
     $.get(url,funtion(result) {

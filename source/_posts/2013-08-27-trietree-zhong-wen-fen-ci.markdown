@@ -14,7 +14,7 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
 + 从根节点到某一节点，路径上经过的字符连接起来，为该节点对应的字符串。
 + 每个节点的所有子节点包含的字符都不相同。
 
-```
+```python
 class Node:
     def __init__(self,char,is_end=False):
         self.is_end = is_end

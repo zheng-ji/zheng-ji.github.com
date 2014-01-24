@@ -30,7 +30,7 @@ Server 端应该对每个请求进行验证，确认是来自微信服务器的�
 * 将三个参数字符串拼接成一个字符串进行sha1加密
 * 开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
 
-```
+```python
 class BaseHandler(tornado.web.RequestHandler):
     #基类,实现基本认证，子类只需要继承就可以完成微信认证
     def prepare(self):

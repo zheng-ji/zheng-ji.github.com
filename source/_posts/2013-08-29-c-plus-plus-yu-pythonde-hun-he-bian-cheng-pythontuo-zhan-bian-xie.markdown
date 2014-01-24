@@ -42,7 +42,7 @@ void initbint() {
 ```
 
 如下
-```    
+```c    
 #include "BigNum.h"
 #include <python2.7/Python.h>
 #include <iostream>

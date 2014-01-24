@@ -93,7 +93,7 @@ location /getolNum {
 ```
 ##### online.lua 源码
 
-```
+```lua
 local redis = require "redis"
 local cache = redis.new()
 

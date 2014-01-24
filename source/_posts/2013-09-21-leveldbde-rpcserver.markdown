@@ -10,7 +10,7 @@ leveldb作为一个高性能的存储引擎，并不提供Server以及网络的�
 XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 python 的[leveldb binding](http://zheng-ji.info//blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/) 
 
 #### server.py
-```
+```python
 '''XML-RPC server for leveldb
 '''
 import argparse
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 ```
 #### client.py
 
-```
+```python
 '''XML-RPC client for leveldb
 '''
 
