@@ -3,7 +3,7 @@ layout: post
 title: "《Rework》书摘"
 date: 2014-01-24 22:31
 comments: true
-categories: life
+categories: Life
 keywords: Rework
 description: Rework 书评
 ---
