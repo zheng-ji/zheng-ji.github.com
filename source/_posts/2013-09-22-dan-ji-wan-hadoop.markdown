@@ -3,7 +3,7 @@ layout: post
 title: "单机玩Hadoop"
 date: 2013-09-22 18:11
 comments: true
-categories: Hadoop 
+categories: Server
 ---
 以前在Amazon Web Service[AWS](http://aws.amazon.com/) 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热，特别是某些公司会把这些当作自我标榜更是让人恶心.本着折腾的信，把自己玩hadoop的过程写下来 ：）
 

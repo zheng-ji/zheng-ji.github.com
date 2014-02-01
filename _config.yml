@@ -5,7 +5,7 @@
 url: http://zheng-ji.info
 title: 织网
 subtitle: 身体和灵魂，总有一个在路上
-author: Zheng Ji
+author: zheng-ji
 simple_search: http://google.com/search
 description:
 
@@ -104,6 +104,5 @@ duoshuo_asides_time: 0      # 侧边栏评论是否显示时间
 duoshuo_asides_title: 0     # 侧边栏评论是否显示标题
 duoshuo_asides_admin: 0     # 侧边栏评论是否显示作者评论
 duoshuo_asides_length: 18   # 侧边栏评论截取的长度
-
 
 
