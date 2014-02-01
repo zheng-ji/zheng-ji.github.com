@@ -3,7 +3,7 @@ layout: post
 title: "跳表skiplist"
 date: 2014-02-01 10:21
 comments: true
-categories: 跳表 
+categories: Programe
 keywords: 跳表 
 description: 跳表skiplist介绍,leveldb
 ---
