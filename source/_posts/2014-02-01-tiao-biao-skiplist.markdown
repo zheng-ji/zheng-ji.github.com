@@ -173,7 +173,7 @@ int search(skiplist * sl, int key) {
 <h3 id="第三节">应用场景</h3>
 如前面说道的，老夫在leveldb的memtable.c看到这一实现的， Redis也是用到了这样的设计，看来KV的设计对skiplist有偏好，leveldb需要内存中存储的是有序的key-val键值对, 作为一个内存数据库，快速是很重要的，特别是数据量大的时候。牺牲了部分空间(冗余的指针)换取时间,达到O(logn)的效果
 
-* 引用资料
+<h3>引用资料</h3>
 - [wikipedia](http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8) 
 - [skiplist讲解](http://dsqiu.iteye.com/blog/1705530)
 - [source code](https://github.com/zheng-ji/ToyCollection/skiplist)
