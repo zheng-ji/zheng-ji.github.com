@@ -41,7 +41,8 @@ QWry.dat文件在结构上分为3块：
 范围内IP的信息
 
 代码不是我写的，网上有很多版本。这里纯粹是为了学习。
-```
+
+```python
 #!/usr/bin/python
 
 from struct import *
