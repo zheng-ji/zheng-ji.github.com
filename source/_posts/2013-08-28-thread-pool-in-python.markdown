@@ -9,8 +9,8 @@ categories: Programe
 使用线程有两种模式：
 + 一种是创建线程要执行的函数，把这个函数传递进Thread对象里，让它来执行；
 + 一种是直接从Thread继承，创建一个新的class，把线程执行的代码放到这个新的 class里。
+
 ```python
-#-*- encoding: gb2312 -*-
 import string, threading, time
  
 def thread_main(a):
@@ -50,8 +50,7 @@ if __name__ == '__main__':
 ```
 方法二
 
-```
-#-*- encoding: gb2312 -*-
+```python
 import threading
 import time
  
@@ -94,7 +93,7 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 #### 线程池原理：
 我们把任务放进队列中去，然后开N个线程，每个线程都去队列中取一个任务，执行完了之后告诉系统说我执行完了，然后接着去队列中取下一个任务，直至队列中所有任务取空，退出线程.
 
-```
+```python
 import time
 import threading
 import Queue

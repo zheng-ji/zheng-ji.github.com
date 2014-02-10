@@ -28,6 +28,7 @@ description: 跳表skiplist介绍,leveldb
 <h3 id="第二节">数据结构</h3>
 
 * skiplist节点
+
 ```c
 struct node {
     int key;
@@ -35,9 +36,11 @@ struct node {
     node *next[1];  
 }
 ```
+
 其中nodec * next[1] 是该节点的前向指针
 
 * skiplist数据结构
+
 ```c
 struct skiplist
 {
@@ -45,6 +48,7 @@ struct skiplist
     node *header;链表头
 };
 ```
+
 通常一个数据结构我们定义为表头信息和最大的层数
 
 

@@ -39,17 +39,20 @@ Gearman是一个提供机器与进程之间相互协作的通信框架。可以�
 + Worker：负责执行Job，执行业务流
 
 实操安装Gearman（以ubuntu为例子）,默认的端口4730
+
 ```
 sudo apt-get install gearman
 ```
 
 安装python-gearman
+
 ```
 sudo apt-get install python-gearman
 ```
 
 用python编写
 worker代码
+
 ```
 #worker.py
 import os
@@ -69,7 +72,8 @@ new_worker.work()
 ```
 
 client代码
-```
+
+```python
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 # # file: client.py
@@ -81,11 +85,13 @@ print new_resul
 ```
 
 结果
+
 ```
 foo has received
 ```
 
 用Go测试下
+
 ```
 #gearman的Go库,内有example
 go get https://github.com/mikespook/gearman-go

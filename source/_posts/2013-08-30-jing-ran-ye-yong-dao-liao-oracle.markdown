@@ -18,6 +18,7 @@ categories: DataBase
 Oracle查询流程
 
 简单描述下普通的Oracle建立连接以及查询的顺序,使用的是OCCI （Oracle的C++接口）:
+
 ```
 //创建enviroment变量
 Environment *env = Environment::createEnvironment( Environment::DEFAULT);
@@ -41,9 +42,8 @@ Environment::terminateEnvironment(env);
 + 创建环境变量类指明多线程使用。该任务需要多线程执行的，如果不特别声明多线程执行，如果不特别指明的话会奔溃，我纠结了一天就是因为没有指明这个常量。这在Mysql是没有见到的吧
 + 连接管理。Oracle的连接关闭很重要。查询任务完成后要及时关闭连接。如果不关闭连接和环境句柄，程序就会有很大的潜在bug,程序执行期间也会奔溃。这过程中自己写了连接管理模块。特别处理了多线程处理时的构造与析构。
 
-            
-env = Environment::createEnvironment( Environment::DEFAULT);
 以下是连接管理类的代码
+
 ```            
 #include<string.h>
 using namespace oracle::occi;

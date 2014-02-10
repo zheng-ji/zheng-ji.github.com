@@ -13,6 +13,7 @@ categories: NetWork
 客户端使用Ajax技术向服务器发送请求，然后拉取数据
 
 Server端代码是php写的,
+
 ```php
 $arr = array(
         'user'=>'123',
@@ -22,6 +23,7 @@ echo json_encode($arr);
 ```
 
 js代码,使用jquery发起get 请求,文件路径E:/mytest/test.html
+
 ```javascript
 $(function(){
     url = "http://127.0.0.1/test.php"
@@ -44,7 +46,7 @@ $(function(){
 
 因此最后的Server端代码是php写的
 
-```
+```python
 $arr = array(
         'user'=>'123',
         'friends' => 234
@@ -55,7 +57,7 @@ echo $callback.json_encode($arr);
 
 js代码,请求的时候，加入一个参数callback,通过javascripte callback形式调用服务器的scrpt tags的返回值
 
-```
+```javascript
 $(function(){
     url = "http://127.0.0.1/test.php?callback=?"
     $.get(url,funtion(result) {
@@ -65,7 +67,6 @@ $(function(){
 
 调用成功
 这个东西纠结我大半天。但是有收获的 ：）
-
 
 
 

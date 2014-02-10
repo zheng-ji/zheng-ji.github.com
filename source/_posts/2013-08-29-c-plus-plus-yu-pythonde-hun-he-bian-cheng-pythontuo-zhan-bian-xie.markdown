@@ -15,7 +15,8 @@ string add(int a,int b)
 ```
 
 * 包装为python函数，用于解析python传进来的参数
-```
+
+```c
 PyObject* wrap_add(PyObject* self,PyObject* args);
 //解析参数
 PyArg_ParseTuple(args,"i|i",&a,&b);
@@ -24,7 +25,8 @@ Py_BuildValue("s",add(a,b).c_str());
 ```
 
 * 编写映射函数
-```
+
+```c
 static PyMethodDef bintMethods[] =
 {
         {"add", wrap_add, METH_VARARGS, "For add"},
@@ -33,7 +35,8 @@ static PyMethodDef bintMethods[] =
 ```
 
 *.模块初始化函数
-```
+
+```c
 void initbint() {
     PyObject* m;
     m = Py_InitModule("bint", bintMethods);
@@ -42,6 +45,7 @@ void initbint() {
 ```
 
 如下
+
 ```c    
 #include "BigNum.h"
 #include <python2.7/Python.h>
@@ -88,17 +92,21 @@ void initbint() {
     m = Py_InitModule("bint", bintMethods);
 }
 ```
+
 编译成动态链接库
+
 ```
 all:
     g++ -fPIC -shared BigNum.cpp -o Bint.so
 clean:
     rm -rf bint.so
 ```
-```            
+
+```python           
 import bint
 bint.mul(4000000,5000000)
 ```
+
 GitHub上有[源码](http://innerbrilliant.sinaapp.com/?p=515)
 
 ### C++调用Python
@@ -124,7 +132,8 @@ char* PyString_AsString (PyObject *string)
 Py_Finalize();
 
 下面是script.py的内容
-```
+
+```python
 #!/usr/bin/python
 # Filename: script.py
 class Student:
@@ -140,7 +149,7 @@ class Student:
 
 #### C++调用Script.py
 
-```
+```c
 #include <python2.7/Python.h>
 #include <iostream>
 #include <string>
@@ -188,11 +197,15 @@ int main () {
     return 0;
 }
 ```
+
 编译C++代码
+
 ```
 g++ zj.cpp -o zj -lpython2.7
 ```
+
 输出结果
+
 ```
 zj@hp:~/tmp/CcalPy$ ./zj
 Hello World

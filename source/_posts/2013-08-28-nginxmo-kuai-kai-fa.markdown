@@ -37,6 +37,7 @@ location /echo {
 Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：
 
 + 编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：
+
 ```
 ngx_addon_name=模块完整名称
 HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
@@ -44,6 +45,7 @@ NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”
 ```
 
 + 进入Nginx源代码，使用下面命令编译安装
+
 ```
 ./configure --prefix=安装目录 --add-module=模块源代码文件目录
 make
@@ -51,6 +53,7 @@ make install
 ```
 
 这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：
+
 ```
 ngx_addon_name=ngx_http_echo_module
 HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
@@ -58,6 +61,7 @@ NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"
 ```
 
 #### 编译安装命令为：
+
 ```
 ./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
 make
@@ -65,6 +69,7 @@ sudo make install
 ```
 
 这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：
+
 ```
 location /echo {
     echo "This is my first nginx module!!!";
@@ -72,6 +77,7 @@ location /echo {
 ```
 
 然后用curl测试一下：
+
 ```
 curl -i http://localhost/echo
 ```

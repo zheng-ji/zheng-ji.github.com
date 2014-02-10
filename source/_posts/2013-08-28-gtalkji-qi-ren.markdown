@@ -15,7 +15,8 @@ python-xmpp库，tornado(httpserver 框架),其实也可以自己写
 XMPP（可扩展消息处理现场协议）是基于可扩展标记语言（XML）的协议，它用于即时消息（IM）以及在线现场探测。它在促进服务器之间的准即时操作。这个协议可能最终允许因特网用户向因特网上的其他任何人发送即时消息，即使其操作系统和浏览器不同XMPP的前身是Jabber，一个开源形式组织产生的网络即时通信协议
 
 #### 关键代码
-```
+
+```python
 #robot 开始发送消息
 def chat(msg):
     jid = xmpp.JID(user)
@@ -36,6 +37,7 @@ if __name__ == '__main__':
     msg = "please ignore me ! i am just test"
         chat(msg)
 ```
+
  这样就可以自动发信息给联系人了，contactlist里面为通讯录名单，在项目中把上述代码实现为http接口，让监控端调用。由于只是简单的应用，我甚至用文本替代数据库，不过这也可以试一试面向对象的编程思想.
 
 代码[链接](https://github.com/zheng-ji/gtalk-robot)

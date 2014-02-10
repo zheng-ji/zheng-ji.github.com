@@ -32,7 +32,9 @@ while(token != NULL) {
     token = strtok(NULL, del);
 }
 ```
+
 输出：
+
 ```
 zheng-ji
 is

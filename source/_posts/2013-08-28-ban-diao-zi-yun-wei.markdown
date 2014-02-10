@@ -14,6 +14,7 @@ categories: Server
 + swap 给了是4G（跟内存一致）的空间
 
 #### 配置源的修改并更新
+
 ```
 sudo vi /etc/apt/source.list
 sudo apt-get dist-upgrade
@@ -36,6 +37,7 @@ iface eth1 inet static
 address 192.168.1.120
 netmask 255.255.255.0
 ```
+
 执行命令 
 
 ```

@@ -24,6 +24,7 @@ categories: Programe
     大部分类并不需要可拷贝, 也不需要一个拷贝构造函数或重载赋值运算符. 不幸的是, 如果你不主动声明它们, 编译器会为你自动生成, 而且是 public 的.可以考虑在类的 private: 中添加拷贝构造函数和赋值操作的空实现, 只有声明, 没有定义. 由于这些空函数声明为 private, 当其他代码试图使用它们的时候, 编译器将报错. 方便起见, 我们可以使用 DISALLOW_COPY_AND_ASSIGN 宏:
 
 ```
+
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
     TypeName(const TypeName&); \
 void operator=(const TypeName&)

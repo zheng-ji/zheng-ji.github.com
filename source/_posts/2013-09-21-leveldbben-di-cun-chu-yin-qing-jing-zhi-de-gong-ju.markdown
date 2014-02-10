@@ -18,8 +18,8 @@ categories: Server DataBase
 >talk is cheap ,Show me the Code
 
 简单示范一下C++使用Leveldb ,要先下载leveldb源码编译[code](https://github.com/basho/leveldb)
-```
-//testleveldb.cpp
+
+```python
 #include<iostream>  
 #include<string>  
 #include"leveldb/db.h"  
@@ -56,10 +56,13 @@ int main()
 ```
 
 编译方法
+
 ```
 g++ testleveldb.cpp -o main -I./Include -l./ -lleveldb -lrt
 ```
+
 执行./main 之后便可以看到,leveldb的存储文件
+
 ```
 zj@hp:~/lvd.db$ tree
 .
@@ -79,7 +82,8 @@ zj@hp:~/lvd.db$ tree
 
 很多语言都给予了binding,那么python 也不例外了 ：） [py-leveldb](https://github.com/rjpower/py-leveldb)  
 你需要先安装python-leveldb库
-```
+
+```python
 import leveldb
 db = leveldb.LevelDB('./db')
 db.Put('hello', 'world')

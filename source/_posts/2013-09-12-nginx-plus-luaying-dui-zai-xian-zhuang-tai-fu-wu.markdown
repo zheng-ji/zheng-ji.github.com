@@ -32,6 +32,7 @@ shell> export LUAJIT_INC=/usr/local/include/luajit-<VERSION>
 ```
 
 #### 需要安装的nginx 插件
+
 ```
 ngx_devel_kit https://github.com/simpl/ngx_devel_kit
 set-misc-nginx-module https://github.com/agentzh/set-misc-nginx-module
@@ -47,7 +48,9 @@ lua-nginx-module https://github.com/chaoslawful/lua-nginx-module
 make 
 make install
 ```
+
 nginx.conf 文件                 
+
 ```
 location /echo {  
     default_type 'text/plain';  
@@ -59,7 +62,9 @@ location /lua {
     content_by_lua 'ngx.say("hello, lua")';  
 }  
 ```
+
 也许你会遇到一些麻烦,执行如下命令
+
 ```
 shell> echo "/usr/local/lib" > /etc/ld.so.conf.d/usr_local_lib.conf
 shell> ldconfig
@@ -77,20 +82,25 @@ agentzh 提供了一个很方便的开发包，如下：[lua-resty-redis](https:
 该包中，有一个 lib 目录，将 lib 目录下的文件和子目录拷贝至目录 /home/zj/soft/data/www/lua/
 在 Nginx 配置文件中，需要加一行代码，以便引入 redis.lua。
 注：加在 http 段里。
+
 ```
 lua_package_path "/home/zj/soft/data/www/lua//?.lua;;";  
 ```
+
 为了使得 lua 脚本的修改能及时生效，需要加入一行代码，如下：注：在 server 段里，加入代码，如果不加此代码或者设置为 on 时，则需要重启 Nginx。 不过nginx 会报警
+
 ```
 lua_code_cache off;  
 ```
 
 nginx.conf 里
+
 ```
 location /getolNum {
     content_by_lua_file /conf/online.lua;  
 } 
 ```
+
 ##### online.lua 源码
 
 ```lua
@@ -119,7 +129,9 @@ end
 ngx.say(count)
 local ok, err = cache:close()
 ```
+
 结果
+
 ```
 curl localhost/getOlnum?user=zj
 返回：1

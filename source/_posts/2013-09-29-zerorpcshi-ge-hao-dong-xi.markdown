@@ -15,6 +15,7 @@ categories: Server NetWork
 这次刚好在Github上面看到这样的好玩意，便想与大家分享,ZeroRpc不仅仅支持代码层面的调用，也支持CLi， 这种设计本身就很有弹性.赞！
 
 安装zerorpc
+
 ```
 sudo pip install zerorpc 
 ```
@@ -29,7 +30,8 @@ sudo pip install zerorpc
 官方的[文档](http://zerorpc.dotcloud.com/)给出以下demo
 
 ####server.py #####
-```
+
+```python
 import zerorpc
 class HelloRPC(object):
     def hello(self, name):
@@ -39,8 +41,10 @@ s = zerorpc.Server(HelloRPC())
 s.bind("tcp://0.0.0.0:4242")
 s.run()
 ```
+
 ####client.py
-```
+
+```python
 import zerorpc
 
 c = zerorpc.Client()
@@ -48,13 +52,16 @@ c.connect("tcp://127.0.0.1:4242")
 print c.hello("RPC")
 ```
 client也可用命令行代替
-```
+
+```python
 zerorpc tcp://127.0.0.1:4242 hello RPC
 ```
 
-够见面易懂了吧
+够简明易懂了吧
 再来一个返回连续字节流的例子
+
 ####server.py
+
 ```python
 import zerorpc
 
@@ -69,6 +76,7 @@ s.run()
 ```
 
 ####client.py
+
 ```python
 import zerorpc
 

@@ -19,11 +19,14 @@ UNIX Domain Socket是全双工的，API接口语义丰富，相比其它IPC机�
 
 Nginx通过unix:/socket与fastcgi连接，提升性能,比tcp socket要高效
 + 在nginx.conf中修改配置为：
+
 ```
 fastcgi_pass unix:/tmp/php-cgi.sock;
 #fastcgi_pass 127.0.0.1:9000;
 ```
+
 + 在php-fpm.conf中修改配置为：
+
 ```
 /tmp/php-cgi.sock
 ```

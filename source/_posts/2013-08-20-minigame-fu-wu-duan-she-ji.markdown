@@ -41,6 +41,7 @@ categories: Server
 * cache数据库的设计：
 利用Redis的数据特性,新增一个用户保证用户ID的原子性。
 + counter: 对新用户的注册执行自增操作，从而保证账号Id 唯一
+
 ```
 说明 key value
 实例 counter 1
@@ -49,6 +50,7 @@ categories: Server
 * 用户账号：
 Key设计为 user：name:用户名’，Value用户ID，
 为保证用户可以同时通过id 查找名字 ，也设计了 ‘user:id:ID值’值为用户名
+
 ```
 说明 key                    value
 实例 User:name:zhengji         1
@@ -57,6 +59,7 @@ Key设计为 user：name:用户名’，Value用户ID，
 
 * 玩家通讯缓存设计：
 Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’
+
 ```
 说明 key              value
 实例 user:zhengji:msg 100, 2,   1324256778.89
@@ -64,6 +67,7 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’
 
 * 玩家匹配对设计
 在游戏大厅的功能里，我们采用了redis的list模拟了玩家等待队列的功能 在真正匹配到玩家对的时候，使用table_xx 来记录玩家匹配信息,它是一个set的类型,在游戏退出的时候会被驱动去清除该表的信息
+
 ```
 说明   key      value
 实例 Table_1 ‘jerry,zhengji’
@@ -71,6 +75,7 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’
        
 为标志每个玩家的table号，我们使用了另外一个键值对
 Table:玩家名：tableindex.
+
 ```
 说明   key       value
 实例 Table:zhengji 1

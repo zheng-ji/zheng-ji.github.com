@@ -10,7 +10,8 @@ categories: Programe
 在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。
 
 使用方法：
-```
+
+```python
 if __name__ == "__main__":
     #用户名,可以写入douban ID
     usrnames = ["laiyonghao","fenng"]
@@ -23,6 +24,7 @@ if __name__ == "__main__":
 >运行 python main.py
 
 结果 
+
 ```
 tmp
     ├── fenng

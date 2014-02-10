@@ -10,6 +10,7 @@ leveldb作为一个高性能的存储引擎，并不提供Server以及网络的�
 XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 python 的[leveldb binding](http://zheng-ji.info//blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/) 
 
 #### server.py
+
 ```python
 '''XML-RPC server for leveldb
 '''
@@ -54,6 +55,7 @@ def main():
 if __name__ == '__main__':
     main()
 ```
+
 #### client.py
 
 ```python
@@ -110,12 +112,12 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 ```
 
 #### Server代码:
 + SimpleXMLRpcServer拓展,自定义业务逻辑类 LevelDBMethod,以及RPC运行路径别名,注册业务代码
-```
+
+```python
  # Create server
 server = SimpleXMLRPCServer(("localhost", args.port),
         requestHandler=RequestHandler,
@@ -124,18 +126,22 @@ server.register_introspection_functions()
 server.register_instance(LevelDBMethod(args.datadir))
 server.serve_forever()
 ```
+
 + argsparse解析命令行参数 
 + 包装leveldb ,公开RPC函数调用
 
 
 #### Client代码:
 + 调用xmprpclib 的ServerProxy，完成网络RPC调用
-```
+
+```python
 self.server = ServerProxy('http://%s:%d' % (host, port))
 ```
+
 + cmd模块，自定义命令行提示工具,调用cmdloop() 实现循环调用,继承cmd.Cmd类时，函数名为do_动作名
 + argsparse解析命令行参数 
-```
+
+```python
 parser = argparse.ArgumentParser()
 parser.add_argument('--host', type=str, nargs='?', default='localhost')
 parser.add_argument('--port', type=int, nargs='?', default=8000)
