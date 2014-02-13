@@ -19,7 +19,7 @@ footer: true
 
 * __@Weibo__ [链接](http://weibo.com/u/1906320835)
 
-* __@Twitter__ [链接](http://twitter.com/levi_zheng)
+* __@Twitter__ [链接](http://twitter.com/levi_zhengji)
 
 * __@Email__:zhengji91@gmail.com 
 
