@@ -11,7 +11,7 @@ description: zheng-ji
 
 #### Info
 
-`郑纪`, `Scut`, `Desire To Be Geek`, `Vim铁杆`, `Unix信徒`, `爱玩吉他`, `@腾讯游戏`
+`郑纪`, `Scut`, `Desire To Be Geek`, `吉他`, `@腾讯游戏`
 
 #### Motto
 > 身体和灵魂，总有一个在路上
