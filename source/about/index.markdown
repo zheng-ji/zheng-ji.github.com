@@ -5,23 +5,22 @@ date: 2013-10-08 21:08
 comments: true
 sharing: true
 footer: true
+keywords: zheng-ji
+description: zheng-ji
 ---
 
 #### Info
 
-郑纪,Scut,奔向Geek,Vim铁杆,Unix信徒 爱玩吉他
-@腾讯游戏
+`郑纪`, `Scut`, `Desire To Be Geek`, `Vim铁杆`, `Unix信徒`, `爱玩吉他`, `@腾讯游戏`
 
 #### Motto
 > 身体和灵魂，总有一个在路上
 
-* __@GitHub__ [链接](https://github.com/zheng-ji)
+* `@GitHub` [链接](https://github.com/zheng-ji)
 
-* __@Weibo__ [链接](http://weibo.com/u/1906320835)
+* `@Weibo` [链接](http://weibo.com/u/1906320835)
 
-* __@Twitter__ [链接](http://twitter.com/levi_zhengji)
-
-* __@Email__:zhengji91@gmail.com 
+* `@Twitter` [链接](http://twitter.com/levi_zhengji)
 
 * 旧时的[博客](http://innerbrilliant.sinaapp.com)
 
