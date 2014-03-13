@@ -19,16 +19,16 @@ description: 微信公众号开发
 现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.
 
 #####注册
-会给你一个APPID,APPSeceret,这个步骤需要你填写自己Server的URL,以及填写TOKEN,这些是未来完成通讯的许可证明
+会给你一个 `APPID`, `APPSeceret`,这个步骤需要你填写自己 Server 的 URL,以及填写 `TOKEN`,这些是未来完成通讯的许可证明
 
 #####微信认证
 Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应
 
 加密/校验流程如下：
 
-* 将token、timestamp、nonce三个参数进行字典序排序
+* 将 `token`、`timestamp`、`nonce` 三个参数进行字典序排序
 * 将三个参数字符串拼接成一个字符串进行sha1加密
-* 开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
+* 开发者获得加密后的字符串可与 `signature` 对比，标识该请求来源于微信
 
 ```python
 class BaseHandler(tornado.web.RequestHandler):
@@ -101,11 +101,11 @@ self.write(msg)是将要发给用户的信息返回给微信服务器，之后�
 
 
 #### 开发中用到的库
-- tornado
-- virtualenv
-- pyquery(做爬虫)
-- pymongo
-- lxml
-- urllib2
+- `tornado`
+- `virtualenv`
+- `pyquery(做爬虫)`
+- `pymongo`
+- `lxml`
+- `urllib2`
 
 
