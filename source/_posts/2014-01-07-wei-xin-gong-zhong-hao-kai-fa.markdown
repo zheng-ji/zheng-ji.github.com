@@ -53,7 +53,9 @@ def validate(timestamp, nonce, signature):
     hashStr = sha1(tmpStr).hexdigest()
     return (hashStr == signature)
 ```
+
 验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回
+
 ```
 class serverHandler(BaseHandler):
     def get(self):
@@ -64,6 +66,7 @@ class serverHandler(BaseHandler):
 
 #####. 菜单订制
  为了支持微信通信过程中不允许使用"/u" 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒
+
 ```
 class UIHandler(tornado.web.RequestHandler):
     def get(self):
@@ -73,6 +76,7 @@ class UIHandler(tornado.web.RequestHandler):
 
 
 #####. 响应用户按键输入
+
 ```
 xml = uni(self.request.body)        #获取微信服务器发送过来的xml,转化为unicode
 dic = xml2dict(xml)                 #将xml解析成dict
@@ -87,6 +91,7 @@ if dic['MsgType'].lower() == 'event':
         msg = self.render_string('text_resp.xml', dic=ctx)
         self.write(msg)
 ```
+
 self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户
 
 
