@@ -68,3 +68,15 @@ do
     sleep 1
 done 
 ```
+
+ 给一个文本，获取其中2000 ~ 3000 行怎么破？
+
+```
+cat data.txt | tail -n +2000 | head -n 1000 > result.txt
+```
+
+查找文件是否存在
+```
+find /data -name hello.cpp 
+```
+
