@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "《Rework》书摘"
+title: "Rework书摘"
 date: 2014-01-24 22:31
 comments: true
 categories: Life
@@ -8,7 +8,7 @@ keywords: Rework
 description: Rework 书评
 ---
 
-读到《ReWork》这本久负盛名的书了。摘录了鄙人认为深刻的话语。
+读到ReWork这本久负盛名的书了。摘录了鄙人认为深刻的话语。
 
 {% img /images/2014/01/rework.jpg %}
 
