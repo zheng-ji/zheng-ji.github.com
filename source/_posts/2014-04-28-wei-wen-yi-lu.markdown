@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "伪文青之旅"
+title: "伪文青"
 date: 2014-04-28 12:18
 comments: true
 categories: Life
