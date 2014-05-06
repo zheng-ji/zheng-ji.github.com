@@ -18,6 +18,7 @@ export PATH=$PATH:$GOBIN
 
 开始安装,耗时有点久
 保证你的电脑安装有 hg, 如果没有,请执行 
+
 ```
 sudo easy_install mercurial
 ```
