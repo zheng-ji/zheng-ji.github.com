@@ -4,6 +4,9 @@ title: "mac 安装Go"
 date: 2014-05-03 09:32
 comments: true
 categories: Programe
+keywords: mac golang
+description: mac golang
+---
 ---
 之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。
 

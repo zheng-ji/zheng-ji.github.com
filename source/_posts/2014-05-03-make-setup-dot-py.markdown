@@ -4,6 +4,8 @@ title: "制作setup.py"
 date: 2014-05-03 11:52
 comments: true
 categories: Programe
+keywords: python setuptool
+description: python setuptool
 ---
 做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。
 
@@ -16,7 +18,7 @@ vim foo.py
 
 编辑以下内容
 
-```
+```python
 class Hacker():
     def __init__(self):
         self.motto = "No evil, Be Hacker"
@@ -26,7 +28,7 @@ class Hacker():
 
 开始编写 setup.py, 也许是为了知识产权保护，里面按照规矩会让作者填上资料。
 
-```
+```python
 from distutils.core import setup
 setup(name='Hacker',
         version='1.0',
