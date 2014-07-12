@@ -23,3 +23,11 @@ go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}
 go install code.google.com/p/goprotobuf/proto
 sudo apt-get install protobuf-compiler
 ```
+
+使用的时候，是在项目内部新建一个proto.文件
+然后执行
+
+```
+protoc --go_out-. xxx.proto
+```
+
