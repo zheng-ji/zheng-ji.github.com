@@ -84,11 +84,19 @@ sudo docker pull zhengji/helloworld
 
 ### 可能遇到的坑
 
-需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析
+* 需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析
 
 ```
 DOCKER_OPTS = "-dns 8.8.8.8"
 ```
+
+* 设置 ufw 端口可转发
+
+```
+vim /etc/default/ufw
+DEFAULT_FORWARD_POLICY = "ACCEPT"
+```
+
 
 ### 参考链接
 
