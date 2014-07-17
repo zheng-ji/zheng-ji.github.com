@@ -10,7 +10,7 @@ categories: Life
 
 这天我被折腾疯了
 
-开始博客迁移，从innerbrilliant.sinaapp.com 迁移至 zheng-ji.info
+开始博客迁移，从 [http:innerbrilliant.sinaapp.com](http:innerbrilliant.sinaapp.com) 迁移至 [zheng-ji.info](http://zheng-ji.info)
 
 文档式编程的感觉爽 ：）
 
