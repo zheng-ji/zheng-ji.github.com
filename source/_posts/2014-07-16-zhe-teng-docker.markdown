@@ -52,7 +52,7 @@ zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash
 zj@zheng-ji:~$ mkdir /home/zj/test
 ```
 
-好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 [这里]（https://registry.hub.docker.com/u/）注册一个账户，然后再上传，类似在 github  上面一样的操作。
+好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 [这里](https://registry.hub.docker.com/u/) 注册一个账户，然后再上传，类似在 github  上面一样的操作。
 
 ```
 sudo docker ps 
