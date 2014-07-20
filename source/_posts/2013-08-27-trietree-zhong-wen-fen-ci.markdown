@@ -30,18 +30,18 @@ class Trie:
         current = self.head
         count = 0
         for letter in word:
-        int_value = ord(letter) - ord('a')
-        try:
-        assert ( 0 <= int_value <= 26)
-        except Exception:
-            raise Exception("invalid Word")
-        if current.children[int_value] is None:
-           current.children[int_value] = Node(letter)
-           current = current.children[int_value]
-           count += 1
-           current.prefix_count = count
-        else:
-            current = current.children [int_value]
+            int_value = ord(letter) - ord('a')
+            try:
+            assert ( 0 <= int_value <= 26)
+            except Exception:
+                raise Exception("invalid Word")
+            if current.children[int_value] is None:
+               current.children[int_value] = Node(letter)
+               current = current.children[int_value]
+               count += 1
+               current.prefix_count = count
+            else:
+                current = current.children [int_value]
         current.is_end = True
 
     def search(self, word):
@@ -83,6 +83,72 @@ if __name__ == '__main__':
     print t.search('c++')
     raw_input('void flush')__init__(self,char
 ```
+
+附带go 语言的:
+
+```
+package main
+
+import ("fmt")
+
+type Node struct {
+    is_end           bool
+    element          byte
+    prefix_count     int
+    children         [26]*Node
+}
+
+type Trie struct {
+    head *Node
+}
+
+func (trie *Trie) insert(word string) {
+    current := trie.head
+    count := 0
+    for _, v := range word {
+        index := v - 'a'
+        if nil == current.children[index] {
+            current.children[index] = new(Node)
+            current = current.children[index]
+            count += 1
+            current.prefix_count = count
+        } else {
+            current = current.children[index]
+        }
+    }
+    current.is_end = true
+}
+
+func (trie *Trie) search(word string) bool {
+    current := trie.head
+    for _, v:= range word {
+        index := v - 'a'
+        if nil == current.children[index] {
+            return false
+        } else {
+            current = current.children[index]
+        }
+    }
+    return current.is_end
+}
+
+func main() {
+    trie := new(Trie)
+    trie.head = new(Node)
+    if nil != trie.head.children[5] {
+        fmt.Println("element is not null")
+    }
+    if nil == trie.head.children[5] {
+        fmt.Println("element is null")
+    }
+    trie.insert("hello")
+    trie.insert("world")
+    if true == trie.search("hell") {
+        fmt.Println("good")
+    }
+}
+```
+
 
 #### Node类：
 
