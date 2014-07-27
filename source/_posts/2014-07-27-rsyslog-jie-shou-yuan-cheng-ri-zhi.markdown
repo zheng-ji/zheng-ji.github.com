@@ -36,7 +36,7 @@ $InputTCPServerRun 1514
 # 过滤规则
 if $msg contains "xx" then ?DynFile;dotalogformat
 
-# 为了不让它写入syslog
+# 为了不让它写入syslog.log 而直接写入目标模板
 :msg, contains, "xx" ~
 ```
 
