@@ -27,7 +27,7 @@ sudo chown mysql:mysql  -R /data/mysql
 ```
 
 
-这时候会发生 sudo service mysql stop 失败，原因和方法见此 [神贴](http://serverfault.com/questions/32692/cant-start-stop-mysql-service/420222#420222)
+这时候会发生 `sudo service mysql stop` 失败，原因和方法见此 [神贴](http://serverfault.com/questions/32692/cant-start-stop-mysql-service/420222#420222)
 
 好了开始进入正题了，备份数据的原理
 
