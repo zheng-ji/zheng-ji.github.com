@@ -3,7 +3,7 @@ layout: post
 title: "唯一索引引发的思考"
 date: 2014-10-23 23:18
 comments: true
-categories: DB
+categories: DataBase
 ---
 
 最近需要改动线上一个有千万条记录的表，涉及到加表操作，这个表有索引，按照经验，为了加速修改表结构.我去掉索引。
