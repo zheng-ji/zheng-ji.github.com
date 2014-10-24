@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "mysql的那些动态变量"
+title: "Mysql的一些配置"
 date: 2014-10-21 23:18
 comments: true
 categories: DB
@@ -24,11 +24,13 @@ show global variable like '%max%'
 set global max_connections 1000
 ```
 * thread_concurrency
-同一时间与性的线程设置，如果分配不当，会导致`mysql`不能充分使用多｀cpu｀, 出现同一时刻只有一个核在工作 
-`thread_concurrency`应设为`CPU`核数的2倍. 比如有一个双核的CPU, 那么`thread_concurrency`的应该为4; 2个双核的cpu, `thread_concurrency`的值应为8.
+
+同一时间与性的线程设置，如果分配不当，会导致`mysql`不能充分使用多｀cpu｀, 出现同一时刻只有一个核在工作。
+`thread_concurrency` 应设为`CPU` 核数的2倍. 比如有一个双核的CPU, 那么`thread_concurrency`的应该为4; 2个双核的cpu, `thread_concurrency`的值应为8.
 
 * max_allowed_packet
 如果需要进行mysqldump这类操作，需要调大
+
 ```
 set global max_allowed_packet = 2*1024*1024*10
 ```
