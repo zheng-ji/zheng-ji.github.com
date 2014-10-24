@@ -3,7 +3,7 @@ layout: post
 title: "Mysql的一些配置"
 date: 2014-10-21 23:18
 comments: true
-categories: DB
+categories: DataBase
 ---
 
 我想写一篇长期更新的文章，随着知识积累持续更新的文章，而最近遇到的在涉及的Mysql优化，便是一个可以琢磨的点，变量比较多，并且需要在每次采坑才来的深刻。
