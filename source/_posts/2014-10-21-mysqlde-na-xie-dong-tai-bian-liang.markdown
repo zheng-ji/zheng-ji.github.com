@@ -34,3 +34,6 @@ set global max_connections 1000
 ```
 set global max_allowed_packet = 2*1024*1024*10
 ```
+
+* skip_slave_start
+配置文件中建议加上skip-slave-start，以免在不需要时候slave线程自己开始执行了
