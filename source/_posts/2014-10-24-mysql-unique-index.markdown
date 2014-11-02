@@ -3,6 +3,8 @@ layout: post
 title: "唯一索引引发的思考"
 date: 2014-10-23 23:18
 comments: true
+keywords: MySQL Index
+description: MySQL Index
 categories: DataBase
 ---
 
