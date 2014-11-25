@@ -1,0 +1,424 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>微信公众号开发 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="微信公众号开发">
+  <meta name="keywords" content="微信公众号开发">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">微信公众号开发</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-07T18:47:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2014</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h3 id="section">微信公众账号开发</h3>
+
+<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
+&gt; 人生苦短,我爱python</p>
+
+<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
+
+<p><img src="/images/2013/12/nba.jpg" /></p>
+
+<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
+
+<h5 id="section-1">注册</h5>
+<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
+
+<h5 id="section-2">微信认证</h5>
+<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
+
+<p>加密/校验流程如下：</p>
+
+<ul>
+  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
+  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
+  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">BaseHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="c">#基类,实现基本认证，子类只需要继承就可以完成微信认证</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;timestamp&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="n">nonce</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;nonce&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="n">signature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;signature&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&#39;request:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;=========validate failed =====&quot;</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">):</span>
+</span><span class="line">    <span class="k">print</span> <span class="s">&#39;validate:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">nonce</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">signature</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">False</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">TOKEN</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">]</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tmparr</span><span class="p">)</span>
+</span><span class="line">    <span class="n">tmpStr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+</span><span class="line">    <span class="n">hashStr</span> <span class="o">=</span> <span class="n">sha1</span><span class="p">(</span><span class="n">tmpStr</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span class="line">    <span class="k">return</span> <span class="p">(</span><span class="n">hashStr</span> <span class="o">==</span> <span class="n">signature</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">serverHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">echostr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&#39;echostr&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">echostr</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="section-3">. 菜单订制</h5>
+<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">UIHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;menu.json&#39;</span><span class="p">)</span>
+</span><span class="line">        <span class="n">createMenu</span><span class="p">(</span><span class="n">menu</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="section-4">. 响应用户按键输入</h5>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">xml</span> <span class="o">=</span> <span class="n">uni</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>        <span class="c">#获取微信服务器发送过来的xml,转化为unicode</span>
+</span><span class="line"><span class="n">dic</span> <span class="o">=</span> <span class="n">xml2dict</span><span class="p">(</span><span class="n">xml</span><span class="p">)</span>                 <span class="c">#将xml解析成dict</span>
+</span><span class="line"><span class="k">if</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;MsgType&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;event&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">event</span> <span class="o">=</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;Event&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;subscribe&#39;</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_subscribe</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>     <span class="c">#订阅逻辑</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span><span class="line">    <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;click&#39;</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_click</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>         <span class="c">#点击逻辑</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
+
+<h4 id="section-5">相关链接</h4>
+<ul>
+  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
+  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
+</ul>
+
+<h4 id="section-6">开发中用到的库</h4>
+<ul>
+  <li><code>tornado</code></li>
+  <li><code>virtualenv</code></li>
+  <li><code>pyquery(做爬虫)</code></li>
+  <li><code>pymongo</code></li>
+  <li><code>lxml</code></li>
+  <li><code>urllib2</code></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-07T18:47:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/product/'>Product</a>, <a class='category' href='/blog/categories/server/'>Server</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/01/06/re-geng-xin/" title="Previous Post: 热更新">&laquo; 热更新</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/01/24/%3C%3Crework%3E%3E-shu-zhai/" title="Next Post: Rework书摘">Rework书摘 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="微信公众号开发"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

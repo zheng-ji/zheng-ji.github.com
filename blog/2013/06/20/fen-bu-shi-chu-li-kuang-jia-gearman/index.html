@@ -1,0 +1,408 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>分布式处理框架-Gearman - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="近日折腾Gearman.有兴趣可以参考阅读这个,这个，还有这个 官方说法： Gearman provides a generic application framework to farm out work to other machines or processes that are &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">分布式处理框架-Gearman</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-20T00:00:00+08:00" pubdate data-updated="true">Jun 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>近日折腾Gearman.有兴趣可以参考阅读<a href="http://www.gearman.org/">这个</a>,<a href="http://pythonhosted.org/gearman/">这个</a>，还有<a href="http://www.s135.com/dips/">这个</a></p>
+
+<p>官方说法：</p>
+
+<blockquote>
+  <p>Gearman provides a generic application framework to farm out work to other machines or processes that are better suited to do the work. It allows you to do work in parallel, to load balance processing, and to call functions between languages. It can be used in a variety of applications, from high-availability web sites to the transport of database replication events. In other words, it is the nervous system for how distributed processing communicates. </p>
+</blockquote>
+
+<p>Gearman是一个提供机器与进程之间相互协作的通信框架。可以让你并行处理作业以及负载均衡，提供不同的语言接口使得不同语言可以互相协作。用处很广泛，从web站点到数据库Replication事件。换句话说，是一个分布式的通讯框架</p>
+
+<h4 id="section">特点</h4>
+
+<ul>
+  <li>
+    <p>开源：
+  多语言支持：Gearman支持的语言种类非常丰富。让我们能够用一种语言来编写Worker程序，但是用另外一种语言编写Client程序。</p>
+  </li>
+  <li>
+    <p>灵活：不必拘泥于固定的形式。您可以采用你希望的任何形式，例如 Map/Reduce。</p>
+  </li>
+  <li>
+    <p>快速：Gearman的协议非常简单，并且有一个用C语言实现的，经过优化的服务器，保证应用的负载在非常低的水平。</p>
+  </li>
+  <li>
+    <p>可植入：因为Gearman非常小巧、灵活置入到现有的任何系统中。</p>
+  </li>
+  <li>
+    <p>无单点故障：Gearman可扩展系统，可以避免系统的失败。</p>
+  </li>
+</ul>
+
+<h4 id="section-1">场景</h4>
+<p>听上去很诱惑的样子了。试想下：
+我们的服务器有IO读写密集型，存储密集型，CPU使用不频繁，内存使用不频繁。如果我们能根据业务充分调动起各个服务器的特点。实现服务器的最大价值。Gearman可以登上舞台 ：）</p>
+
+<p>图解工作流
+<img src="/images/2013/08/gearman.png" /></p>
+
+<h4 id="gearman-">Gearman 有三个角色</h4>
+<ul>
+  <li>Job Server:中央调度，消息中心，负载均衡</li>
+  <li>Client：发起Job,可由任何语言编写</li>
+  <li>Worker：负责执行Job，执行业务流</li>
+</ul>
+
+<p>实操安装Gearman（以ubuntu为例子）,默认的端口4730</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>安装python-gearman</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install python-gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用python编写
+worker代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#worker.py
+</span><span class="line">import os
+</span><span class="line">import gearman
+</span><span class="line">import math 
+</span><span class="line"> 
+</span><span class="line">class CustomGearmanWorker(gearman.GearmanWorker):
+</span><span class="line">   def on_job_execute(self, current_job):
+</span><span class="line">          return super(CustomGearmanWorker, self).on_job_execute(current_job)
+</span><span class="line">def task_callback(gearman_worker, job):
+</span><span class="line">    print job.data
+</span><span class="line">    return job.data + " has received" 
+</span><span class="line">                   
+</span><span class="line">new_worker = CustomGearmanWorker(['127.0.0.1:4730'])
+</span><span class="line">new_worker.register_task("ping", task_callback)
+</span><span class="line">new_worker.work()</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>client代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/env python2.7</span>
+</span><span class="line"><span class="c"># -*- coding: utf-8 -*-</span>
+</span><span class="line"><span class="c"># # file: client.py</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">gearman</span> <span class="kn">import</span> <span class="n">GearmanClient</span>
+</span><span class="line"><span class="n">new_client</span> <span class="o">=</span> <span class="n">GearmanClient</span><span class="p">([</span><span class="s">&#39;127.0.0.1:4730&#39;</span><span class="p">])</span>
+</span><span class="line"><span class="n">current_request</span> <span class="o">=</span> <span class="n">new_client</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span><span class="s">&#39;ping&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="n">new_result</span> <span class="o">=</span> <span class="n">current_request</span><span class="o">.</span><span class="n">result</span>
+</span><span class="line"><span class="k">print</span> <span class="n">new_resul</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">foo</span> <span class="n">has</span> <span class="n">received</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用Go测试下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#gearman的Go库,内有example</span>
+</span><span class="line"><span class="n">go</span> <span class="n">get</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mikespook</span><span class="o">/</span><span class="n">gearman</span><span class="o">-</span><span class="n">go</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-20T00:00:00+08:00" pubdate data-updated="true">Jun 20<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/server/'>Server</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/" title="Previous Post: 纯真IP数据库读取">&laquo; 纯真IP数据库读取</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/06/29/hui-gu-zeromq/" title="Next Post: 回顾 ZeroMQ">回顾 ZeroMQ &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="分布式处理框架-Gearman"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

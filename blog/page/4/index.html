@@ -1,0 +1,1969 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="以前在Amazon Web ServiceAWS 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/page/4">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/22/dan-ji-wan-hadoop/">单机玩Hadoop</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-22T18:11:00+08:00" pubdate data-updated="true">Sep 22<span>nd</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/22/dan-ji-wan-hadoop/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以前在Amazon Web Service<a href="http://aws.amazon.com/">AWS</a> 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热，特别是某些公司会把这些当作自我标榜更是让人恶心.本着折腾的信，把自己玩hadoop的过程写下来 ：）</p>
+
+<ul>
+  <li>创建hadoop用户组;</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo addgroup hadoop
+</span><span class="line">sudo adduser -ingroup hadoop hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>给hadoop用户添加权限，编辑/etc/sudoers文件; 在root   ALL=(ALL:ALL)   ALL下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop  ALL=(ALL:ALL) ALL</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>在Ubuntu下安装JDK </li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-add-repository ppa:flexiondotorg/java
+</span><span class="line">sudo apt-get update
+</span><span class="line">sudo apt-get install sun-java6-jre sun-java6-jdk sun-java6-plugin</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>如果你在第二条命令遇到错误:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">W: GPG 错误：http://ppa.launchpad.net precise Release: 由于没有公钥，无法验证下列签名： NO_PUBKEY 2EA8F35793D8809A
+</span><span class="line">请执行
+</span><span class="line">sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2EA8F35793D8809A  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑 sudo vi /etc/environment
+在其中添加如下两行：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">JAVA_HOME=/usr/lib/jvm/java-6-sun
+</span><span class="line">CLASSPATH=.:/usr/lib/jvm/java-6-sun/lib</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>安装ssh 服务</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install ssh openssh-server</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>首先要转换成hadoop用户，执行以下命令：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">su - hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>采用 rsa 方式 生成key</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ssh-keygen -t rsa -P ""</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>进入~/.ssh/目录下，将id_rsa.pub追加到authorized_keys授权文件中,使其无密码登录本机</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/.ssh
+</span><span class="line">cat id_rsa.pub &gt;&gt; authorized_keys</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>下载<a href="http://www.apache.org/dyn/closer.cgi/hadoop/common/">hadoop</a>,并安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo cp hadoop-0.20.203.0rc1.tar.gz /usr/local/</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>解压hadoop-0.20.203.tar.gz；</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd /usr/local
+</span><span class="line">sudo tar -zxf hadoop-0.20.203.0rc1.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>将解压出的文件夹改名为hadoop;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo mv hadoop-0.20.203.0 hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>将该hadoop文件夹的属主用户设为hadoop，</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo chown -R hadoop:hadoop hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>打开hadoop/conf/hadoop-env.sh文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo vi hadoop/conf/hadoop-env.sh</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>配置conf/hadoop-env.sh,配置本机jdk的路径;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">export JAVA_HOME=/usr/lib/jvm/java-6-sun/
+</span><span class="line">export HADOOP_HOME=/usr/local/hadoop
+</span><span class="line">export PATH=$PATH:/usr/local/hadoop/bin</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>记得source hadoop-env.sh </p>
+
+<p>编辑conf/core-site.xml文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;?xml version="1.0"?&gt;
+</span><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+</span><span class="line">&lt;!-- Put site-specific property overrides in this file. --&gt;
+</span><span class="line">&lt;configuration&gt;
+</span><span class="line">    &lt;property&gt;  
+</span><span class="line">        &lt;name&gt;fs.default.name&lt;/name&gt;  
+</span><span class="line">        &lt;value&gt;hdfs://localhost:9000&lt;/value&gt;   
+</span><span class="line">    &lt;/property&gt;  
+</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑conf/mapred-site.xml文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;?xml version="1.0"?&gt;
+</span><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+</span><span class="line">&lt;!-- Put site-specific property overrides in this file. --&gt;
+</span><span class="line">&lt;configuration&gt;  
+</span><span class="line">     &lt;property&gt;   
+</span><span class="line">           &lt;name&gt;mapred.job.tracker&lt;/name&gt;  
+</span><span class="line">            &lt;value&gt;localhost:9001&lt;/value&gt;   
+</span><span class="line">      &lt;/property&gt;  
+</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑conf/hdfs-site.xml文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;configuration&gt;
+</span><span class="line">    &lt;property&gt;
+</span><span class="line">        &lt;name&gt;dfs.name.dir&lt;/name&gt;
+</span><span class="line">        &lt;value&gt;/usr/local/hadoop/datalog1,/usr/local/hadoop/datalog2&lt;/value&gt;
+</span><span class="line">    &lt;/property&gt;
+</span><span class="line">    &lt;property&gt;
+</span><span class="line">        &lt;name&gt;dfs.data.dir&lt;/name&gt;
+</span><span class="line">        &lt;value&gt;/usr/local/hadoop/data1,/usr/local/hadoop/data2&lt;/value&gt;
+</span><span class="line">    &lt;/property&gt;
+</span><span class="line">    &lt;property&gt;
+</span><span class="line">        &lt;name&gt;dfs.replication&lt;/name&gt;
+</span><span class="line">        &lt;value&gt;2&lt;/value&gt;
+</span><span class="line">    &lt;/property&gt;
+</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>运行hadoop,并启动</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd /usr/local/hadoop/
+</span><span class="line">bin/hadoop namenode -format // 进入hadoop目录下，格式化hdfs文件系统
+</span><span class="line">bin/start-all.sh //启动脚本</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>检测hadoop是否启动成功</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop/bin$ sudo jps
+</span><span class="line">11822 DataNode
+</span><span class="line">12461 Jps
+</span><span class="line">11581 NameNode
+</span><span class="line">12157 JobTracker
+</span><span class="line">12064 SecondaryNameNode
+</span><span class="line">12377 TaskTracker</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>说明hadoop单机版环境配置好了
+此时访问<a href="http://localhost:50030/">http://localhost:50030/</a>,便可以看到管理界面
+<img src="/images/2013/09/hadoop.png" />
+让我们来完成那篇著名论文的wordcounw吧</p>
+
+<p>创建输入文件夹,并挂载hdfs</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ mkdir input //创建输入文件夹
+</span><span class="line">hadoop@hp:/usr/local/hadoop$ cp conf/* input
+</span><span class="line">hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -put input/ input</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行wordcount程序,输入为input，输出数据目录为output。,</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">bin/hadoop jar hadoop-examples-0.20.203.0.jar wordcount input output</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>出现了运行情况如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">13/09/22 17:59:40 INFO input.FileInputFormat: Total input paths to process : 15
+</span><span class="line">13/09/22 17:59:41 INFO mapred.JobClient: Running job: job_201309221738_0006
+</span><span class="line">13/09/22 17:59:42 INFO mapred.JobClient:  map 0% reduce 0%
+</span><span class="line">13/09/22 17:59:58 INFO mapred.JobClient:  map 13% reduce 0%
+</span><span class="line">13/09/22 18:00:07 INFO mapred.JobClient:  map 26% reduce 0%
+</span><span class="line">13/09/22 18:00:16 INFO mapred.JobClient:  map 40% reduce 8%
+</span><span class="line">13/09/22 18:00:22 INFO mapred.JobClient:  map 53% reduce 13%
+</span><span class="line">13/09/22 18:00:28 INFO mapred.JobClient:  map 66% reduce 13%
+</span><span class="line">13/09/22 18:00:31 INFO mapred.JobClient:  map 66% reduce 17%
+</span><span class="line">13/09/22 18:00:34 INFO mapred.JobClient:  map 80% reduce 17%
+</span><span class="line">13/09/22 18:00:37 INFO mapred.JobClient:  map 80% reduce 22%
+</span><span class="line">13/09/22 18:00:40 INFO mapred.JobClient:  map 93% reduce 22%
+</span><span class="line">13/09/22 18:00:46 INFO mapred.JobClient:  map 100% reduce 26%
+</span><span class="line">13/09/22 18:00:55 INFO mapred.JobClient:  map 100% reduce 100%
+</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient: Job complete: job_201309221738_0006
+</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient: Counters: 25
+</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient:   Job Counters </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查看执行结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -cat output/*</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>截取部分结果现场</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ hadoop fs -cat output/*
+</span><span class="line">"". 4
+</span><span class="line">"*" 10
+</span><span class="line">"alice,bob  10
+</span><span class="line">"console"   1
+</span><span class="line">"hadoop.root.logger".   1
+</span><span class="line">"jks".  4
+</span><span class="line">   79
+</span><span class="line">$HADOOP_BALANCER_OPTS"   1
+</span><span class="line">$HADOOP_DATANODE_OPTS"   1
+</span><span class="line">$HADOOP_HOME/conf/slaves 1
+</span><span class="line">$HADOOP_HOME/logs    1
+</span><span class="line">$HADOOP_JOBTRACKER_OPTS" 1
+</span><span class="line">$HADOOP_NAMENODE_OPTS"   1
+</span><span class="line">$HADOOP_SECONDARYNAMENODE_OPTS"  1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>停止hadoop</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ ./stop-all.sh </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>hadoop这只小象在单机可以这么玩</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/21/leveldbde-rpcserver/">leveldb的RPCServer</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-21T11:33:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/21/leveldbde-rpcserver/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>leveldb作为一个高性能的存储引擎，并不提供Server以及网络的功能，但我坚信一定会有，因为这个世界有很多人会被其性能所吸引，总有人忍不住会写一个壳包装下，万能的github让我不用重复造轮子。<a href="https://github.com/srinikom/leveldb-server">这个</a> ,还有<a href="https://github.com/quiver/leveldb-rpc/">这个</a></p>
+
+<p>XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 python 的<a href="http://zheng-ji.info//blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/">leveldb binding</a> </p>
+
+<h4 id="serverpy">server.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="sd">&#39;&#39;&#39;XML-RPC server for leveldb</span>
+</span><span class="line"><span class="sd">&#39;&#39;&#39;</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">argparse</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">SimpleXMLRPCServer</span> <span class="kn">import</span> <span class="n">SimpleXMLRPCServer</span><span class="p">,</span> <span class="n">SimpleXMLRPCRequestHandler</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">import</span> <span class="nn">leveldb</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">RequestHandler</span><span class="p">(</span><span class="n">SimpleXMLRPCRequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="n">rpc_paths</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;/RPC2&#39;</span><span class="p">,)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">LevelDBMethod</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datadir</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">leveldb</span><span class="o">.</span><span class="n">LevelDB</span><span class="p">(</span><span class="n">datadir</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+</span><span class="line">        <span class="k">try</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="s">&#39;&#39;</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span><span class="line">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--datadir&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;data&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="c"># Create server</span>
+</span><span class="line">    <span class="n">server</span> <span class="o">=</span> <span class="n">SimpleXMLRPCServer</span><span class="p">((</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+</span><span class="line">                <span class="n">requestHandler</span><span class="o">=</span><span class="n">RequestHandler</span><span class="p">,</span>
+</span><span class="line">                <span class="n">allow_none</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
+</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">LevelDBMethod</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">))</span>
+</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">main</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="clientpy">client.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="sd">&#39;&#39;&#39;XML-RPC client for leveldb</span>
+</span><span class="line"><span class="sd">&#39;&#39;&#39;</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">import</span> <span class="nn">argparse</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">cmd</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">xmlrpclib</span> <span class="kn">import</span> <span class="n">ServerProxy</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">Cmd</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+</span><span class="line">        <span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">prompt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&gt; &#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span><span class="s">&#39;http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;put&#39; command&quot;</span>
+</span><span class="line">            <span class="k">return</span>
+</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span>
+</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;get&#39; command&quot;</span>
+</span><span class="line">            <span class="k">return</span>
+</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">args</span>
+</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="n">result</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;delete&#39; command&quot;</span>
+</span><span class="line">            <span class="k">return</span>
+</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">args</span>
+</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_EOF</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">True</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span><span class="line">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+</span><span class="line">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">cmd</span> <span class="o">=</span> <span class="n">Cmd</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+</span><span class="line">    <span class="n">cmd</span><span class="o">.</span><span class="n">cmdloop</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">main</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="server">Server代码:</h4>
+<ul>
+  <li>SimpleXMLRpcServer拓展,自定义业务逻辑类 LevelDBMethod,以及RPC运行路径别名,注册业务代码</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"> <span class="c"># Create server</span>
+</span><span class="line"><span class="n">server</span> <span class="o">=</span> <span class="n">SimpleXMLRPCServer</span><span class="p">((</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+</span><span class="line">        <span class="n">requestHandler</span><span class="o">=</span><span class="n">RequestHandler</span><span class="p">,</span>
+</span><span class="line">        <span class="n">allow_none</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
+</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">LevelDBMethod</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">))</span>
+</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>argsparse解析命令行参数 </li>
+  <li>包装leveldb ,公开RPC函数调用</li>
+</ul>
+
+<h4 id="client">Client代码:</h4>
+<ul>
+  <li>调用xmprpclib 的ServerProxy，完成网络RPC调用</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span><span class="s">&#39;http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>cmd模块，自定义命令行提示工具,调用cmdloop() 实现循环调用,继承cmd.Cmd类时，函数名为do_动作名</li>
+  <li>argsparse解析命令行参数 </li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span><span class="line"><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+</span><span class="line"><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/">Leveldb本地存储引擎-精致的工具</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-21T09:42:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>leveldb是一个google实现的非常高效的kv数据库，能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，主要归功于它的良好的设计。特别是LSM算法。 LevelDB 是单进程的服务，性能非常之高，在一台4个Q6600的CPU机器上，每秒钟写数据超过40w，而随机读的性能每秒钟超过10w。@ideawu的ssdb就是基于Leveldb引擎开发的，看起来很NB的样子 </p>
+
+<p>它只是一个本地存储引擎:</p>
+
+<ul>
+  <li>k/v db library，提供持久化 </li>
+  <li>No Server </li>
+  <li>No cache 
+于是它精巧。 </li>
+</ul>
+
+<blockquote>
+  <p>talk is cheap ,Show me the Code</p>
+</blockquote>
+
+<p>简单示范一下C++使用Leveldb ,要先下载leveldb源码编译<a href="https://github.com/basho/leveldb">code</a></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#include&lt;iostream&gt;  </span>
+</span><span class="line"><span class="c">#include&lt;string&gt;  </span>
+</span><span class="line"><span class="c">#include&quot;leveldb/db.h&quot;  </span>
+</span><span class="line">
+</span><span class="line"><span class="n">using</span> <span class="n">namespace</span> <span class="n">std</span><span class="p">;</span>
+</span><span class="line"><span class="n">using</span> <span class="n">namespace</span> <span class="n">leveldb</span><span class="p">;</span>
+</span><span class="line">
+</span><span class="line"><span class="nb">int</span> <span class="n">main</span><span class="p">()</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="n">DB</span> <span class="o">*</span><span class="n">db</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Options</span> <span class="n">options</span><span class="p">;</span>
+</span><span class="line">    <span class="n">options</span><span class="o">.</span><span class="n">create_if_missing</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Status</span> <span class="n">s</span> <span class="o">=</span> <span class="n">DB</span><span class="p">::</span><span class="n">Open</span><span class="p">(</span><span class="n">options</span><span class="p">,</span><span class="s">&quot;/data/leveldb/lvd.db&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">db</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="err">!</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
+</span><span class="line">        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">ToString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">string</span> <span class="n">key</span> <span class="o">=</span> <span class="s">&quot;name&quot;</span><span class="p">,</span><span class="n">val</span> <span class="o">=</span> <span class="s">&quot;leveldb&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Put</span><span class="p">(</span><span class="n">WriteOptions</span><span class="p">(),</span><span class="n">key</span><span class="p">,</span><span class="n">val</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="err">!</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
+</span><span class="line">        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">ToString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Get</span><span class="p">(</span><span class="n">ReadOptions</span><span class="p">(),</span><span class="n">key</span><span class="p">,</span><span class="o">&amp;</span><span class="n">val</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
+</span><span class="line">        <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">key</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">val</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+</span><span class="line">        <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Put</span><span class="p">(</span><span class="n">leveldb</span><span class="p">::</span><span class="n">WriteOptions</span><span class="p">(),</span><span class="s">&quot;key2&quot;</span><span class="p">,</span><span class="n">val</span><span class="p">);</span>
+</span><span class="line">        <span class="k">if</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
+</span><span class="line">            <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Delete</span><span class="p">(</span><span class="n">leveldb</span><span class="p">::</span><span class="n">WriteOptions</span><span class="p">(),</span><span class="n">key</span><span class="p">);</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="err">!</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
+</span><span class="line">                <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">ToString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">                                                                                                                                    <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译方法</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">g</span><span class="o">++</span> <span class="n">testleveldb</span><span class="o">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">main</span> <span class="o">-</span><span class="n">I</span><span class="o">./</span><span class="n">Include</span> <span class="o">-</span><span class="n">l</span><span class="o">./</span> <span class="o">-</span><span class="n">lleveldb</span> <span class="o">-</span><span class="n">lrt</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行./main 之后便可以看到,leveldb的存储文件</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">zj</span><span class="nd">@hp</span><span class="p">:</span><span class="o">~/</span><span class="n">lvd</span><span class="o">.</span><span class="n">db</span><span class="err">$</span> <span class="n">tree</span>
+</span><span class="line"><span class="o">.</span>
+</span><span class="line"><span class="err">├──</span> <span class="mf">000003.</span><span class="n">log</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">CURRENT</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">LOCK</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">LOG</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">MANIFEST</span><span class="o">-</span><span class="mo">000002</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">sst_0</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">sst_1</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">sst_2</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">sst_3</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">sst_4</span>
+</span><span class="line"><span class="err">├──</span> <span class="n">sst_5</span>
+</span><span class="line"><span class="err">└──</span> <span class="n">sst_6</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>很多语言都给予了binding,那么python 也不例外了 ：） <a href="https://github.com/rjpower/py-leveldb">py-leveldb</a><br />
+你需要先安装python-leveldb库</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">leveldb</span>
+</span><span class="line"><span class="n">db</span> <span class="o">=</span> <span class="n">leveldb</span><span class="o">.</span><span class="n">LevelDB</span><span class="p">(</span><span class="s">&#39;./db&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="n">db</span><span class="o">.</span><span class="n">Put</span><span class="p">(</span><span class="s">&#39;hello&#39;</span><span class="p">,</span> <span class="s">&#39;world&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="k">print</span> <span class="n">db</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s">&#39;hello&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果你也和我一样蛋疼，你会不会想会有Server可以调用呢，再看下一篇吧 ：）</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/">Jsonp解决跨域请求</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-15T21:50:00+08:00" pubdate data-updated="true">Sep 15<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>昨天搞了一整天js,遇到了各种我从没遇到的问题,真心觉得前端工程师是很厉害的。想不出为什么会有人说所谓的前端“无技术含量”的源论.前端要考虑的东西实在是多，也有其架构设计。特别是js. 我用的是phonegap + jqtouch做移动App</p>
+
+<p>场景是：
+客户端使用Ajax技术向服务器发送请求，然后拉取数据</p>
+
+<p>Server端代码是php写的,</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="php"><span class="line"><span class="x">$arr = array(</span>
+</span><span class="line"><span class="x">        &#39;user&#39;=&gt;&#39;123&#39;,</span>
+</span><span class="line"><span class="x">        &#39;friends&#39; =&gt; 234</span>
+</span><span class="line"><span class="x">        )</span>
+</span><span class="line"><span class="x">echo json_encode($arr);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>js代码,使用jquery发起get 请求,文件路径E:/mytest/test.html</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class="javascript"><span class="line"><span class="nx">$</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class="line">    <span class="nx">url</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1/test.php&quot;</span>
+</span><span class="line">    <span class="nx">$</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="nx">funtion</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="nx">alert</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+</span><span class="line">    <span class="p">})</span>
+</span><span class="line"><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>看过jquery文档之后，我以为这样会返回我要的数据，真是图样图森破，chrome的控制台返回：不是同一个源，不允许跨域发请求。 </p>
+
+<h5 id="section">什么是跨域请求</h5>
+<p>简单来说：a.com 域名下的js无法操作b.com或是c.a.com域名下的对象,上述场景中，http://127.0.0.1/test.php 和 E：/mytest/test.html本身就不属于同一个域下，因此不能访问。浏览器本身有同源策略，当初设计是出于安全考虑，百度给出了解释是：
+&gt;　同源策略，它是由Netscape提出的一个著名的安全策略。现在所有支持JavaScript 的浏览器都会使用这个策略。所谓同源是指，域名，协议，端口相同。当一个浏览器的两个tab页中分别打开来 百度和谷歌的页面当一个百度浏览器执行一个脚本的时候会检查这个脚本是属于哪个页面的，即检查是否同源，只有和百度同源的脚本才会被执行。</p>
+
+<p>我最后是通过查阅资料,采用jsonp的方式解决</p>
+
+<h5 id="jsonp">什么是jsonp</h5>
+<blockquote>
+  <p>　JSONP是JSON with Padding的略称。它是一个非官方的协议，它允许在服务器端集成Script tags返回至客户端，通过javascript callback的形式实现跨域访问（这仅仅是JSONP简单的实现形式） - 百度</p>
+</blockquote>
+
+<p>因此最后的Server端代码是php写的</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="err">$</span><span class="n">arr</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span>
+</span><span class="line">        <span class="s">&#39;user&#39;</span><span class="o">=&gt;</span><span class="s">&#39;123&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="s">&#39;friends&#39;</span> <span class="o">=&gt;</span> <span class="mi">234</span>
+</span><span class="line">        <span class="p">)</span>
+</span><span class="line"><span class="err">$</span><span class="n">callback</span> <span class="o">=</span> <span class="err">$</span><span class="n">_GET</span><span class="p">[</span><span class="s">&#39;callback&#39;</span><span class="p">];</span> <span class="o">//</span><span class="err">新加</span>
+</span><span class="line"><span class="n">echo</span> <span class="err">$</span><span class="n">callback</span><span class="o">.</span><span class="n">json_encode</span><span class="p">(</span><span class="err">$</span><span class="n">arr</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>js代码,请求的时候，加入一个参数callback,通过javascripte callback形式调用服务器的scrpt tags的返回值</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="javascript"><span class="line"><span class="nx">$</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class="line">    <span class="nx">url</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1/test.php?callback=?&quot;</span>
+</span><span class="line">    <span class="nx">$</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="nx">funtion</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="nx">alert</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+</span><span class="line">    <span class="p">}));</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>调用成功
+这个东西纠结我大半天。但是有收获的 ：）</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/12/nginx-plus-luaying-dui-zai-xian-zhuang-tai-fu-wu/">Nginx+lua应对在线状态服务</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-12T23:12:00+08:00" pubdate data-updated="true">Sep 12<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/12/nginx-plus-luaying-dui-zai-xian-zhuang-tai-fu-wu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>几天前在@ideawu的博客上看到了其一篇文章中讲到的技术题.
+<a href="http://www.ideawu.net/blog/archives/732.html">《在线状态服务在网站系统中的应用》</a> 。于是内心折腾的火焰便熊熊燃烧起来，连续几天晚上折腾到凌晨1点。感谢@agentzh 春哥与阿里巴巴的技术贡献,让我可以安心睡觉 :) </p>
+
+<p>在线状态服务这样的场景在互联网应用上比比皆是</p>
+
+<ul>
+  <li>聊天系统中同时在线的人数</li>
+  <li>游戏中同时在线玩家等</li>
+</ul>
+
+<p>文中所言,现实的在线状态应用场景是:
+网页中用JavaScript启动一个定时器, 定期报告在线状态, 也就是向在线状态服务器发送心跳包.对某个同时在线100万人, 每天1亿PV的网站来说, 在线状态服务器一天接收到的心跳包大概是10亿个, 也即每秒10000个请求(10000qps).要实现这样的在线状态服务器, 也是一个挑战.</p>
+
+<p>好了，我当时真的很兴奋，感觉自己像接到了任务，立马打起了鸡血研究. 脑海中涌现出来的直觉是，使用tornado + Redis，这样的高并发组合应对这样的场景应该是无压力的，但是因为这样的事情我做过，想挑战自己非舒适的区域，挖掘新的知识大陆。
+我们一直都说，没有经过打磨的想法一般都是廉价的。后来我想到的是Ngnix这样的服务器来抗如此高的请求，那么我们就自己写个拓展，查询内存数据库，这里我选择用redis来做kv内存数据库，</p>
+
+<p>文中谈到的自己设计精巧的kv数据库，甚至用C++写针对性的http服务，来提升通用服务器的性能。曾经写过一个KV数据库，其性能真的是渣渣。<a href="https://github.com/zheng-ji/KvDb">源码链接</a>。欢迎吐槽.
+一直以来听闻春哥的nginx lua模块拓展，可以为nginx定制业务。想想以前用c语言实现，简直就是痛苦,这一次可以使用lua，甚为欢悦，没有什么比探索新东西带来的乐趣更令人振奋了</p>
+
+<p>首先要有lua的运行环境。他是一种胶水粘合剂 ：） 还必须安装<strong>luajit</strong></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#设置环境变量，后续安装需要
+</span><span class="line">shell&gt; export LUAJIT_LIB=/usr/local/lib
+</span><span class="line">shell&gt; export LUAJIT_INC=/usr/local/include/luajit-&lt;VERSION&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="nginx-">需要安装的nginx 插件</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_devel_kit https://github.com/simpl/ngx_devel_kit
+</span><span class="line">set-misc-nginx-module https://github.com/agentzh/set-misc-nginx-module
+</span><span class="line">memc-nginx-module https://github.com/agentzh/memc-nginx-module 
+</span><span class="line">lua-nginx-module https://github.com/chaoslawful/lua-nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="nginx">下载之后，安装nginx插件</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/path/to/nginx_src --add-module=/path/to/ngx_devel_kit --add-module=set-misc-nginx-module \
+</span><span class="line">--add-module=/path/to/lua-nginx-module -add-module=ngx_devel_kit 
+</span><span class="line">make 
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>nginx.conf 文件                 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {  
+</span><span class="line">    default_type 'text/plain';  
+</span><span class="line">    echo 'hello echo';  
+</span><span class="line">}  
+</span><span class="line">
+</span><span class="line">location /lua {  
+</span><span class="line">    default_type 'text/plain';  
+</span><span class="line">    content_by_lua 'ngx.say("hello, lua")';  
+</span><span class="line">}  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>也许你会遇到一些麻烦,执行如下命令</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+</span><span class="line">shell&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>重启服务器之后，应该就可以看到hello,lua :) (到这里仅仅是开始，折腾了有点久)</p>
+
+<h3 id="ideawu-">好了，来完成ideawu的作业 ：）</h3>
+
+<blockquote>
+  <p>在线状态服务, 是这样的一个服务, 它维护了网站当前的在线用户列表, 接受其它模块的查询. 是实现统计网站同时在线人数, 维护在线用户列表等功能的基础服务. 在Facebook的聊天系统中, 在线状态是为聊天系统服务的, 所以在线状态是一种”强”在线, 也即用户保持着和Comet服务器的连接, 可随时接受服务器推送(push)的消息.在高并发请求的情况下如何完成该需求呢</p>
+</blockquote>
+
+<p>使用 Lua 脚本语言操作 Redis。这里使用 content_by_lua_file （nginx_lua_module 模块具有）来引入 Lua 脚本文件。
+agentzh 提供了一个很方便的开发包，如下：<a href="https://github.com/agentzh/lua-resty-redis.git">lua-resty-redis</a></p>
+
+<p>该包中，有一个 lib 目录，将 lib 目录下的文件和子目录拷贝至目录 /home/zj/soft/data/www/lua/
+在 Nginx 配置文件中，需要加一行代码，以便引入 redis.lua。
+注：加在 http 段里。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_package_path "/home/zj/soft/data/www/lua//?.lua;;";  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>为了使得 lua 脚本的修改能及时生效，需要加入一行代码，如下：注：在 server 段里，加入代码，如果不加此代码或者设置为 on 时，则需要重启 Nginx。 不过nginx 会报警</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache off;  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>nginx.conf 里</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /getolNum {
+</span><span class="line">    content_by_lua_file /conf/online.lua;  
+</span><span class="line">} </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="onlinelua-">online.lua 源码</h5>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+</pre></td><td class="code"><pre><code class="lua"><span class="line"><span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">&quot;</span><span class="s">redis&quot;</span>
+</span><span class="line"><span class="kd">local</span> <span class="n">cache</span> <span class="o">=</span> <span class="n">redis</span><span class="p">.</span><span class="n">new</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="s1">&#39;</span><span class="s">127.0.0.1&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="s">6379&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+</span><span class="line">    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">&quot;</span><span class="s">failed to connect:&quot;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+</span><span class="line">    <span class="k">return</span>
+</span><span class="line"><span class="k">end</span>
+</span><span class="line">
+</span><span class="line"><span class="n">cache</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">30000</span><span class="p">)</span>
+</span><span class="line"><span class="n">args</span> <span class="o">=</span> <span class="n">ngx</span><span class="p">.</span><span class="n">req</span><span class="p">.</span><span class="n">get_uri_args</span><span class="p">()</span>
+</span><span class="line"><span class="n">user</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;</span><span class="s">user&quot;</span><span class="p">]</span>
+</span><span class="line"><span class="c1">--设置用户 3 min 过期</span>
+</span><span class="line"><span class="n">cache</span><span class="p">:</span><span class="n">setex</span><span class="p">(</span><span class="n">user</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="mi">23</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="kd">local</span> <span class="n">res</span><span class="p">,</span><span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">:</span><span class="n">keys</span><span class="p">(</span><span class="s1">&#39;</span><span class="s">*&#39;</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="c1">--count res num</span>
+</span><span class="line"><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span class="line"><span class="k">for</span> <span class="n">_</span> <span class="k">in</span> <span class="nb">pairs</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="k">do</span>
+</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class="line"><span class="k">end</span>
+</span><span class="line"><span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+</span><span class="line"><span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">:</span><span class="n">close</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="lua"><span class="line"><span class="n">curl</span> <span class="n">localhost</span><span class="o">/</span><span class="n">getOlnum</span><span class="err">?</span><span class="n">user</span><span class="o">=</span><span class="n">zj</span>
+</span><span class="line"><span class="err">返回：</span><span class="mi">1</span>
+</span><span class="line"><span class="n">curl</span> <span class="n">localhost</span><span class="o">/</span><span class="n">getOlnum</span><span class="err">?</span><span class="n">user</span><span class="o">=</span><span class="n">zhengji</span>
+</span><span class="line"><span class="err">返回：</span><span class="mi">2</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking :)</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/">MiniGame 服务端设计</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-20T18:54:00+08:00" pubdate data-updated="true">Aug 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近和小伙伴们在做一个游戏。有机会单挑服务端了。被信任是有压力也有动力 ：），可以尝试各种好玩的技术的感觉是很爽。Jerry 和Cat 所主导的客户端，Mzt的美术都很给力。作为云风的忠实粉，可以独立设计游戏服务器后台，我对这样的挑战期待已久。</p>
+
+<h4 id="section">逻辑架构图</h4>
+<p><img src="/images/2013/08/minigame.png" /></p>
+
+<p>主要由三大逻辑层组成：
++ 连接（接入）服务器模块:   ConnServer
++ 游戏服务器模块 ：        GameServer
++ 缓存服务器模块：         CacheServer
+  (附：我们自己编写了静态资源的服务器功能，提供给用户下载Apk的功能)</p>
+
+<ul>
+  <li>
+    <p>接入服务器模块
+服务器Socket建立，建立玩家通讯连接，为每一位连上服务器的玩家建立一个线程。
+服务器维护一个连接列表。采用map 的方式记录每一位玩家的连接信息。</p>
+  </li>
+  <li>
+    <p>游戏服务器模块：
+  这是处理游戏业务逻辑的主要模块。它包括了消息包解析器服务（Parser），游戏大厅服务（GameRoom），账户体系服务（Account）,消息中心服务（MsgCenter）,心跳服务（Heartbeat）.日志功能模块（log）</p>
+  </li>
+  <li>消息包解析器服务（Parser）:主要实现了消息状态机。解析收到的客户端的数据包的协议号，然后将消息路由到不同功能模块去处理。</li>
+  <li>账户体系服务（Account）：提供用户注册和登陆管理的模块</li>
+  <li>游戏大厅服务（GameRoom）：采用Redis 内存数据库，构造消息队列。模拟游戏大厅，并对玩家进行配对筛选，构造set类型的匹配对完成1对1 的对战模式</li>
+  <li>消息中心服务（MsgCenter）:完成游戏过程中玩家信息的交互。</li>
+  <li>心跳服务（Heartbeat）：这是一个相对独立的进程，每7秒遍历用户信息，完成心跳检测，清理无效的过期数据，保持游戏数据的一致性.</li>
+  <li>日志功能：打印程序中的日志。</li>
+  <li>
+    <p>静态资源下载器（downloader）：采用tornado拓展编写web服务，提供Apk静态资源下载的模块</p>
+  </li>
+  <li>缓存服务器模块
+  现阶段游戏对服务的要求不需要做到持久化的保存，于是服务器没有采用mysql之类的范式数据库。我们的数据收发一直处于频繁状态，于是我们采用了Redis这种分布式的内存数据库来实现我们的数据缓存模块，后续会介绍数据的键值设计</li>
+</ul>
+
+<h4 id="section-1">类图</h4>
+<p><img src="/images/2013/08/class.png" /></p>
+
+<ul>
+  <li>cache数据库的设计：
+利用Redis的数据特性,新增一个用户保证用户ID的原子性。</li>
+  <li>counter: 对新用户的注册执行自增操作，从而保证账号Id 唯一</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key value
+</span><span class="line">实例 counter 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>用户账号：
+Key设计为 user：name:用户名’，Value用户ID，
+为保证用户可以同时通过id 查找名字 ，也设计了 ‘user:id:ID值’值为用户名</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key                    value
+</span><span class="line">实例 User:name:zhengji         1
+</span><span class="line">实例 User:id:1                 zhengji</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>玩家通讯缓存设计：
+Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key              value
+</span><span class="line">实例 user:zhengji:msg 100, 2,   1324256778.89</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>玩家匹配对设计
+在游戏大厅的功能里，我们采用了redis的list模拟了玩家等待队列的功能 在真正匹配到玩家对的时候，使用table_xx 来记录玩家匹配信息,它是一个set的类型,在游戏退出的时候会被驱动去清除该表的信息</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明   key      value
+</span><span class="line">实例 Table_1 ‘jerry,zhengji’</span></code></pre></td></tr></table></div></figure></notextile></div>
+<pre><code>    为标志每个玩家的table号，我们使用了另外一个键值对 Table:玩家名：tableindex.
+</code></pre>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明   key       value
+</span><span class="line">实例 Table:zhengji 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/16/jing-ran-ye-yong-dao-liao-oracle/">竟然也用到了Oracle</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-16T20:25:00+08:00" pubdate data-updated="true">Aug 16<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/08/16/jing-ran-ye-yong-dao-liao-oracle/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="oracle">Oracle初印象</h4>
+
+<p>曾经阿里的去O化搞得满城风雨，，随后很多企业也开始跟风去除Oracle，让Oracle这样的企业都为之咳嗽了一阵子。有兴趣的朋友可以看看王坚博士的文章。作为一个开源软件热爱者，首先接触到的一定是Mysql， 随后才是MongoDB,Redis,LevelDb。无论如何是怎么也想不到会去接触Oracle，就像我再也没有机会也不会去使用3.5英寸软盘的样子,因为这样会让我感觉到世界在倒退。</p>
+
+<p>先知言：”存在即合理”。也就为以后的遇见埋下伏笔。果然，由于历史原因，庞大的业务体系下，我终于还是遇见了它，带着对伟大数据库敬仰的心探索了一把。说实话，当你习惯了简单的Mysql之类的思维之后，接触Oracle就有点纠结了。我愿意称其为接触另一种新思维方式。没有比这更值得鼓舞人心的动力了 ：）</p>
+
+<p><img src="/images/2013/08/oracle.png" /></p>
+
+<p>我做的事情是在游戏数据操作中做一个抽象的操作类。涉及框架代码的改造，这过程有点DT。我从事的工作大部分是C++开发这过程着实feel到了“生命太短，远离C++” 涉及到多重继承，虚析构函数，同个父类冲突，属性可见性,抽象类可用。Debug 了两天。还好有GDB这种家伙。
+Oracle查询流程</p>
+
+<p>简单描述下普通的Oracle建立连接以及查询的顺序,使用的是OCCI （Oracle的C++接口）:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">//创建enviroment变量
+</span><span class="line">Environment *env = Environment::createEnvironment( Environment::DEFAULT);
+</span><span class="line">//创建连接
+</span><span class="line">Connection *conn = env-&gt;createConnection( userName, password, connectString);
+</span><span class="line">//创建 查询描述符
+</span><span class="line">Statement *stmt = conn-&gt;createStatement( "SELECT blobcol FROM mytable");
+</span><span class="line">//执行查询，返回结果集
+</span><span class="line">ResultSet *rs = stmt-&gt;executeQuery();
+</span><span class="line">//关闭查询，环境变量
+</span><span class="line">stmt-&gt;closeResultSet(rs);
+</span><span class="line">conn-&gt;terminateStatement(stmt);
+</span><span class="line">env-&gt;terminateConnection(conn);
+</span><span class="line">Environment::terminateEnvironment(env);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>蛋蛋的疼</p>
+
+<p>期间遇到了Oracle 好多奇形怪状的问题。尽管如此，我喜欢这样折腾自己 :) 是不是有点变态。</p>
+
+<ul>
+  <li>创建环境变量类指明多线程使用。该任务需要多线程执行的，如果不特别声明多线程执行，如果不特别指明的话会奔溃，我纠结了一天就是因为没有指明这个常量。这在Mysql是没有见到的吧</li>
+  <li>连接管理。Oracle的连接关闭很重要。查询任务完成后要及时关闭连接。如果不关闭连接和环境句柄，程序就会有很大的潜在bug,程序执行期间也会奔溃。这过程中自己写了连接管理模块。特别处理了多线程处理时的构造与析构。</li>
+</ul>
+
+<p>以下是连接管理类的代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+<span class="line-number">54</span>
+<span class="line-number">55</span>
+<span class="line-number">56</span>
+<span class="line-number">57</span>
+<span class="line-number">58</span>
+<span class="line-number">59</span>
+<span class="line-number">60</span>
+<span class="line-number">61</span>
+<span class="line-number">62</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#include&lt;string.h&gt;
+</span><span class="line">using namespace oracle::occi;
+</span><span class="line">class COraclconn
+</span><span class="line">{
+</span><span class="line">    public :
+</span><span class="line">
+</span><span class="line">        COraclconn (const std::string &amp; user, const std:: string&amp; password,
+</span><span class="line">                const std:: string&amp; dbname)
+</span><span class="line">        {
+</span><span class="line">            m_status = false;
+</span><span class="line">            env = NULL;
+</span><span class="line">            conn = NULL;
+</span><span class="line">            stmt = NULL;
+</span><span class="line">            env = Environment::createEnvironment( Environment::THREADED_MUTEXED);
+</span><span class="line">            if (! env)
+</span><span class="line">            {
+</span><span class="line">                env = NULL;
+</span><span class="line">                return;
+</span><span class="line">            }
+</span><span class="line">            conn = env-&gt; createConnection(user, password, dbname);
+</span><span class="line">            if (! conn)
+</span><span class="line">            {
+</span><span class="line">                conn = NULL;
+</span><span class="line">                return;
+</span><span class="line">            }
+</span><span class="line">            m_status = true;
+</span><span class="line">        }
+</span><span class="line">
+</span><span class="line">        ~COraclconn ()
+</span><span class="line">        {
+</span><span class="line">            if ( conn &amp;&amp; stmt)
+</span><span class="line">                conn-&gt; terminateStatement( stmt);
+</span><span class="line">            if ( env &amp;&amp; conn)
+</span><span class="line">                env-&gt; terminateConnection( conn);
+</span><span class="line">            if ( env)
+</span><span class="line">                Environment:: terminateEnvironment( env);
+</span><span class="line">        }
+</span><span class="line">        Statement * getstmt( const string&amp; sql)
+</span><span class="line">        {
+</span><span class="line">            if (! m_status)
+</span><span class="line">                return NULL;
+</span><span class="line">            if ( stmt)
+</span><span class="line">            {
+</span><span class="line">                conn-&gt; terminateStatement( stmt);
+</span><span class="line">                stmt = NULL;
+</span><span class="line">
+</span><span class="line">            }
+</span><span class="line">            stmt = conn-&gt; createStatement(sql);
+</span><span class="line">            if (! stmt)
+</span><span class="line">            {
+</span><span class="line">                stmt = NULL;
+</span><span class="line">                m_status = false;
+</span><span class="line">            }
+</span><span class="line">            return stmt;
+</span><span class="line">
+</span><span class="line">        }
+</span><span class="line">    protected :
+</span><span class="line">        bool m_status;
+</span><span class="line">        Environment *env ;
+</span><span class="line">        Connection *conn ;
+</span><span class="line">        Statement *stmt ;
+</span><span class="line">};</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>还好我做的是封装SQL，对于其诡异的语法可以不用涉及到。相信每个热爱技术的人儿碰到写相对非业务的代码会感到充实愉快的吧。</p>
+
+<p>Happy Hacking ：）</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/15/feng-pei-zhi-lu/">封培之旅</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-15T19:32:00+08:00" pubdate data-updated="true">Jul 15<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/07/15/feng-pei-zhi-lu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>作为新入职的员工，参加了公司为期10天的封闭培训，此文记下这些日子的一些感悟。 因为 “思绪来地快，去地也快” by 云风。</p>
+
+<h4 id="section">遇到的人</h4>
+
+<p>因为缘分，我和其他6位同学组成了小组（肆无忌惮组），其中一位是武大的博士（windsunwang），一位是来广研微信的华工师兄(xiaochunguo)，有趣的是我们曾在网易面试的时候相遇，一位广研邮箱的中大师姐（vinajiang），琳琅天上的美术设计师（Mzt，鬼斧神功的画技，我们称之为大师），还有QQ空间的南大愤青，（杰哥），华科运维女（hazel）,大家一起完成每一天的任务，默契也在合作中慢慢养成。感受到了windsunwang的博学和严谨，xiaochunguo的冷静，Mzt的艺术家气息，vinajiang的细腻，hazel的积极。当然还少不了杰哥这个SB :) ，他说他封闭培训的收获就是大师学会画蜗牛，囧。在大伙身上感受到了久违的集体温暖</p>
+
+<p>我的室友：litten是位小清新的SNG前端工程师，毕业于华中科大，litten有想法也有激情，人很文静，很好相处，因为有着很多共同话题，每天晚上因为聊得太晚而导致早上起床很累。这样的日子，想必我今后会怀念这位短暂的室友吧。</p>
+
+<p>我们“班”里有很多个性鲜明的人，有的很主动高调，属于喜欢当领导的人，有的是很有实力的低调派，在需要的时候总是会一语惊人，腾讯的确是聚集了很多优秀的人才，大家的知识储备以及视野和专业度都很高。特别是两位产品经理。独特的视角和条理分明的逻辑，以及优秀的口才，让我钦佩。唯一有些遗憾的是，搞技术的人多少感觉不出。或许没有深入了解吧。</p>
+
+<h4 id="section-1">看到的事</h4>
+
+<p>封闭培训讲了不少所谓的职场课程，尽管我认为有些厚黑，但在职场的确需要适应，调整心态去接受吧少年。《体验式培训课》，以及《互联网行业发展》让我获益匪浅。“目标，计划，确认，执行”（Target Plan Chect Action）的指导方针应该是我们需要具备的思维方式。合作，沟通，领导在团队极其重要,特别是团队的规模到了一定的规模。主动的人总是应势站出来承担了责任，积极的热情，敬业的态度使得他们成为了耀眼的角色。培训过程中还是克服不少羞涩，拿起了话筒，在队友需要我的时候挺身而出，但总归还是不能像某些同学一样很老练地去表达。只要你细心观察，便能吸收到周围同学的正能量，比如博士跟我讲问卷设计的时候，深切感受到真正做过研究的人，他们严谨的逻辑思维让你觉得是如此的靠谱。
+#### 震撼的产品体验报告会</p>
+
+<p>我们做的是QQ空间的产品体验报告，最终只是得到了阳光普照奖。这次活动我细心观摩了真正的产品经理，或者有用心的同学是如何做这个Presentation的，其中一组同学的体验报告包涵了竟品分析，用户调研，原型设计，同时也用了很炫的展示手法，毫无悬念的拿走了第一名。用心做事的人是应该值得尊敬的。</p>
+
+<p>很多时候我们会感觉做产品其实只是耍耍花样，看到很多天花乱缀的文章为了一个小按钮而大书特书，有点没必要。如今看来，如果把握每一个需求，隐形要求你有丰富的知识储备，大量的用于调研（Custom Engagement）.如果你想你的方案令他人信服，你需要组织资源，撰写有料的报告，甚至做一个小Demo,如果可能的话做自些小测试。这些同学让我看到了很赞的能力。</p>
+
+<p>说到这里，我也看到了我们班有位微信的产品经理，在我与之交谈的过程中，由心的欣赏。除去淡定的临场发言的实力，更具闪光点的是其洞察力与组织能力，在谈及百度发展历程，以及产品发展定位，都能信手拈来，有理有据，中肯的道出个中要害，想必其阅读量很大。反思自己，虽然很多资料我也阅读过，但没有去总结形成自己的思想，只是在他人提及之后才恍然大悟。虽然我不是做产品的，“我只是了解了解就够了？”抱有这样的想法是可以么？如果程序员只是停留在代码中自娱自乐，没有思考产品，用户的东西，我想多半是没有灵魂的吧。以后要真的去沉淀才是。</p>
+
+<p>感觉腾讯能发展成今天这样子，的确是有其伟大之处。至少是招到了不少优秀的同学，曾经有人说腾讯是一个消耗人才的地方，不可否认大公司因流程体制都有通病，但我感受到，只有用心，通过不同的方式，可以开阔视野，如果你用心并去努力，还是能收获到。学习的涵义也应该慢慢变得多元化（沟通，情绪，产品），而不仅仅只是单一的技术。</p>
+
+<p>结尾想引用这次封陪之旅一位老师的话 “坚持是最好的美德” ：） 。问题很多，耐心勇敢去做你能尽到的改变吧,别泄气哈。</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/29/hui-gu-zeromq/">回顾 ZeroMQ</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/29/hui-gu-zeromq/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些<a href="https://github.com/zheng-ji/log2aws">后端服务</a>。当时用Go语言实现 源代码,使用的便是<a href="https://github.com/alecthomas/gozmq">gozmq库</a>.这个消息通信框架库的文章有很多，比较著名的当属<a href="www.searchtb.com/2012/08/zeromq-primer.html">一淘</a>的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档</p>
+
+<h4 id="section">优点：</h4>
+<ul>
+  <li>
+    <p>高度封装。
+它处于会话层之上，应用层之下，你不需要自己写一行的socket函数调用就能完成复杂的网络通信工作。</p>
+  </li>
+  <li>
+    <p>点对点的消息传输上。
+传统的消息队列都需要一个消息服务器来存储转发消息。而ZeroMQ则把侧重点放在了点对点的消息传输上。ZeroMQ能缓存消息，但是是在发送端缓存。ZeroMQ里有水位设置的相关接口来控制缓存量。当然，ZeroMQ也支持传统的消息队列（通过zmq_device来实现）。这样使得客户端在重启的时候可以重新发送上次未发送成功的消息</p>
+  </li>
+  <li>
+    <p>灵活的收发模式。
+REQ-REP 请求响应模式，PUSH-PULL： 推拉模式， PUB-SUB： 发布订阅模式 等。 其中任何一方都可以作为服务端</p>
+  </li>
+  <li>
+    <p>以统一接口支持多种底层通信方式
+支持线程间通信，进程间通信，跨主机通信，假如你想把本机多进程的软件放到跨主机的环境里去执行，通常要将IPC接口用套接字重写一遍。非常麻烦。而有了ZeroMQ就方便多了，只要把通信协议从”ipc:///xxx”改为”tcp://<em>.</em>.<em>.</em>:<em>**</em>”就可以了，其他代码通通不需要改，如果这个是从配置文件里读的话，那么程序就完全不要动了，直接复制到其他机器上就可以了。</p>
+  </li>
+  <li>
+    <p>异步高效。
+ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模式，通过单独出一个IO线程来实现，要把资源释放函数交给ZeroMQ让ZeroMQ发完消息自己释放，所以消息发送调用之后不要立刻释放相关资源。</p>
+  </li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/">分布式处理框架-Gearman</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-20T00:00:00+08:00" pubdate data-updated="true">Jun 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>近日折腾Gearman.有兴趣可以参考阅读<a href="http://www.gearman.org/">这个</a>,<a href="http://pythonhosted.org/gearman/">这个</a>，还有<a href="http://www.s135.com/dips/">这个</a></p>
+
+<p>官方说法：</p>
+
+<blockquote>
+  <p>Gearman provides a generic application framework to farm out work to other machines or processes that are better suited to do the work. It allows you to do work in parallel, to load balance processing, and to call functions between languages. It can be used in a variety of applications, from high-availability web sites to the transport of database replication events. In other words, it is the nervous system for how distributed processing communicates. </p>
+</blockquote>
+
+<p>Gearman是一个提供机器与进程之间相互协作的通信框架。可以让你并行处理作业以及负载均衡，提供不同的语言接口使得不同语言可以互相协作。用处很广泛，从web站点到数据库Replication事件。换句话说，是一个分布式的通讯框架</p>
+
+<h4 id="section">特点</h4>
+
+<ul>
+  <li>
+    <p>开源：
+  多语言支持：Gearman支持的语言种类非常丰富。让我们能够用一种语言来编写Worker程序，但是用另外一种语言编写Client程序。</p>
+  </li>
+  <li>
+    <p>灵活：不必拘泥于固定的形式。您可以采用你希望的任何形式，例如 Map/Reduce。</p>
+  </li>
+  <li>
+    <p>快速：Gearman的协议非常简单，并且有一个用C语言实现的，经过优化的服务器，保证应用的负载在非常低的水平。</p>
+  </li>
+  <li>
+    <p>可植入：因为Gearman非常小巧、灵活置入到现有的任何系统中。</p>
+  </li>
+  <li>
+    <p>无单点故障：Gearman可扩展系统，可以避免系统的失败。</p>
+  </li>
+</ul>
+
+<h4 id="section-1">场景</h4>
+<p>听上去很诱惑的样子了。试想下：
+我们的服务器有IO读写密集型，存储密集型，CPU使用不频繁，内存使用不频繁。如果我们能根据业务充分调动起各个服务器的特点。实现服务器的最大价值。Gearman可以登上舞台 ：）</p>
+
+<p>图解工作流
+<img src="/images/2013/08/gearman.png" /></p>
+
+<h4 id="gearman-">Gearman 有三个角色</h4>
+<ul>
+  <li>Job Server:中央调度，消息中心，负载均衡</li>
+  <li>Client：发起Job,可由任何语言编写</li>
+  <li>Worker：负责执行Job，执行业务流</li>
+</ul>
+
+<p>实操安装Gearman（以ubuntu为例子）,默认的端口4730</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>安装python-gearman</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install python-gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用python编写
+worker代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#worker.py
+</span><span class="line">import os
+</span><span class="line">import gearman
+</span><span class="line">import math 
+</span><span class="line"> 
+</span><span class="line">class CustomGearmanWorker(gearman.GearmanWorker):
+</span><span class="line">   def on_job_execute(self, current_job):
+</span><span class="line">          return super(CustomGearmanWorker, self).on_job_execute(current_job)
+</span><span class="line">def task_callback(gearman_worker, job):
+</span><span class="line">    print job.data
+</span><span class="line">    return job.data + " has received" 
+</span><span class="line">                   
+</span><span class="line">new_worker = CustomGearmanWorker(['127.0.0.1:4730'])
+</span><span class="line">new_worker.register_task("ping", task_callback)
+</span><span class="line">new_worker.work()</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>client代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/env python2.7</span>
+</span><span class="line"><span class="c"># -*- coding: utf-8 -*-</span>
+</span><span class="line"><span class="c"># # file: client.py</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">gearman</span> <span class="kn">import</span> <span class="n">GearmanClient</span>
+</span><span class="line"><span class="n">new_client</span> <span class="o">=</span> <span class="n">GearmanClient</span><span class="p">([</span><span class="s">&#39;127.0.0.1:4730&#39;</span><span class="p">])</span>
+</span><span class="line"><span class="n">current_request</span> <span class="o">=</span> <span class="n">new_client</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span><span class="s">&#39;ping&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="n">new_result</span> <span class="o">=</span> <span class="n">current_request</span><span class="o">.</span><span class="n">result</span>
+</span><span class="line"><span class="k">print</span> <span class="n">new_resul</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">foo</span> <span class="n">has</span> <span class="n">received</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用Go测试下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#gearman的Go库,内有example</span>
+</span><span class="line"><span class="n">go</span> <span class="n">get</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mikespook</span><span class="o">/</span><span class="n">gearman</span><span class="o">-</span><span class="n">go</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/5/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/3/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid&#8217;s Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>折腾docker - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="ubuntu docker">
+  <meta name="keywords" content="ubuntu docker">
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">折腾docker</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-16T20:20:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2014</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>早在1年前就听过 <a href="http://docs.docker.com/">docker</a>这个 Golang 社区的明星产品 。</p>
+
+<h3 id="section">简单地介绍</h3>
+
+<p>Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。这大大地提高了程序运行的灵活性和可移植性，极大的降低运维成本。</p>
+
+<h3 id="section-1">组成</h3>
+
+<ul>
+  <li>Docker 服务器守护程序（server daemon），用于管理所有的容器。</li>
+  <li>Docker 命令行客户端，用于控制服务器守护程序。</li>
+  <li>Docker 镜像：查找和浏览 docker 容器镜像。它也访问这里得到：<a href="https://index.docker.io/">链接</a></li>
+</ul>
+
+<h3 id="docker">有了虚拟机为什么还要docker?</h3>
+<p>virtualbox 等虚拟机提供的是完整的操作系统环境, 迁移的时候太大了。它们包含了大量类似硬件驱动、虚拟处理器、网络接口等等并不需要的信息，也需要比较长时间的启动，同时也会消耗大量的内存、CPU 资源。</p>
+
+<p>Docker 相比起来就非常轻量级了。运行起来就和一个常规程序差不多。这个容器不仅仅运行快，创建一个镜像和制作文件系统快照也很快,甚至比vagrant更节约资源</p>
+
+<h3 id="section-2">初体验</h3>
+<p>下载docker 并安装 ubuntu 12.04 这里如果没有指明 <code>ubuntu:12.04</code>, 会将所有ubuntu镜像都下载。由于被墙，速度惨不忍睹.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo apt-get install docker.io
+</span><span class="line">zj@zheng-ji:~$ sudo docker pull ubuntu:12.04 </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查看已有的镜像</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker images</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>使用 bash 命令进入docker的指定镜像</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这时候我就可以像一个新系统一样把玩了, 比如创建一个目录。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ mkdir /home/zj/test</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 <a href="https://registry.hub.docker.com/u/">这里</a> 注册一个账户，然后再上传，类似在 github  上面一样的操作。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps 
+</span><span class="line">
+</span><span class="line">//因为我已经commit 过一次，所以名字变成我的别名 zhengji/helloworld
+</span><span class="line">zj@zheng-ji:~$ docker ps
+</span><span class="line">CONTAINER ID        IMAGE                       COMMAND             CREATED             STATUS              PORTS                     NAMES
+</span><span class="line">8dad3aa4451f        zhengji/helloworld:latest   bin/bash            27 minutes ago      Up 27 minutes       0.0.0.0:49156-&gt;3000/tcp   high_galileo      </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>可以看到要保存的镜像的 CONTAINER ID</p>
+
+<p>这个时候提交</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker commit 8dad3aa4451f zhengji/helloworld -m "test"
+</span><span class="line">61f9527f368395ee228af07062b3f1a26fa7143ba2721c4f9755ae93d588358e
+</span><span class="line">
+</span><span class="line">zj@zheng-ji:~$ sudo docker push zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>下次pull 下来就可以使用了</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker pull zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<h3 id="section-3">可能遇到的坑</h3>
+
+<ul>
+  <li>需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">DOCKER_OPTS = "-dns 8.8.8.8"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置 ufw 端口可转发</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/ufw
+</span><span class="line">DEFAULT_FORWARD_POLICY = "ACCEPT"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-4">参考链接</h3>
+
+<ul>
+  <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
+  <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
+  <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-16T20:20:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/server/'>Server</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/07/12/goan-zhuang-protobuf/" title="Previous Post: go安装protobuf">&laquo; go安装protobuf</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/" title="Next Post: rsyslog 接收远程日志">rsyslog 接收远程日志 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="折腾docker"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

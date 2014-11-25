@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Programe | 织网]]></title>
+  <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
+  <link href="http://zheng-ji.github.com/"/>
+  <updated>2014-11-25T22:51:13+08:00</updated>
+  <id>http://zheng-ji.github.com/</id>
+  <author>
+    <name><![CDATA[zheng-ji]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[go安装protobuf]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf/"/>
+    <updated>2014-07-12T17:39:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf</id>
+    <content type="html"><![CDATA[<p>protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
+优点简而言之是：</p>
+
+<ul>
+  <li>二进制，速度快，便于拓展；</li>
+  <li>自动生成代码接口，支持多语言</li>
+</ul>
+
+<p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
+
+<p>关于 <code>protobuf</code> 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西</p>
+
+<p>安装, 比较蛋疼,折腾一小段时间。</p>
+
+<p>```
+go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}</p>
+
+<p>go install code.google.com/p/goprotobuf/proto</p>
+
+<p>sudo apt-get install protobuf-compiler
+```</p>
+
+<p>使用的时, 是在项目内部新建一个proto.文件, 然后执行</p>
+
+<p><code>
+protoc --go_out=. xxx.proto
+</code></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[制作setup.py]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py/"/>
+    <updated>2014-05-03T11:52:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py</id>
+    <content type="html"><![CDATA[<p>做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
+
+<p>以下给出一个 demo </p>
+
+<p><code>
+mkdir hacker
+vim foo.py
+</code></p>
+
+<p>编辑以下内容</p>
+
+<p><code>python
+class Hacker():
+    def __init__(self):
+        self.motto = "No evil, Be Hacker"
+    def printMotto(self):
+        print self.motto
+</code></p>
+
+<p>开始编写 setup.py, 也许是为了知识产权保护，里面按照规矩会让作者填上资料。</p>
+
+<p><code>python
+from distutils.core import setup
+setup(name='Hacker',
+        version='1.0',
+        description='be hake or be hacked',
+        author='zheng-ji',
+        author_email='zhengji91@gmail.com',
+        url='http://zheng-ji.info',
+        py_modules=['foo'],
+        install_requires=["requests"]
+     )
+</code></p>
+
+<p>好了，这个时候执行,</p>
+
+<p><code>
+sudo python setup.py install
+</code></p>
+
+<p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
+
+<p>删除的话，就得蛋疼去 <code>/usr/lib/python2.7/</code> 手动删除,在 mac 里面是 <code>/Library/Python/2.7/site-packages</code></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[mac 安装Go]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go/"/>
+    <updated>2014-05-03T09:32:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go</id>
+    <content type="html"><![CDATA[<hr />
+<p>之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。</p>
+
+<p>修改 <code>~.zshrc</code>,添加以下环境变量</p>
+
+<p><code>
+export GOROOT=$HOME/go
+export GOBIN=$GOROOT/bin
+export PATH=$PATH:$GOBIN
+</code></p>
+
+<p>开始安装,耗时有点久
+保证你的电脑安装有 hg, 如果没有,请执行 </p>
+
+<p><code>
+sudo easy_install mercurial
+</code></p>
+
+<p><code>
+hg clone -u release https://code.google.com/p/go
+cd go/src
+./all.bash
+</code></p>
+
+<p>开始检验, 执行 go , 出现一系列 Usage信息就算通过了 ：）。</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ Expect 与系统自动交互]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu/"/>
+    <updated>2014-03-13T23:05:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu</id>
+    <content type="html"><![CDATA[<p>在<code>linux</code>下 做一些操作的时候，比如使用 <em>scp</em>, <em>telnet</em> 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。</p>
+
+<p>这个时候，你可以使用 <em>expect</em> 语言帮我们解决问题。</p>
+
+<h3 id="section">官方定义</h3>
+<blockquote>
+  <p>Expect是一个用来实现自动交互功能的软件套件 (Expect [is a] software suite for automating interactive tools)</p>
+</blockquote>
+
+<p>expect 是 <a href="http://en.wikipedia.org/wiki/Don_Libes">Don Libes</a> 编写的免费编程工具语言, 由expect-send对组成：</p>
+
+<p>expect等待输出中输出特定的字符，通常是一个提示符，然后发送特定的响应。</p>
+
+<hr />
+
+<p>先来个 helloworld, 注意需要在exp脚本前面加上 <code>#!/usr/bin/expect</code></p>
+
+<p><code>sh
+#!/usr/bin/expect
+send_user "hello world"
+</code></p>
+
+<p>这里的 send_user 类似 echo </p>
+
+<h3 id="section-1">常见用法</h3>
+
+<p><code>
+set i 0    
+set user [lindex $argv 0]
+set timeout 300
+set i 0
+while { $i &lt; 10 } {
+    puts $i;
+    incr i;
+}
+</code></p>
+
+<p>以上分别是:</p>
+
+<ul>
+  <li>将0赋值给变量i;</li>
+  <li>获取脚本的第一个参数给变量user;</li>
+  <li>设置超时时间是300秒</li>
+  <li>循环使用，不多说</li>
+</ul>
+
+<hr />
+
+<p>在 expect脚本中, 最亮点的是 spawn 会启动一个进程，由 expect 和 send 组合负责跟该进程交互, in short </p>
+
+<ul>
+  <li>expect捕获进程需要什么信息</li>
+  <li>send将这个信息发给进程</li>
+  <li>expect eof与spawn对应，表示捕获终端输出信息的终止，即进程已结束</li>
+  <li>expect都是使用 {}，且{, }使用时，前后需要留空格。 只要其中一项符合，就会执行该项，类似switch</li>
+</ul>
+
+<p>看完以下代码相信你就明白其魅力了 ：）</p>
+
+<p>```sh
+#!/usr/bin/expect</p>
+
+<p>set timeout 10
+set host [lindex $argv 0]
+set username [lindex $argv 1]
+set password [lindex $argv 2]</p>
+
+<p>spawn ssh $username@$host
+expect {
+    “(yes/no)?” {
+        send “yes\n”
+        expect “<em>assword:” { send “$password\n” }
+    }
+    “</em>assword:” {
+        send “$password\n”
+    }
+}</p>
+
+<p>expect “$”
+expect eof
+```</p>
+
+<p>使用时, 执行如下脚本命令.  其中<code>expect</code> 捕获到 “*assword:”, 发送 <code>$password</code> 变量,  捕获到<code>$</code>符号，表示登陆成功，结束 spawn 进程</p>
+
+<p><code>
+./autosh.exp xxx(ip地址) xxx(用户名) xxx(密码)
+</code></p>
+
+<hr />
+
+<p>感觉这样的脚本在自动化运维可以有很多运用之处, 至少让你可以在执行需要交互命令的时候跑去喝茶。
+Happy Hacking :-)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[深入strtok函数]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/02/05/shen-ru-strtokhan-shu/"/>
+    <updated>2014-02-05T16:35:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/02/05/shen-ru-strtokhan-shu</id>
+    <content type="html"><![CDATA[<p>下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。</p>
+
+<h3 id="man-strtok">Man strtok</h3>
+<p><code>c
+strtok的函数原型为:
+char *strtok(char *s, char *delim)
+</code>
+功能以包含在delim中的字符为分界符，将s切分成一个个子串；
+如果s为空值NULL，则函数保存的指针 SAVE_PTR在下一次调用中将作为起始位置，
+这里说到的save_ptr是啥？还未知，
+但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
+之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束</p>
+
+<h3 id="how-to-use">How to use?</h3>
+<p><code>c
+char s[100] = " zheng-ji is so stupid";
+char *del = " ";
+char *token ;
+token = strtok(s, del);
+while(token != NULL) {
+    printf("%s\n", token);
+    token = strtok(NULL, del);
+}
+</code></p>
+
+<p>输出：</p>
+
+<p><code>
+zheng-ji
+is
+so
+stupid
+</code></p>
+
+<h3 id="saveptr">探究save_ptr的获得的结论</h3>
+
+<p><code>c
+static char *olds;
+char * strtok (char *s，const char *delim）{
+    char *token;
+    if (s == NULL) s = olds;
+    /*将指针移到第一个非delim中的字符的位置*/
+    s += strspn (s, delim); 
+    if (*s == '\0') {
+        olds = s;
+        return NULL;
+    }
+    /*获取到delim中字符在字符串s中第一次出现的位置*/
+    token = s;
+    s = strpbrk (token, delim);
+    if (s == NULL)
+        olds = __rawmemchr (token, '\0');
+    else {
+        /*重新给old赋值 */
+        *s = '\0';
+        olds = s + 1;
+    }
+    return token;
+}
+</code></p>
+
+<p>源码告知我们:</p>
+
+<ul>
+  <li>之前我们觉得神奇的SAVE_PTR(源码中为 static char * olds)原来是个静态字符指针，每次调用都被赋值。</li>
+  <li>如果第一位出现了需要被删除的字符，是会被跳过的。</li>
+  <li>如果传入的s为NULL，则将olds 作为继续解析的字符串。</li>
+  <li>该函数会修改原有的字符串。</li>
+  <li>非线程安全的函数，由于用到了静态全局变量，因此当有多个线程同时调用这个函数的时候就会出现问题.这个静态的指针变量就会变的混乱。同时在同一个程序中同时有两个字符串要解析，并且同时进行解析也是会出错的。</li>
+</ul>
+]]></content>
+  </entry>
+  
+</feed>

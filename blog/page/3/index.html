@@ -1,0 +1,1748 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意 跳表简介 数据结构 应用场景 跳表简介 Skip List是 一种随机化的数据结构， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/page/3">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/01/tiao-biao-skiplist/">跳表skiplist</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-01T10:21:00+08:00" pubdate data-updated="true">Feb 1<span>st</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/02/01/tiao-biao-skiplist/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意</p>
+
+<ul>
+  <li><a href="#第一节">跳表简介</a></li>
+  <li><a href="#第二节">数据结构</a></li>
+  <li><a href="#第三节">应用场景</a></li>
+</ul>
+
+<h3 id="第一节">跳表简介</h3>
+
+<p><img src="/images/2014/01/skiplist.png" /></p>
+
+<p><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">Skip List</a>是</p>
+
+<ul>
+  <li>一种随机化的数据结构，基于并联的链表，</li>
+  <li>其效率可比拟于二叉查找树（对于大多数操作需要O(log n)平均时间）。</li>
+  <li>以空间换时间，对有序的链表随机化增加上附加的前进链接</li>
+  <li>由多层链表组成，每一层有序的链表，第一层包含所有的元素；</li>
+</ul>
+
+<h3 id="第二节">数据结构</h3>
+
+<ul>
+  <li>skiplist节点</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">struct</span> <span class="n">node</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">key</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">value</span><span class="p">;</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">next</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>其中nodec * next[1] 是该节点的前向指针</p>
+
+<ul>
+  <li>skiplist数据结构</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">struct</span> <span class="n">skiplist</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">level</span><span class="p">;</span> <span class="c1">//最大的层</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">header</span><span class="p">;</span><span class="err">链表头</span>
+</span><span class="line"><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>通常一个数据结构我们定义为表头信息和最大的层数</p>
+
+<ul>
+  <li>初始化</li>
+</ul>
+
+<p>列表的初始化需要初始化头部，并使头部每层都指向末尾（NULL）。MAX_LEVEL是我们定义的常量</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">node</span> <span class="o">*</span><span class="nf">createNode</span><span class="p">(</span><span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">key</span><span class="p">,</span> <span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">ns</span> <span class="o">=</span> <span class="p">(</span><span class="n">node</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="o">+</span> <span class="n">level</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">node</span><span class="o">*</span><span class="p">));</span>
+</span><span class="line">    <span class="n">ns</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">;</span>
+</span><span class="line">    <span class="n">ns</span><span class="o">-&gt;</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">ns</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">skiplist</span><span class="o">*</span> <span class="nf">createSkiplist</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span> <span class="o">=</span> <span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">skiplist</span><span class="p">));</span>
+</span><span class="line">    <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span> <span class="o">=</span> <span class="n">createNode</span><span class="p">(</span><span class="n">MAX_LEVEL</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">MAX_LEVEL</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">sl</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>插入</li>
+</ul>
+
+<p>插入元素的时候元素所占有的层数完全是随机的，通过随机算法产生 需要三个步骤:
+1. 第一步需要查找到在每层待插入位置，
+2. 然后需要随机产生一个层数，
+3. 最后就是从高层至下插入.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">bool</span> <span class="nf">insert</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span><span class="p">,</span><span class="kt">int</span> <span class="n">key</span><span class="p">,</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">update</span><span class="p">[</span><span class="n">MAX_LEVEL</span><span class="p">];</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">while</span><span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span><span class="o">&lt;</span><span class="n">key</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">p</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class="line">    <span class="c1">//产生一个随机层数K,新建一个待插入节点q, 层层插入</span>
+</span><span class="line">    <span class="n">k</span> <span class="o">=</span> <span class="n">randomLevel</span><span class="p">();</span>
+</span><span class="line">    <span class="c1">//更新跳表的level</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">k</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+</span><span class="line">            <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span> <span class="o">=</span> <span class="n">k</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">q</span> <span class="o">=</span> <span class="n">createNode</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//逐层更新节点的指针，和普通列表插入一样</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">k</span><span class="p">;</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class="line">    <span class="p">{</span>
+</span><span class="line">        <span class="n">q</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>删除节点</li>
+</ul>
+
+<p>与插入类似的是，为了实现层层操作，用一个update数组维护每层需要的节点，如果删掉最大层则需要更新跳表的level。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">bool</span> <span class="nf">deleteSL</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span><span class="p">,</span><span class="kt">int</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">update</span><span class="p">[</span><span class="n">MAX_LEVEL</span><span class="p">];</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="c1">//从最高层开始搜</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">){</span>
+</span><span class="line">        <span class="k">while</span><span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span><span class="o">&lt;</span><span class="n">key</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="c1">//逐层删除，和普通列表删除一样</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">q</span><span class="p">){</span>
+</span><span class="line">                <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">free</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+</span><span class="line">        <span class="c1">//如果删除的是最大层的节点，那么需要重新维护跳表的</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">){</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="nb">NULL</span><span class="p">){</span>
+</span><span class="line">                <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="o">--</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">else</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查找</li>
+</ul>
+
+<p>从最高层查找起， 跳跃查找</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">int</span> <span class="nf">search</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span> <span class="n">sl</span><span class="p">,</span> <span class="kt">int</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">while</span> <span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">&lt;=</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="k">if</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">                <span class="k">return</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">应用场景</h3>
+<p>如前面说道的，老夫在leveldb的memtable.c看到这一实现的， Redis也是用到了这样的设计，看来KV的设计对skiplist有偏好，leveldb需要内存中存储的是有序的key-val键值对, 作为一个内存数据库，快速是很重要的，特别是数据量大的时候。牺牲了部分空间(冗余的指针)换取时间,达到O(logn)的效果</p>
+
+<h3>引用资料</h3>
+<ul>
+  <li><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">wikipedia</a> </li>
+  <li><a href="http://dsqiu.iteye.com/blog/1705530">skiplist讲解</a></li>
+  <li><a href="https://github.com/zheng-ji/ToyCollection/skiplist">source code</a></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/24/%3C%3Crework%3E%3E-shu-zhai/">Rework书摘</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-24T22:31:00+08:00" pubdate data-updated="true">Jan 24<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/01/24/%3C%3Crework%3E%3E-shu-zhai/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>读到ReWork这本久负盛名的书了。摘录了鄙人认为深刻的话语。</p>
+
+<p><img src="/images/2014/01/rework.jpg" /></p>
+
+<p>很多话有道理，但是我们见到的只有很少人真的会去做，至少是去刻意克服惰性和思维方式.</p>
+
+<p>该书是由37signal 这个创造了很多精品的公司著作的。有很强的现实指导意义，以下摘自《rework》</p>
+
+<ul>
+  <li>谈到现实</li>
+</ul>
+
+<blockquote>
+  <p>撕开这个“现实世界”的遮羞布后，你会发现栖居其中的人们都充满着悲观和绝望的情绪。他们期待看到新概念被斩落马下，他们认为这个社会还没有准备好迎接变革，也无力引发变革.不要相信他们。这个世界对于他们来说可能是“现实”的，但并不意味着你也要生活在这样的“现实”世界中。</p>
+</blockquote>
+
+<ul>
+  <li>谈到抱怨</li>
+</ul>
+
+<blockquote>
+  <p>条件受限是好事 ，因此，在你高唱“始终不够”的悲观论调之前，请试试看自己利用现有的资源能走多远。没有一点浪费的空间，一切都需要你发挥最大的创造力</p>
+</blockquote>
+
+<ul>
+  <li>谈到害怕失败 </li>
+</ul>
+
+<blockquote>
+  <p>有种说法也十分常见：“你的退出策略是什么？（万一不成功，你怎么办？）”甚至在你刚刚准备起步时就会有人这样问你。一个连事业都没创立起来的人，就在考虑如何拔腿逃跑，到底在搞什么？至于那么着急吗？还没有进去就想着怎么出来，这种逻辑不是一般的混乱！</p>
+</blockquote>
+
+<ul>
+  <li>专注做好一件事</li>
+</ul>
+
+<blockquote>
+  <p>同时做N件事情的结果就是：一大把绝妙的点子最后被转化成一个蹩脚的产品。人不可能同时做所有的事情，并把事情做好。你的时间、资源、精力、注意力都是有限的。 一次做好一件事就已经不容易了。想一次做十件事？拉倒吧！从核心出发当你开始着手做一件事情时，总有一些力量将你拉向不同的方向。这当中包括你能做的、你想做的以及你必须做的事情。你应该从必须做的事情开始下手，即从核心出发</p>
+</blockquote>
+
+<ul>
+  <li>过早关注细节</li>
+</ul>
+
+<blockquote>
+  <p>不要过早关注细节.建筑师们从来不会过早去操心浴室要铺什么样的瓷砖、厨房要安什么牌子的洗碗机，这都是在平面图确定了以后才需要考虑的事。他们深知这些细节应该放到以后去考虑。</p>
+</blockquote>
+
+<ul>
+  <li>项目周期的把控</li>
+</ul>
+
+<blockquote>
+  <p>项目周期过长会打击士气。项目开发时间越长，成功的可能性越小。只要有足够的动力和士气，就要趁热打铁，积极决策，果断推进，现在就把事情做出来 </p>
+</blockquote>
+
+<ul>
+  <li>把握本质的功能</li>
+</ul>
+
+<blockquote>
+  <p>要记住，时尚会凋零。只有当你聚焦于长久的功能时，你才会发现自己把握住了永不落伍的东西</p>
+</blockquote>
+
+<ul>
+  <li>尽快上线</li>
+</ul>
+
+<blockquote>
+  <p>立马就上线你的产品或服务什么时候能做出来？你打算什么时候把它推向市场？什么时候能让人们拥有它？可能比你想象的要早得多。一旦你的产品实现了基本的功能，就要迅速把它亮出来</p>
+</blockquote>
+
+<ul>
+  <li>打磨你的想法</li>
+</ul>
+
+<blockquote>
+  <p>一个新创意的撩人程度并不代表其真实价值。有些东西现在看上去是“非要不可”，但是到了第二天早上，可能就会降级为“可有可无”。而“可有可无”的东西是不值得你不顾一切去做的。</p>
+</blockquote>
+
+<ul>
+  <li>珍惜努力的你</li>
+</ul>
+
+<blockquote>
+  <p>现在的你籍籍无名，这是件好事。籍籍无名就是一个绝佳的状态，你要庆幸自己目前还身在暗处。 </p>
+</blockquote>
+
+<ul>
+  <li>关于招聘</li>
+</ul>
+
+<blockquote>
+  <p>在37signals，我们一直没有雇用系统管理员，直到我们当中的一个人花了整整一个夏天的时间去设置一大堆服务器为止。在开始的3年时间里，我们中的另一个人做了所有的客服工作。之后我们才雇用了一名专职的客服人员。在把球传出去之前，我们都尽可能亲自带球。这样一来，我们在决定招聘时，就十分清楚自己到底需要什么样的员工了。</p>
+</blockquote>
+
+<blockquote>
+  <p>但是在那之后，成长曲线就开始趋于平缓了。一个具有6个月工作经验的应聘者和一个具有6年工作经验的应聘者相比.其差别小得令人吃惊。真正的差别来自于个人的努力程度、性格差异以及智力水平</p>
+</blockquote>
+
+<blockquote>
+  <p>常规教育不值一提我从来不把我自己受过的正规学校教育等同于我的受教育程度。——马克·吐温</p>
+</blockquote>
+
+<blockquote>
+  <p>一个优秀的写手，其优点并不仅仅在于写作。文法清晰代表思路明晰。优秀的写手都懂得如何与人沟通。他们使事情变得易于理解，他们善于换位思考，懂得抓重点、砍枝节，这些都是合格的应聘者身上应具备的特点</p>
+</blockquote>
+
+<ul>
+  <li>高效率工作</li>
+</ul>
+
+<blockquote>
+  <p>就像谚语说的：“想要做成一件事，就去找你能找到的最忙碌的人。”你需要忙忙碌碌的人、需要有业余生活的人、需要关注好几件事情的人。你不能期望工作成为一个人生命的全部——至少你不愿意长期和这样的人共处。 </p>
+</blockquote>
+
+<ul>
+  <li>小公司不应该被制度毒害</li>
+</ul>
+
+<blockquote>
+  <p>规章制度是组织机体上的伤疤。它们是针对一种不太可能再次发生的情况而作出的过激反应，是对个人过失的一种集体惩罚。官僚主义便是因此而产生的。没有人一开始就想要官僚，这些东西都是慢慢侵蚀进来的。每次制定一项规章制度——也就是伤疤——官僚主义就滋生一点。  </p>
+</blockquote>
+
+<ul>
+  <li>团队合作的氛围</li>
+</ul>
+
+<blockquote>
+  <p>“我们现在就得把这个功能加进去，没有这个功能我们就不能做了，每个人都想要它，这只是小事一桩，所以应该很简单，你应该能够很快把它做出来。”就这么区区60个字，却可引出100种假设，这就是祸端。</p>
+</blockquote>
+
+<ul>
+  <li>抓住灵感</li>
+</ul>
+
+<blockquote>
+  <p>灵感是个奇妙的东西，是效率放大器，是推进器。但是它不会停下来等你。灵感转瞬即逝，当它来找你时，要立即把它捕捉住，将其投入工作中去。 </p>
+</blockquote>
+
+<p>———————————————————- 我是分割线 ————————————————————–</p>
+
+<p>推荐：
+ 最近看到的<a href="http://book.douban.com/subject/25735727/">《站在两个世界的边缘》</a> 深深被程浩打动了。末尾引用一句他的话，向其致敬。</p>
+
+<blockquote>
+  <p>“真正牛逼的，不是那些可以随口拿来夸耀的事迹，而是那些在困境中依然保持微笑的凡人。” - by 程浩</p>
+</blockquote>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/">微信公众号开发</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-07T18:47:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="section">微信公众账号开发</h3>
+
+<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
+&gt; 人生苦短,我爱python</p>
+
+<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
+
+<p><img src="/images/2013/12/nba.jpg" /></p>
+
+<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
+
+<h5 id="section-1">注册</h5>
+<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
+
+<h5 id="section-2">微信认证</h5>
+<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
+
+<p>加密/校验流程如下：</p>
+
+<ul>
+  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
+  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
+  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">BaseHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="c">#基类,实现基本认证，子类只需要继承就可以完成微信认证</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;timestamp&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="n">nonce</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;nonce&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="n">signature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;signature&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&#39;request:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;=========validate failed =====&quot;</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">):</span>
+</span><span class="line">    <span class="k">print</span> <span class="s">&#39;validate:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">nonce</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">signature</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">False</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">TOKEN</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">]</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tmparr</span><span class="p">)</span>
+</span><span class="line">    <span class="n">tmpStr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+</span><span class="line">    <span class="n">hashStr</span> <span class="o">=</span> <span class="n">sha1</span><span class="p">(</span><span class="n">tmpStr</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span class="line">    <span class="k">return</span> <span class="p">(</span><span class="n">hashStr</span> <span class="o">==</span> <span class="n">signature</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">serverHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">echostr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&#39;echostr&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">echostr</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="section-3">. 菜单订制</h5>
+<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">UIHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;menu.json&#39;</span><span class="p">)</span>
+</span><span class="line">        <span class="n">createMenu</span><span class="p">(</span><span class="n">menu</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="section-4">. 响应用户按键输入</h5>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">xml</span> <span class="o">=</span> <span class="n">uni</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>        <span class="c">#获取微信服务器发送过来的xml,转化为unicode</span>
+</span><span class="line"><span class="n">dic</span> <span class="o">=</span> <span class="n">xml2dict</span><span class="p">(</span><span class="n">xml</span><span class="p">)</span>                 <span class="c">#将xml解析成dict</span>
+</span><span class="line"><span class="k">if</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;MsgType&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;event&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">event</span> <span class="o">=</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;Event&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;subscribe&#39;</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_subscribe</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>     <span class="c">#订阅逻辑</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span><span class="line">    <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;click&#39;</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_click</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>         <span class="c">#点击逻辑</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
+
+<h4 id="section-5">相关链接</h4>
+<ul>
+  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
+  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
+</ul>
+
+<h4 id="section-6">开发中用到的库</h4>
+<ul>
+  <li><code>tornado</code></li>
+  <li><code>virtualenv</code></li>
+  <li><code>pyquery(做爬虫)</code></li>
+  <li><code>pymongo</code></li>
+  <li><code>lxml</code></li>
+  <li><code>urllib2</code></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/06/re-geng-xin/">热更新</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-06T20:58:00+08:00" pubdate data-updated="true">Jan 6<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/01/06/re-geng-xin/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话:</p>
+
+<ol>
+  <li>当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过,从而reload指定模块就可以在不重启服务的情况下读取修改的配置,</li>
+  <li>sys.module[‘modname’]返回的是该模块的pyc文件，而该文件是没有修改时间的，所以计算修改时间需要取py文件的属性</li>
+</ol>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">auto_reload</span><span class="p">():</span>
+</span><span class="line">    <span class="n">mods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;test_config&quot;</span><span class="p">]</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">mods</span><span class="p">:</span>
+</span><span class="line">        <span class="k">try</span><span class="p">:</span>
+</span><span class="line">            <span class="n">module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">mod</span><span class="p">]</span>
+</span><span class="line">        <span class="k">except</span><span class="p">:</span>
+</span><span class="line">            <span class="k">continue</span>
+</span><span class="line">        <span class="n">filename</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">__file__</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">filename</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">):</span>
+</span><span class="line">            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">,</span> <span class="s">&quot;.py&quot;</span><span class="p">)</span>
+</span><span class="line">            <span class="n">mod_time</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="ow">not</span> <span class="s">&quot;loadtime&quot;</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
+</span><span class="line">            <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="mi">0</span> <span class="c"># first load&#39;s time  1*</span>
+</span><span class="line">            <span class="k">try</span><span class="p">:</span>
+</span><span class="line">                <span class="k">if</span> <span class="n">mod_time</span> <span class="o">&gt;</span> <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span><span class="p">:</span>
+</span><span class="line">                    <span class="nb">reload</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+</span><span class="line">                <span class="k">except</span><span class="p">:</span>
+</span><span class="line">                    <span class="k">pass</span>
+</span><span class="line">        <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="n">mod_time</span> <span class="c"># 2*</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span class="line">    <span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line">    <span class="kn">import</span> <span class="nn">my_config</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="bp">None</span>
+</span><span class="line">    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+</span><span class="line">        <span class="n">auto_reload</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span> <span class="o">!=</span> <span class="n">tmp</span><span class="p">:</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
+</span><span class="line">        <span class="n">tmp</span> <span class="o">=</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
+</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>test_config.py</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">address</span> <span class="o">=</span> <span class="s">&quot;127.0.0.1&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/21/yu-jian/">遇见</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-21T16:16:00+08:00" pubdate data-updated="true">Dec 21<span>st</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/12/21/yu-jian/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>昨晚参加腾讯周年晚会,同事在YY今晚的明星是孙燕姿,可惜最后没有如他所愿”遇见”女神.当晚应邀表演的是同为15周年生日的羽泉.对于从来没有参加过大型演唱会的小白来说,人生又圆满了一点。</p>
+
+<p>在见到 ponyMa 等人时我并没有兴奋。反而是深居简入的 AllenZhang 张小龙,让我小激动了一把,大学时起对这样的孤胆极客有神秘的敬仰.张小龙很少在公众媒体前曝光,留给外界的事迹大概是单挑 foxmail,QQmail 之父,缔造微信神话,产品哲学大师。 这样一位爱在深夜听摇滚,烟瘾十足的中年老男人,看上去依然有很浓的技术宅风格,开玩笑时略显不自然的腼腆.微微的驼背。 越是神秘,外界越会过度解读。小龙哥说希望未来可以让大家去”月球上打飞机”… 我虽然坐在内场,但是终究是靠后,只好通过屏幕看清楚的.曾经在南方通讯大厦的期待见到却没能见到的人此时出现了, 低调的风格有深深的内涵。</p>
+
+<p><img src="/images/2013/12/Allen.jpg" /></p>
+
+<p>话说回来,同事虽然没有如愿听到孙燕姿,我却貌似被条件反射地提醒,浮现在脑海的是《遇见》,回来之后凭着某种鸡血,开始搜索曲子练习,在写这篇文章的时候, 可以弹出来。连续五个周末加班，突然可以自己安排时间,甚是知足。弹起琴的时候会忘掉很多东西。工作的事情依旧例行化,比较杂比较琐碎,出于责任心和对心境的自我锻炼(至少我是如此认为),内心有两种声音:</p>
+
+<ul>
+  <li>年轻人要有一种吃苦的态度,对于工作的事情不要挑三拣四</li>
+  <li>年轻人应该勇敢去追求自己想要的东西,很明显我们愿意追求真善美与理想</li>
+</ul>
+
+<p>对于前者,践行后发觉职场的厚黑学,日子过得很忙很累,收获是有的。迷茫的是,收获的东西可能不是你的初心,会怀疑是否有意义,往往抗拒的时候,是凭着意志去承受。</p>
+
+<p>对于后者,除了幸运到一定的程度才可能在中国实现吧,于是成为很多人的向往。 可以看到不少倔强的人没有放弃，因为有着的这样的情怀,所以不少人会对 Allen 这样的人物很敬仰,同样的还有云风.韩寒</p>
+
+<p><img src="/images/2013/12/gitar.jpg" /></p>
+
+<p>我们以某种莫名的执着与生活妥协着,却期待现实与理想可以在某个点遇见彼此。我试着用这种方式写下这篇碎语,不知道你们看懂了么？</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/08/goxie-benchmark/">Go写Benchmark</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-08T21:54:00+08:00" pubdate data-updated="true">Dec 8<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/12/08/goxie-benchmark/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>相比写C++/C，看到Go语言简直是感动，怀念那段写Go的时光。好久没有写Go了， 此次回眸，更觉得他可爱好用，这种感觉类似我第一次使用Python.最近在看一个Go的<a href="https://github.com/slene/iplocll">IpLoc模块</a>，觉得帅!</p>
+
+<h2 id="section">用到的模块</h2>
+<p>Go 的 testing
+使用的时候要 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">import (
+</span><span class="line">    . testing
+</span><span class="line">)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="demo-source">demo source</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">func testSpeed () {
+</span><span class="line">    r := Benchmark(func(b *B) {
+</span><span class="line">        ips := []string{
+</span><span class="line">            "0.0.0.0",
+</span><span class="line">            "127.0.0.1",k
+</span><span class="line">            "169.254.0.1",
+</span><span class="line">            "192.168.1.1",
+</span><span class="line">            "10.0.0.0",
+</span><span class="line">            "255.255.255.255",
+</span><span class="line">            "112.226.155.1",
+</span><span class="line">            "121.18.72.0",
+</span><span class="line">            "6.18.72.0",
+</span><span class="line">            "200.18.72.0",
+</span><span class="line">        }
+</span><span class="line">        for i := 0; i &lt; b.N; i++ {
+</span><span class="line">            for _, ipAddr := range ips {
+</span><span class="line">                iploc.GetIpInfo(ipAddr)
+</span><span class="line">            }
+</span><span class="line">        }
+</span><span class="line">    })
+</span><span class="line">    fmt.Println(r)
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-1">返回值</h2>
+<p>返回值,显示的是执行操作的次数，以及每次消耗的时间
+&lt;div class=&#8217;bogus-wrapper&#8217;&gt;<notextile><figure class="code">&lt;div class=&#8221;highlight&#8221;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&#8221;gutter&#8221;&gt;&lt;pre class=&#8221;line-numbers&#8221;&gt;<span class="line-number">1</span>
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&#8217;code&#8217;&gt;&lt;pre&gt;<code class=""><span class="line">200000         11494 ns/op</span></code>&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;</figure></notextile>&lt;/div&gt;</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/">最近用到的mysql</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-05T23:01:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>该文章没有什么创造性营养，也没有什么技术沉淀，各位看官轻轻带过，仅仅经验之谈，看过用过的人都会，简单的事情就平滑地带过。怎么让索然无味的文章更好地被他人深入阅读,要么就是实用，要么就是深刻，不扯淡, 直奔主题。</p>
+
+<h4 id="section">查看表结构</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">desc Tbl;
+</span><span class="line">show create table Tbl;
+</span><span class="line">show full fields table Tbl;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果表有很多分区，导致很多打点刷屏，那么可以用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">desc  Tbl/G</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>表太多的话，我的场景是2000张表,:(</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">SHOW TABLES LIKE '%tb%';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-1">查询数据库的字符集</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show variables like '%character%';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-2">指定字符集直连</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h10.145.135.234 -uoss -pxxx dbName --default-character-set=gbk;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-3">赋予权限</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show grants for 'xxx'@'xxx.xxx.xxx.xxx'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-4">如果想备份，或者复制表</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">create table newtb select * from oldtable</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-5">修改表字段</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter tbA modify fieldA int(11) unsigned default '0'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-6">移除字段</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter table t2 drop column c;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-7">修改主键</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter table tbA drop primary key;
+</span><span class="line">Alter table tbA add primary key(dtStatDate,File2)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="query">查询当前数据库的查询进程,干掉挂起的query</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show processlist;
+</span><span class="line">kill pid</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="shell">直接在shell外部命令行执行:</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h10.112.111.111 -uxxx -pxxxx dbname -Ns -e"
+</span><span class="line">select distinct(iUin) from TableA where dtEventTime &gt;= '2013-05-05' 
+</span><span class="line">" &gt; records.txt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysql--">mysql 排除重复记录 使用</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">INSERT IGNORE into
+</span><span class="line">Replace Into 是为了让主键替换原有的记录</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="load-data-infile">load data infile语句</h4>
+<p>从一个文本文件中以很高的速度读入一个表中。使用这个命令之前，mysqld进程（服务）必须已经在运行。为了安全原因，当读取位于服务器上的文本文件时，文件必须处于数据库目录或可被所有人读取。另外，为了对服务器上文件使用load data infile，在服务器主机上你必须有file的权限。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">load data infile "/home/Order txt" into table Orders(Order_Number, Order_Date, Customer_ID) terminated by',';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysqldump-access-denied-for-user-when-using-lock-tables">mysqldump中解决 报”Access denied for user when using LOCK TABLES”</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysqldump -udbuser -p dbname --skip-lock-tables &gt; dbname.sql</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-8">监控数据库磁盘增长量</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">use information_schema;
+</span><span class="line">#库的大小
+</span><span class="line">select concat(round(sum(DATA_LENGTH/1024/1024),2),'MB') as data  from TABLES where table_schema='db1';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-9">时间函数</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">FROM_UNIXTIME(iLoginTime,'%Y-%m-%d')
+</span><span class="line">unix_timestamp('2013-12-03');
+</span><span class="line">Date_SUB(OrderDate,INTERVAL 2 DAY)
+</span><span class="line">Date_ADD(OrderDate,INTERVAL 2 DAY)
+</span><span class="line">timestampdiff(week,’2009-01-24′,’2009-06-20′);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="no-existhaving">no exist,having</h4>
+<p>适合做留存用户分析</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">SELECT distinct field1
+</span><span class="line">FROM table a
+</span><span class="line">where date &lt;= 20130430 and
+</span><span class="line">not exists (
+</span><span class="line">        SELECT field1 FROM table b where date&gt;=20130501 and a.field1=b.field1
+</span><span class="line">)
+</span><span class="line">
+</span><span class="line">#举例子,可以计算第一次创建用户的人
+</span><span class="line">select * from TbRole having min(CreateTime) between 'xxx' and 'xxx' </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysql-">mysql 逻辑运算,好像在编程的样子</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">case condition1
+</span><span class="line">when result1 then 'xx'
+</span><span class="line">when result2 then 'xx'
+</span><span class="line">else result1 then 'xx'
+</span><span class="line">end as 'xx'
+</span><span class="line">
+</span><span class="line">ifnull(a,b) #如果a不为空的情况下执行a,否则执行b
+</span><span class="line">if(condition,a,b)#如果符合condition 执行a,否则执行b</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="group-by">妙用group by</h4>
+<p>可以在group by 里面做逻辑运算, 缩小逻辑范围</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select * From tableA group by (round(field1/100,0));</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-10">格式化字符串类型</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">concat('a','b')</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysql">mysql的临时变量’@’</h4>
+<p>以下sql是取各道具排前10的等级</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select * from (
+</span><span class="line">    select dtStatDate,iRoleLevel,iUserNum,
+</span><span class="line">    if(@templevel=a.iRoleLevel,@tno:=@tno+1,@tno:=1) as tno,@templevel:=a.iRoleLevel 
+</span><span class="line">    from tbl_a , (SELECT @tno:= 0,@templevel:=null) tbl_b
+</span><span class="line">    order by a.iRoleLevel asc,a.iUserNum desc
+</span><span class="line">) c
+</span><span class="line">where tno&lt;=10 order by iRoleLevel asc</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-11">其他</h4>
+<p>union all 效率会比union高,因为union有去重功能,会耗时 </p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/10/shui-de-xin-jing/">上善若水-想和这段生活谈谈</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-11-10T21:29:00+08:00" pubdate data-updated="true">Nov 10<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/11/10/shui-de-xin-jing/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>来深圳已经四个多月了，我不会扯淡地说些恍如隔日，白驹过隙之云，就我真实的感受而言，这些日子发生了很多事情，感觉经历了不少事情。关键字是： <strong><em>MiniGame比赛，后苑生活，吉他，折腾捣鼓</em></strong></p>
+
+<p><img src="/images/2013/10/Gitar.jpg" />
+<img src="/images/2013/10/Violin.jpg" /></p>
+
+<p>本以为音乐会随着时光离我远去，原来它一直都在。小时候学过小提琴，后来因为羡慕同龄人可以一起踢球玩耍而渐渐荒废，每次面对房间里那把吉他心中不免有些愧疚，想拿起来练却因为种种原因作罢，归咎于我的无能吧。毕业前夕，邂逅吉他。开始新的音乐旅程.无数次的脱皮结茧也没有打消我的热情，疯狂爱上优美的弦音。虽不能说废寝忘食，却也可以每天自学一段时间，现在算是可以弹奏喜欢的歌曲。有一天当我教宿舍的朋友如何入门的时候，突然感觉自己已经在喜欢的路上走了一段距离。那时候看看手里的茧,听着手中指弹的发声，瞬间感动。这背后，是心性的变化。沉淀下来是可以做不少你曾经觉得甚是神奇的事情.</p>
+
+<p><strong><em>上善若水，水善利万物而不争。天下柔者莫过于水,而能攻者有莫过于水。</em></strong>
+来深的这段时间里，我想这是我最大的收获。我喜欢这句话。</p>
+
+<p>心态的变化体现在对技术折腾上。曾经在时间，任务，压力面前我总是妥协倾向更快速解决问题。这样，知其然不知其所以然的祸根就埋下了，也伴有一些焦急，<strong><em>“一件事情如果你说不好，十有八九你是做不好的”</em></strong>。当然我依然改变不了捣鼓研究的热情，转变的是，我更愿意以一种好奇求问的心态，想想他们适合怎样的场景，在允许的情况下，我很乐意探其究竟。从细节中去发现美。曾以为会花费不少时间，如今看来，倒是在效率上给我带来了很大的提高，思维上也改造了不少 ：）.这几天疯狂地满足了折腾的欲望</p>
+
+<ul>
+  <li>折腾ArchLinux，</li>
+  <li>阅读完一本《MongoDb权威指南》</li>
+  <li>开发一个chrome插件,稍后会把经验分享给大家</li>
+  <li>博客做了改版，也顺带理清了octopress的框架,给他加了不少插件。</li>
+</ul>
+
+<p>捣鼓的热情，可以让人忘记时间甚至烦恼，沉浸在知识的海洋，也会为自己小小欣慰一把，这种小情绪怡然自得，如果你也是个不安分的人，相信你在此刻会有共鸣。</p>
+
+<p>提起工作，必须承认，离开有2年半感情的<a href="http://youmi.net">Youmi</a>，它有我大学一半的青春与回忆，对我来说是一个不容易的事情，我爱那里的人，初创团队的KISS，让我感受到很强的工程师文化，i like it。那里有我的可敬的精神<a href="http://sysrt.net">偶像</a>，但我希望我的人生多一些阅历，于是在毕业的岔口我来到了tx。选择没有对错，这一路总有不同的风景，</p>
+
+<p>在大公司，不可避免，我做的是螺丝钉般很琐碎的工作，很诚实地说，基本无技术上的锻炼,很长一段时间也将是。这一直是我内心一个心结。这对热爱技术的我，算是一种无奈吧。只能靠自己更高效地工作争取会宿舍去捣鼓消化技术的热情，真的很羡慕那些工程师味道浓厚，真正做事，创造价值的团队，每每在微博看到业界意见领袖（<a href="http://coolshell.cn">@coolshell</a>,<a href="http://dbanotes.net">@Fenng</a>..）的团队，便会像阿Q一样自嘲下自己,也好，多些经历也是好事，这样我会更加鞭策着去努力。话说回来，无论光景怎么变，我能做的就是始终都不能放弃学习与积累。这个过程中本身就是一件很开心的事情。很欣喜的是这一路我并不孤单，<a href="http://everet.org">华亮</a>和我也是一样在努力着。</p>
+
+<p>在平淡，甚至有点黯然失色的日子里，携安静的内心,还有吉他与代码，多一份坦然，多一份汗水，多一份坚持去面对生活，感悟生活，这是我对“上善若水”的理解。文字还是稚嫩，写这文章的心情是平静,不带偏激和情绪，我想和这段生活谈谈。</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/29/zerorpcshi-ge-hao-dong-xi/">ZeroRPC-基于ZMQ的RPC通讯库</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-29T20:56:00+08:00" pubdate data-updated="true">Sep 29<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/29/zerorpcshi-ge-hao-dong-xi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://www.dotcloud.com/">dotCloud</a> 是一家具有伟大基因的公司,我认为的伟大是有着开源贡献的情怀，就像Amazon,Google等，而不是国内的某些巨头，虽然作为新兴的云服务提供商还不足以比肩巨头，致力于用技术解决公司的运营问题的同时也回馈社会，让我为之喝彩.我也有理由相信这样的公司会走的更远，因为他们有胸怀有远见，是否重视技术就更不言而喻了.</p>
+
+<p>这篇文章旨在介绍由<strong>dotCloud</strong>开源的<a href="https://github.com/dotcloud/zerorpc-python">ZeroRpc</a>,在dotcloud公司的基础服务得到很大应用，在阅读其manual之后更是被其简洁明了的使用方法所吸引 
+&gt;ZeroRPC is a modern communication layer for distributed systems built on top of ZeroMQ,</p>
+
+<p>一直以来我一直喜欢python 的简洁，用过ZeroMQ做过网络通讯方面的编程，也使用RPC 做过远程过程调用，上次使用LevelDB的RPC是用python的[第三方库] (https://github.com/dotcloud/zerorpc-python)</p>
+
+<p>这次刚好在Github上面看到这样的好玩意，便想与大家分享,ZeroRpc不仅仅支持代码层面的调用，也支持CLi， 这种设计本身就很有弹性.赞！</p>
+
+<p>安装zerorpc</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo pip install zerorpc </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在还没开始看demo之前
+我们需要了解ZeroRpc是由三层架构组成：</p>
+
+<ul>
+  <li>传输层是使用<a href="http://www.zeromq.org/">ZMQ</a> 以及msgpack(http://msgpack.org/),基于ZeroMQ的分布式通讯层,通讯的数据被MsgPack 序列化过所以更快</li>
+  <li>消息层,比较复杂,处理heartbeat, multiplexing, and events.</li>
+  <li>RPC层:处理请求,响应</li>
+</ul>
+
+<p>官方的<a href="http://zerorpc.dotcloud.com/">文档</a>给出以下demo</p>
+
+<h4 id="serverpy">server.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line"><span class="k">class</span> <span class="nc">HelloRPC</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="s">&quot;Hello, </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">name</span>
+</span><span class="line">
+</span><span class="line"><span class="n">s</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">HelloRPC</span><span class="p">())</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s">&quot;tcp://0.0.0.0:4242&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="clientpy">client.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line">
+</span><span class="line"><span class="n">c</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
+</span><span class="line"><span class="n">c</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&quot;tcp://127.0.0.1:4242&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="k">print</span> <span class="n">c</span><span class="o">.</span><span class="n">hello</span><span class="p">(</span><span class="s">&quot;RPC&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>client也可用命令行代替</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">zerorpc</span> <span class="n">tcp</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">4242</span> <span class="n">hello</span> <span class="n">RPC</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>够简明易懂了吧
+再来一个返回连续字节流的例子</p>
+
+<h4 id="serverpy-1">server.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">StreamingRPC</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class="line">    <span class="nd">@zerorpc.stream</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">streaming_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fr</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">fr</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="n">s</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">StreamingRPC</span><span class="p">())</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s">&quot;tcp://0.0.0.0:4242&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="clientpy-1">client.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line">
+</span><span class="line"><span class="n">c</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
+</span><span class="line"><span class="n">c</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&quot;tcp://127.0.0.1:4242&quot;</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">streaming_range</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">item</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>client也可用命令行代替,–json 表示头部是一个json对象</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">zerorpc</span> <span class="n">tcp</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">4242</span> <span class="n">streaming_range</span> <span class="mi">10</span> <span class="mi">20</span> <span class="mi">2</span> <span class="o">--</span><span class="n">json</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/28/shellji-qiao-xiao-jie/">Shell技巧小结</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-28T22:52:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/28/shellji-qiao-xiao-jie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐</p>
+
+<ul>
+  <li>使用shell获取进程，并删除</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#取得当前进程号
+</span><span class="line">current_pid=$$
+</span><span class="line">#获得特定进程号并重定向到一个临时文件中
+</span><span class="line">ps -aux|grep "/usr/sbin/httpd" | grep -v "grep"| awk '{print $2}' &gt;/tmp/${current_pid}.txt
+</span><span class="line">#commands start
+</span><span class="line">for pid in `cat /tmp/${current_pid}.txt`
+</span><span class="line">do
+</span><span class="line">{
+</span><span class="line">    echo "kill -9 $pid"
+</span><span class="line">    kill -9 $pid
+</span><span class="line">}
+</span><span class="line">done 
+</span><span class="line">rm -f /tmp/${current_pid}.txt </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>shell的函数处理</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">func()
+</span><span class="line">{
+</span><span class="line">    echo $a $b $c
+</span><span class="line">    echo $1 $2 $3
+</span><span class="line">}
+</span><span class="line">a="aaa"
+</span><span class="line">b="bbb"
+</span><span class="line">c="ccc"
+</span><span class="line">func $a e f</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>函数传参是通过 funcname $para1 $para2 …,函数内部是使用$1,$2,$3
+结果为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">aaa bbb ccc
+</span><span class="line">aaa e f </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>信号捕捉
+trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
+其中,name是捕捉到信号以后所采取的一系列操作。实际中，name一般是一个专门用来处理所捕捉信号的函数。name需要用双引号（“”）引起来。signal是待捕捉的信号。
+最常见的行动包括： 清除临时文件 忽略该信号(如trap “” 23) 询问用户是否终止该脚本进程</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">trap 'exitprocess' 2　　　　#捕捉到信号２之后执行exitprocess function
+</span><span class="line">LOOP=0
+</span><span class="line">function exitprocess()
+</span><span class="line">{
+</span><span class="line">    echo "You Just hit &lt;CTRL-C&gt;, at number $LOOP"
+</span><span class="line">    echo "I will now exit"
+</span><span class="line">    exit 1
+</span><span class="line">}
+</span><span class="line">while : # 循环直到捕捉到信号（注意中间的空格） 
+</span><span class="line">do
+</span><span class="line">    LOOP=$LOOP+1
+</span><span class="line">    echo $LOOP
+</span><span class="line">    sleep 1
+</span><span class="line">done </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>给一个文本，获取其中2000 ~ 3000 行怎么破？</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cat data.txt | tail -n +2000 | head -n 1000 &gt; result.txt</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查找文件是否存在
+&lt;div class=&#8217;bogus-wrapper&#8217;&gt;<notextile><figure class="code">&lt;div class=&#8221;highlight&#8221;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&#8221;gutter&#8221;&gt;&lt;pre class=&#8221;line-numbers&#8221;&gt;<span class="line-number">1</span>
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&#8217;code&#8217;&gt;&lt;pre&gt;<code class=""><span class="line">find /data -name hello.cpp </span></code>&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;</figure></notextile>&lt;/div&gt;</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/4/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/2/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid&#8217;s Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

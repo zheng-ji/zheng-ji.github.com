@@ -1,0 +1,1718 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="纯真IP数据库 参考链接： 这个,这个,还有这个 以上文章写的很好了，我只是把我学习的过程记录下来，做知识积累。 做IP地址查询服务时，一定会听到QQ纯真数据库。当然你需要下载的。名为QQWry.Dat 结构
+QWry.dat文件在结构上分为3块：
++ 文件头
++ 记录区
++ 索引区。 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/page/5">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/">纯真IP数据库读取</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-18T19:14:00+08:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>纯真IP数据库</p>
+
+<p>参考链接：</p>
+
+<p><a href="http://lumaqq.linuxsir.org/article/qqwry_format_detail.html">这个</a>,<a href="http://www.pythonclub.org/python-flies/chunzhen-ip-database">这个</a>,还有<a href="http://demon.tw/programming/python-qqwry-dat.html">这个</a></p>
+
+<p>以上文章写的很好了，我只是把我学习的过程记录下来，做知识积累。</p>
+
+<p>做IP地址查询服务时，一定会听到QQ纯真数据库。当然你需要下载的。名为QQWry.Dat</p>
+
+<p>结构
+QWry.dat文件在结构上分为3块：
++ 文件头
++ 记录区
++ 索引区。</p>
+
+<p>一般我们要查找IP时，先在索引区查找记录偏移，然后再到记录区读出信息。由于记录区的记录是不定长的，所以直接在记录区中搜索是不可能的。由于记录数比较多，如果我们遍历索引区也会是有点慢的，一般来说，我们可以用二分查找法搜索索引区，其速度比遍历索引区快若干数量级。
+纯真数据库内容结构</p>
+
+<ul>
+  <li>文件头：4字节开始索引偏移值+4字节结尾索引偏移值</li>
+  <li>记录区： 每条IP记录格式 ==&gt; IP地址[国家信息][地区信息]</li>
+</ul>
+
+<p>对于国家记录，可以有三种表示方式：
+* 字符串形式(IP记录第5字节不等于0×01和0×02的情况)，
+* 重定向模式1(第5字节为0×01),则接下来3字节为国家信息存储地的偏移值
+* 重定向模式(第5字节为0×02),</p>
+
+<p>对于地区记录，可以有两种表示方式： 字符串形式和重定向</p>
+
+<p>最后一条规则：重定向模式1的国家记录后不能跟地区记录</p>
+
+<p>索引区： 每条索引记录格式 ==&gt; 4字节起始IP地址 + 3字节指向IP记录的偏移值
+索引区的IP和它指向的记录区一条记录中的IP构成一个IP范围。查询信息是这个
+范围内IP的信息</p>
+
+<p>代码不是我写的，网上有很多版本。这里纯粹是为了学习。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+<span class="line-number">54</span>
+<span class="line-number">55</span>
+<span class="line-number">56</span>
+<span class="line-number">57</span>
+<span class="line-number">58</span>
+<span class="line-number">59</span>
+<span class="line-number">60</span>
+<span class="line-number">61</span>
+<span class="line-number">62</span>
+<span class="line-number">63</span>
+<span class="line-number">64</span>
+<span class="line-number">65</span>
+<span class="line-number">66</span>
+<span class="line-number">67</span>
+<span class="line-number">68</span>
+<span class="line-number">69</span>
+<span class="line-number">70</span>
+<span class="line-number">71</span>
+<span class="line-number">72</span>
+<span class="line-number">73</span>
+<span class="line-number">74</span>
+<span class="line-number">75</span>
+<span class="line-number">76</span>
+<span class="line-number">77</span>
+<span class="line-number">78</span>
+<span class="line-number">79</span>
+<span class="line-number">80</span>
+<span class="line-number">81</span>
+<span class="line-number">82</span>
+<span class="line-number">83</span>
+<span class="line-number">84</span>
+<span class="line-number">85</span>
+<span class="line-number">86</span>
+<span class="line-number">87</span>
+<span class="line-number">88</span>
+<span class="line-number">89</span>
+<span class="line-number">90</span>
+<span class="line-number">91</span>
+<span class="line-number">92</span>
+<span class="line-number">93</span>
+<span class="line-number">94</span>
+<span class="line-number">95</span>
+<span class="line-number">96</span>
+<span class="line-number">97</span>
+<span class="line-number">98</span>
+<span class="line-number">99</span>
+<span class="line-number">100</span>
+<span class="line-number">101</span>
+<span class="line-number">102</span>
+<span class="line-number">103</span>
+<span class="line-number">104</span>
+<span class="line-number">105</span>
+<span class="line-number">106</span>
+<span class="line-number">107</span>
+<span class="line-number">108</span>
+<span class="line-number">109</span>
+<span class="line-number">110</span>
+<span class="line-number">111</span>
+<span class="line-number">112</span>
+<span class="line-number">113</span>
+<span class="line-number">114</span>
+<span class="line-number">115</span>
+<span class="line-number">116</span>
+<span class="line-number">117</span>
+<span class="line-number">118</span>
+<span class="line-number">119</span>
+<span class="line-number">120</span>
+<span class="line-number">121</span>
+<span class="line-number">122</span>
+<span class="line-number">123</span>
+<span class="line-number">124</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/python</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">from</span> <span class="nn">struct</span> <span class="kn">import</span> <span class="o">*</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">string</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">ip2string</span><span class="p">(</span> <span class="n">ip</span> <span class="p">):</span>
+</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0xff000000</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span>
+</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x00ff0000</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span>
+</span><span class="line">    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x0000ff00</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span>
+</span><span class="line">    <span class="n">d</span> <span class="o">=</span> <span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x000000ff</span>
+</span><span class="line">    <span class="k">return</span> <span class="s">&quot;</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">string2ip</span><span class="p">(</span> <span class="nb">str</span> <span class="p">):</span>
+</span><span class="line">    <span class="n">ss</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="s">&#39;.&#39;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="il">0L</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ss</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ip</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">atoi</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">ip</span><span class="p">;</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">IpLocater</span> <span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span> <span class="bp">self</span><span class="p">,</span> <span class="n">ipdb_file</span> <span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span> <span class="n">ipdb_file</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span> <span class="p">)</span>
+</span><span class="line">        <span class="c"># get index address</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">8</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">last_index</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;II&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_index</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">)</span> <span class="o">/</span> <span class="mi">7</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">getString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
+</span><span class="line">             <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="n">ch</span><span class="p">)</span>
+</span><span class="line">        <span class="k">while</span> <span class="n">byte</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class="line">            <span class="nb">str</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">+</span> <span class="n">ch</span>
+</span><span class="line">            <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="n">ch</span><span class="p">)</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">str</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">getLong3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;HB&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="k">return</span> <span class="p">(</span><span class="n">b</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">+</span> <span class="n">a</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">getAreaAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x01</span> <span class="ow">or</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">p</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">p</span> <span class="p">)</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="k">else</span><span class="p">:</span>
+</span><span class="line">             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">     <span class="k">def</span> <span class="nf">getAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="p">,</span><span class="n">ip</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+</span><span class="line">        <span class="n">countryAddr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="n">areaAddr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x01</span><span class="p">:</span>
+</span><span class="line">            <span class="n">countryOffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">countryOffset</span> <span class="p">)</span>
+</span><span class="line">            <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">b</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
+</span><span class="line">                <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span> <span class="p">)</span>
+</span><span class="line">                <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">countryOffset</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">)</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">countryOffset</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">()</span>
+</span><span class="line">        <span class="k">elif</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
+</span><span class="line">            <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">8</span> <span class="p">)</span>
+</span><span class="line">        <span class="k">else</span><span class="p">:</span>
+</span><span class="line">            <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">(</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">        <span class="k">return</span> <span class="n">countryAddr</span> <span class="o">+</span> <span class="s">&quot;/&quot;</span> <span class="o">+</span> <span class="n">areaAddr</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first</span> <span class="p">,</span><span class="n">last</span> <span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">last</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="p">:</span>
+</span><span class="line">            <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first</span><span class="p">,</span><span class="n">last</span><span class="p">):</span>
+</span><span class="line">            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">index</span> <span class="o">*</span> <span class="mi">7</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">7</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">of1</span><span class="p">,</span><span class="n">of2</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&quot;IHB&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">)</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAddr</span><span class="p">(</span> <span class="n">of1</span> <span class="o">+</span> <span class="p">(</span><span class="n">of2</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ip</span><span class="p">,</span><span class="n">left</span><span class="p">,</span><span class="n">right</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">right</span><span class="o">-</span><span class="n">left</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span><span class="line">            <span class="k">return</span> <span class="n">left</span>
+</span><span class="line">        <span class="k">else</span><span class="p">:</span>
+</span><span class="line">            <span class="n">middle</span> <span class="o">=</span> <span class="p">(</span> <span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+</span><span class="line">            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">middle</span> <span class="o">*</span> <span class="mi">7</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">4</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">new_ip</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&quot;I&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">)</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">ip</span> <span class="o">&lt;=</span> <span class="n">new_ip</span> <span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">middle</span> <span class="p">)</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span> <span class="n">middle</span><span class="p">,</span> <span class="n">right</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">     <span class="k">def</span> <span class="nf">getIpAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ip</span><span class="p">):</span>
+</span><span class="line">         <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">         <span class="n">ioffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">index</span> <span class="o">*</span> <span class="mi">7</span>
+</span><span class="line">         <span class="n">aoffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">(</span> <span class="n">ioffset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+</span><span class="line">         <span class="n">address</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAddr</span><span class="p">(</span> <span class="n">aoffset</span> <span class="p">)</span>
+</span><span class="line">         <span class="k">return</span> <span class="n">address</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span> <span class="p">:</span>
+</span><span class="line">    <span class="n">ip_locater</span> <span class="o">=</span> <span class="n">IpLocater</span><span class="p">(</span> <span class="s">&quot;QQWry.Dat&quot;</span> <span class="p">)</span>
+</span><span class="line">    <span class="n">ip_locater</span><span class="o">.</span><span class="n">output</span><span class="p">(</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">120</span> <span class="p">)</span>
+</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="s">&#39;59.64.234.174&#39;</span>
+</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="s">&#39;58.38.139.229&#39;</span>
+</span><span class="line">    <span class="n">address</span> <span class="o">=</span> <span class="n">ip_locater</span><span class="o">.</span><span class="n">getIpAddr</span><span class="p">(</span> <span class="n">string2ip</span><span class="p">(</span> <span class="n">ip</span> <span class="p">)</span> <span class="p">)</span>
+</span><span class="line">    <span class="k">print</span> <span class="s">&quot;the ip </span><span class="si">%s</span><span class="s"> come from </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">address</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/">Unix Domain Socket – IPC通信机制</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-17T23:52:00+08:00" pubdate data-updated="true">Jun 17<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="unix-domain-socket">什么是Unix Domain Socket</h4>
+<p>基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率：</p>
+
+<ul>
+  <li>不需要经过网络协议栈</li>
+  <li>不需要打包拆包、计算校验和、维护序号和应答等</li>
+</ul>
+
+<p>只是将应用层数据从一个进程拷贝到另一个进程。这是因为，IPC机制本质上是可靠的通讯，而网络协议是为不可靠的通讯设计的。UNIX Domain Socket也提供面向流和面向数据包两种API接口，类似于TCP和UDP，但是面向消息的UNIX Domain Socket也是可靠的，消息既不会丢失也不会顺序错乱。</p>
+
+<h4 id="section">应用</h4>
+
+<p>UNIX Domain Socket是全双工的，API接口语义丰富，相比其它IPC机制有明显的优越性，目前已成为使用最广泛的IPC机制，比如X Window服务器和GUI程序之间就是通过UNIX Domain Socket通讯的。</p>
+
+<p>Nginx通过unix:/socket与fastcgi连接，提升性能,比tcp socket要高效
++ 在nginx.conf中修改配置为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">fastcgi_pass unix:/tmp/php-cgi.sock;
+</span><span class="line">#fastcgi_pass 127.0.0.1:9000;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>在php-fpm.conf中修改配置为：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/tmp/php-cgi.sock</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>通信过程</p>
+
+<p><img src="/images/2013/08/ipc_unix_socket-300x300.png" /></p>
+
+<p>用Unix domain socket写的Demo</p>
+
+<p>使用UNIX Domain Socket的过程和网络socket十分相似，也要先调用socket()创建一个socket文件描述符，address family指定为AF_UNIX，type可以选择SOCK_DGRAM或SOCK_STREAM，protocol参数仍然指定为0即可。通常是指定/tmp/目录下的一个文件作为通信路径</p>
+
+<p>源码demo<a href="https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock">链接</a></p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/">豆瓣喜爱文章下载器</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-12T23:31:00+08:00" pubdate data-updated="true">Jun 12<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>收藏一些不错的文章</p>
+
+<p>在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。</p>
+
+<p>使用方法：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span class="line">    <span class="c">#用户名,可以写入douban ID</span>
+</span><span class="line">    <span class="n">usrnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;laiyonghao&quot;</span><span class="p">,</span><span class="s">&quot;fenng&quot;</span><span class="p">]</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">usrnames</span><span class="p">:</span>
+</span><span class="line">                <span class="n">cwl</span> <span class="o">=</span> <span class="n">Crawler</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span class="line">        <span class="n">cwl</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span class="line">        <span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">(</span><span class="n">cwl</span><span class="p">)</span>
+</span><span class="line">        <span class="n">parser</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<blockquote>
+  <p>运行 python main.py</p>
+</blockquote>
+
+<p>结果 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">tmp</span>
+</span><span class="line">    <span class="err">├──</span> <span class="n">fenng</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">Got</span> <span class="n">talent</span><span class="err">?</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">QCon</span> <span class="n">Beijing</span> <span class="mi">2013</span> <span class="err">乱记</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">北京生存指南</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">发现「讷客」</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">父亲谈创新</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">和菜头对豆瓣用户骂声的回应</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">胡扯两句</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">年会：公司人的新民俗</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">一个关于嘲笑的小故事</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">有些事，蹲在家里是永远实现不了的。</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">赞</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">└──</span> <span class="err">中国说唱教父</span><span class="o">--</span><span class="err">尹相杰</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="err">转</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span>
+</span><span class="line">    <span class="err">└──</span> <span class="n">laiyonghao</span>
+</span><span class="line">        <span class="err">├──</span> <span class="n">Live</span> <span class="n">Together</span><span class="p">,</span> <span class="n">Hate</span> <span class="n">Each</span> <span class="n">Other</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">当初的愿望实现了么？</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">豆瓣阅读即将开售（已上线）</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">婚礼主题曲背后的故事</span>
+</span><span class="line">        <span class="err">└──</span> <span class="err">科普也需严谨</span><span class="o">---</span><span class="err">对《数学之美》密码部分的评论</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>源代码<a href="https://github.com/zheng-ji/douban-likes-crawler.git">链接</a>
+Happy Hacking : )</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/">C++与Python的混合编程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-08T23:42:00+08:00" pubdate data-updated="true">Jun 8<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="python">python拓展编写</h4>
+<p>C++编写python的拓展。提高程序运行效率
+我理解的一般流程:
+* 编写自己的业务逻辑代码本例子如</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">string add(int a,int b)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>包装为python函数，用于解析python传进来的参数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_add</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">);</span>
+</span><span class="line"><span class="c1">//解析参数</span>
+</span><span class="line"><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line"><span class="c1">//构建返回值</span>
+</span><span class="line"><span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>编写映射函数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="n">PyMethodDef</span> <span class="n">bintMethods</span><span class="p">[]</span> <span class="o">=</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">        <span class="p">{</span><span class="s">&quot;add&quot;</span><span class="p">,</span> <span class="n">wrap_add</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For add&quot;</span><span class="p">},</span>
+</span><span class="line">            <span class="p">{</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>*.模块初始化函数</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">initbint</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">PyObject</span><span class="o">*</span> <span class="n">m</span><span class="p">;</span>
+</span><span class="line">    <span class="n">m</span> <span class="o">=</span> <span class="n">Py_InitModule</span><span class="p">(</span><span class="s">&quot;bint&quot;</span><span class="p">,</span> <span class="n">bintMethods</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &quot;BigNum.h&quot;</span>
+</span><span class="line"><span class="cp">#include &lt;python2.7/Python.h&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;iostream&gt;</span>
+</span><span class="line">
+</span><span class="line"><span class="n">string</span> <span class="nf">add</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num1</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num2</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">ans</span> <span class="o">=</span> <span class="n">num1</span> <span class="o">+</span> <span class="n">num2</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Bint</span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">ans</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">string</span> <span class="nf">multiple</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num1</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num2</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">ans</span> <span class="o">=</span> <span class="n">num1</span> <span class="o">*</span> <span class="n">num2</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Bint</span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">ans</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_add</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_mul</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">multiple</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="k">static</span> <span class="n">PyMethodDef</span> <span class="n">bintMethods</span><span class="p">[]</span> <span class="o">=</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="p">{</span><span class="s">&quot;add&quot;</span><span class="p">,</span> <span class="n">wrap_add</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For add&quot;</span><span class="p">},</span>
+</span><span class="line">    <span class="p">{</span><span class="s">&quot;mul&quot;</span><span class="p">,</span> <span class="n">wrap_mul</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For mul&quot;</span><span class="p">},</span>
+</span><span class="line">    <span class="p">{</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">}</span>
+</span><span class="line"><span class="p">};</span>
+</span><span class="line">
+</span><span class="line"><span class="k">extern</span> <span class="s">&quot;C&quot;</span>              <span class="c1">//不加会导致找不到initbint</span>
+</span><span class="line"><span class="kt">void</span> <span class="n">initbint</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">PyObject</span><span class="o">*</span> <span class="n">m</span><span class="p">;</span>
+</span><span class="line">    <span class="n">m</span> <span class="o">=</span> <span class="n">Py_InitModule</span><span class="p">(</span><span class="s">&quot;bint&quot;</span><span class="p">,</span> <span class="n">bintMethods</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译成动态链接库</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="nl">all:</span>
+</span><span class="line">    <span class="n">g</span><span class="o">++</span> <span class="o">-</span><span class="n">fPIC</span> <span class="o">-</span><span class="n">shared</span> <span class="n">BigNum</span><span class="p">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">Bint</span><span class="p">.</span><span class="n">so</span>
+</span><span class="line"><span class="nl">clean:</span>
+</span><span class="line">    <span class="n">rm</span> <span class="o">-</span><span class="n">rf</span> <span class="n">bint</span><span class="p">.</span><span class="n">so</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">bint</span>
+</span><span class="line"><span class="n">bint</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="mi">4000000</span><span class="p">,</span><span class="mi">5000000</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>GitHub上有<a href="http://innerbrilliant.sinaapp.com/?p=515">源码</a></p>
+
+<h3 id="cpython">C++调用Python</h3>
+
+<p>python的开发效率之高是毋庸置疑的，C++/C的语言性能之快也是让人羡慕的。这一次，鱼和熊掌是可以兼得的 ：），混合编程，使得我们可以取之所长，游走在C与python之间。很多游戏开发中使用python来实现战斗脚本。
+* 初始化调用
+Py_Initialize();</p>
+
+<ul>
+  <li>
+    <p>PyObject* PyImport_ImportModule (char *name)
+一般都是通过(pmod = PyImport_ImportModule (“zhengji.app_context”)先来
+加载一个模块（py脚本),得到一个PyObject *pmod对象,失败返回NULL类型</p>
+  </li>
+  <li>
+    <p>获取某个方法或者类，PyObject * o是pmod
+PyObject* PyObject_GetAttrString (PyObject *o, char *attr_name)</p>
+  </li>
+</ul>
+
+<p><em>调用该方法 callable_object是第二步返回的指针
+PyObject</em> PyObject_CallFunction (PyObject *callable_object, char *format, …)</p>
+
+<ul>
+  <li>
+    <p>将PyObject* 返回char*
+char* PyString_AsString (PyObject *string)</p>
+  </li>
+  <li>
+    <p>结束初始化
+Py_Finalize();</p>
+  </li>
+</ul>
+
+<p>下面是script.py的内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/python</span>
+</span><span class="line"><span class="c"># Filename: script.py</span>
+</span><span class="line"><span class="k">class</span> <span class="nc">Student</span><span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">SetName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">PrintName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&quot;Hello World</span><span class="se">\n</span><span class="s">&quot;</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">world</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&quot;name&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="cscriptpy">C++调用Script.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &lt;python2.7/Python.h&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;iostream&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;string&gt;</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">int</span> <span class="nf">main</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//使用python之前，要调用Py_Initialize();这个函数进行初始化</span>
+</span><span class="line">    <span class="n">Py_Initialize</span><span class="p">();</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">PyRun_SimpleString</span><span class="p">(</span><span class="s">&quot;import sys&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyRun_SimpleString</span><span class="p">(</span><span class="s">&quot;sys.path.append(&#39;./&#39;)&quot;</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pModule</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pFunc</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pClass</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pInstance</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//这里是要调用的文件名</span>
+</span><span class="line">    <span class="n">pModule</span> <span class="o">=</span> <span class="n">PyImport_ImportModule</span><span class="p">(</span><span class="s">&quot;script&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//这里是要调用的函数名</span>
+</span><span class="line">    <span class="n">pFunc</span><span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;hello&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//调用函数</span>
+</span><span class="line">    <span class="n">PyEval_CallObject</span><span class="p">(</span><span class="n">pFunc</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">pFunc</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">pFunc</span> <span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;world&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyObject_CallFunction</span><span class="p">(</span><span class="n">pFunc</span><span class="p">,</span> <span class="s">&quot;s&quot;</span><span class="p">,</span> <span class="s">&quot;zhengji&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">pFunc</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//测试调用python的类</span>
+</span><span class="line">    <span class="n">pClass</span> <span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;Student&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pClass</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t find Student class.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">pInstance</span> <span class="o">=</span> <span class="n">PyInstance_New</span><span class="p">(</span><span class="n">pClass</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pInstance</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t create Student instance.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">PyObject_CallMethod</span><span class="p">(</span><span class="n">pInstance</span><span class="p">,</span> <span class="s">&quot;SetName&quot;</span><span class="p">,</span> <span class="s">&quot;s&quot;</span><span class="p">,</span><span class="s">&quot;my family&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyObject_CallMethod</span><span class="p">(</span><span class="n">pInstance</span><span class="p">,</span> <span class="s">&quot;PrintName&quot;</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//调用Py_Finalize，这个根Py_Initialize相对应的。</span>
+</span><span class="line">    <span class="n">Py_Finalize</span><span class="p">();</span>
+</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译C++代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">g</span><span class="o">++</span> <span class="n">zj</span><span class="p">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">zj</span> <span class="o">-</span><span class="n">lpython2</span><span class="mf">.7</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>输出结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zj</span><span class="err">@</span><span class="n">hp</span><span class="o">:~/</span><span class="n">tmp</span><span class="o">/</span><span class="n">CcalPy</span><span class="err">$</span> <span class="p">.</span><span class="o">/</span><span class="n">zj</span>
+</span><span class="line"><span class="n">Hello</span> <span class="n">World</span>
+</span><span class="line"><span class="n">name</span>
+</span><span class="line"><span class="n">my</span> <span class="n">family</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/30/xiu-qi-xiao-bo/">修葺小博</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-30T23:20:00+08:00" pubdate data-updated="true">May 30<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/05/30/xiu-qi-xiao-bo/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="section">关于博客</h4>
+
+<p>大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。</p>
+
+<p>今天好好地修理一翻博客，顿觉从建博至今，写了很多垃圾文章，甚发觉以前很幼稚（包括想法与文字），本想删除劣迹，但这些文章终究是自己一步步成长的印记，所以让它们保留着。折腾了一天wp源码（修改css代码，添加一些有用的插件）还是很欢乐的。得益于广泛阅读和折腾，技术的广度是够的，但深度却明显不足。后续宁愿慢点也要做深度思考，尽可能写出博文。</p>
+
+<h4 id="section-1">关于技术</h4>
+
+<p>以后这个博客记录的更多会是后端开发的感悟，来源于自己浓厚的兴趣使然，喜欢服务端编程。虽然我在TX没有机会接触这样的开发（多少有些遗憾吧，但我希望去大公司开拓眼界，以后真的能做这样的工作，故不能放弃积累）。全凭一腔热血和毅力折腾，我所做的方法是，查看前人的技术成长，自己给自己提需求(比较傻)。偶有所得便会放上Github。诚如我所言，深度思考，学过的理要尽可能实现出来。宁愿慢点以获得真正的收获！</p>
+
+<p>如今已不再觉得学习某些技术会很厉害，真正具备的是思考，学习的能力。这都离不开扎实的基础！欣喜的是，我发现只要你去尝试并坚持努力，这些都可以提高的。</p>
+
+<p>接触到身边很多程序员：”CopyCat,重复劳动，眼界狭隘，缺乏思考”，内心感到难受。@ruitao说过；”不可能要求这世界所有人都有一样的想法，他们已经被磨去了棱角。“ （PS：@ruitao是一个Geek&amp;&amp;工具控,我的偶像：））。所幸的是我可以自我修炼，信息的畅通大大降低了学习门槛，一直欣赏一种人，知道自己需要什么并坚持想法的去学习，不为了所谓“外部评价”。很感恩认识到一些爱好技术，追求效率的朋友，和志同道合的人分享是件很幸福的事.</p>
+
+<h4 id="section-2">致将要逝去的大学时光</h4>
+
+<p>这个月与好友们泡在一起，俺学会了lol，虽然绝对菜B，但仍能感受到大伙在一起的狂欢激情。这些日子，我尽可能地尝试以前想做的事情，比如弹起吉他。感觉人生又完满了一点。认识多了几个热爱搞技术的朋友，能和他们一起侃共同的话题真的很爽。或许因为大家都有不安分的心以及共同的愿景吧。
+转入正题：leveldb的内存设计思想</p>
+
+<p>在研究leveldb的源代码，觉得他的内存池实现很收启发。学习leveldb的内存设计思想。</p>
+
+<p>如果是频繁的申请内存，不连续，会造成内存碎片。但Leveldb采用了内存池的概念，一次性申请4M的内存。下次读取的内存小于内存池的容量，直接获取，否则，重新申请内存块：
+* 如果申请的字节数，bytes &gt;= 1M，则申请内存为 bytes的块,避免内存块浪费
+* 如果申请的字节数，bytes &lt;= 1M，则申请内存为 4M 的块
+Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo">源码</a></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/11/google-c-plus-plus-style/">Google C++ Style</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-11T23:12:00+08:00" pubdate data-updated="true">May 11<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/05/11/google-c-plus-plus-style/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。</p>
+
+<ul>
+  <li>有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: <strong>_H</strong></li>
+  <li>
+    <p>能用前置声明的地方尽量不使用 #include
+前置声明是为了降低编译依赖，防止修改一个头文件引发多米诺效应; 举例说明: 如果头文件中用到类 File, 但不需要访问 File 类的声明, 头文件中只需前置声明 class File; 而无须 #include “file/base/file.h”.</p>
+  </li>
+  <li>
+    <p>只有当函数只有 10 行甚至更少时才将其定义为内联函数.
+当函数被声明为内联函数之后, 编译器会将其内联展开, 而不是按通常的函数调用机制进行调用.优点:当函数体比较小的时候, 内联该函数可以令目标代码更加高效. 对于存取函数以及其它函数体比较短, 性能关键的函数</p>
+  </li>
+  <li>
+    <p>义函数时, 参数顺序依次为: 输入参数, 然后是输出参数。
+标准化函数参数顺序可以提高可读性和易维护性</p>
+  </li>
+  <li>
+    <p>造函数体中进行初始化操作
+如果对象需要进行有意义的 (non-trivial) 初始化, 考虑使用明确的 Init() 方法并 (或) 增加一个成员标记用于指示对象是否已经初始化成功.</p>
+  </li>
+  <li>单个参数的构造函数使用 C++ 关键字 explicit.
+  大部分类并不需要可拷贝, 也不需要一个拷贝构造函数或重载赋值运算符. 不幸的是, 如果你不主动声明它们, 编译器会为你自动生成, 而且是 public 的.可以考虑在类的 private: 中添加拷贝构造函数和赋值操作的空实现, 只有声明, 没有定义. 由于这些空函数声明为 private, 当其他代码试图使用它们的时候, 编译器将报错. 方便起见, 我们可以使用 DISALLOW_COPY_AND_ASSIGN 宏:</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">
+</span><span class="line">#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+</span><span class="line">    TypeName(const TypeName&amp;); \
+</span><span class="line">void operator=(const TypeName&amp;)
+</span><span class="line">class Foo {
+</span><span class="line">    public:
+</span><span class="line">        Foo(int f);
+</span><span class="line">        ~Foo();
+</span><span class="line">
+</span><span class="line">    private:
+</span><span class="line">        DISALLOW_COPY_AND_ASSIGN(Foo);
+</span><span class="line">};</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>仅当只有数据时使用 struct, 其它一概使用 class.</li>
+  <li>
+    <p>编写简短函数
+如果函数超过 40 行, 可以思索一下能不能在不影响程序结构的前提下对其进行分割.</p>
+  </li>
+  <li>存取控制</li>
+</ul>
+
+<p>将所有数据成员声明为 private, 并根据需要提供相应的存取函数. 例如, 某个名为 foo_ 的变量, 其取值函数是 foo(). 还可能需要一个赋值函数 set_foo().一般在头文件中把存取函数定义成内联函数.
+* 声明顺序</p>
+
+<p>在类中使用特定的声明顺序: public: 在 private: 之前, 成员函数在数据成员 (变量) 前;</p>
+
+<p>通常是：
++ public -&gt; protected -&gt; private;
++ typedefs 和枚举
++ 常量
++ 构造函数
++ 析构函数
++ 成员函数, 含静态成员函数
++ 数据成员, 含静态数据成员
++ 类型转换</p>
+
+<p>使用 C++ 的类型转换, 如 static_cast&lt;&gt;(). 不要使用 int y = (int)x 或 int y = int(x) 等转换方式;
+不要使用 C 风格类型转换. 而应该使用 C++ 风格.
+* 对于迭代器和其他模板对象使用前缀形式 (++i) 的自增, 自减运算符.</p>
+
+<p>不考虑返回值的话, 前置自增 (++i) 通常要比后置自增 (i++) 效率更高. 因为后置自增 (或自减) 需要对表达式的值 i 进行一次拷贝. 如果 i 是迭代器或其他非数值类型, 拷贝的代价是比较大的.
+* 尽可能用 sizeof(varname) 代替 sizeof(type).</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/">返回值的透彻理解</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-20T23:06:00+08:00" pubdate data-updated="true">Apr 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">swap</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="n">a</span><span class="p">;</span>
+</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line"><span class="kt">int</span> <span class="nf">get_ini</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span>  <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">a</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">i</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory0</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">20</span><span class="p">);</span>
+</span><span class="line">    <span class="n">strcpy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="s">&quot;hello world&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory1</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory2</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="n">p</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+</span><span class="line">    <span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">);</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">;</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题1</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">z</span> <span class="o">=</span> <span class="n">get_ini</span><span class="p">(</span><span class="n">z</span><span class="p">);</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题2</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c0</span> <span class="o">=</span> <span class="n">get_memory0</span><span class="p">();</span><span class="c1">//问题3</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c0 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c1</span> <span class="o">=</span> <span class="n">get_memory1</span><span class="p">();</span><span class="c1">//问题4</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c1</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c2</span> <span class="o">=</span> <span class="n">get_memory2</span><span class="p">();</span><span class="c1">//问题5</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c2</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">问题1：</h4>
+<p>a,b没有发生交换，所有函数会在程序运行的时候程序栈上分配一块存储区，这块栈的函数存储区随函数开始而开始，随着函数结束而结束，函数结束后， 这块存储区自动释放，以供其他用途，栈的默认大小是1M,swap(int a, int b)是一个参数传值的函数，函数内部的a,b是参数int a 和 int b的局部拷贝，所以a，b实际可以看成局部变量，他们的值由int a ,int b实参复制而来，只在函数内部有效，当函数体内的a,b离开函数作用域时候，a,b变量就销毁了.函数实参值没有发生改变。</p>
+
+<h4 id="section-1">问题2：</h4>
+<p>返回值i是一个局部变量，函数的返回参数怎么可能是局部变量？函数的返回值由传值和传址两种，传值会在返回处生成一个临时对象，
+用于存放局部变量i的一份拷贝。临时对象没有名称。虽然i被销毁了，但是他的拷贝仍然存在。并在函数返回处赋值给z.c0 = “hello world”</p>
+
+<h4 id="section-2">问题3：</h4>
+<p>程序运行期间堆的内存一直都在。返回的p是会被销毁，但是在返回处有p的拷贝对象，指向堆的地址。c1 = “hello world”</p>
+
+<h4 id="section-3">问题4:</h4>
+<p>常量存储区：”hello world”在程序运行期间都在</p>
+
+<h4 id="section-4">问题5：</h4>
+<p>p[]不是指针，是一个数组变量，函数返回时左值拷贝只想的是局部变量的p[12]的首地址，当局部数组p[12]离开作用域后会自动销毁，
+这时，函数返回的左值，拷贝指向的是一个被销毁的局部变量地址。所以c2 = 未知</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/02/zhe-teng/">折腾</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-02T13:53:00+08:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/04/02/zhe-teng/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img src="/images/2013/panda.jpg" /></p>
+
+<p>这天我被折腾疯了</p>
+
+<p>开始博客迁移，从 <a href="http:innerbrilliant.sinaapp.com">http:innerbrilliant.sinaapp.com</a> 迁移至 <a href="http://zheng-ji.info">zheng-ji.info</a></p>
+
+<p>文档式编程的感觉爽 ：）</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/17/redisshi-ge-hao-dong-xi/">Redis是个好东西</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-17T14:10:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/02/17/redisshi-ge-hao-dong-xi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>:) 最近主动请缨做到一个关于Redis的东西，甚有收获，与大家分享：- ）</p>
+
+<p>以下选自百度百科的简介</p>
+
+<p>redis是一个key-value存储系统。和Memcached类似，它支持存储的value类型相对更多，包括string(字符串)、list(链表)、set(集合)和zset(有序集合)。这些数据类型都支持push/pop、add/remove及取交集并集和差集及更丰富的操作，而且这些操作都是原子性的。在此基础上，redis支持各种不同方式的排序。与memcached一样，为了保证效率，数据都是缓存在内存中。区别的是redis会周期性的把更新的数据写入磁盘或者把修改操作写入追加的记录文件，并且在此基础上实现了master-slave(主从)同步。Redis 是一个高性能的key-value数据库。 redis的出现，很大程度补偿了memcached这类key/value存储的不足，在部 分场合可以对关系数据库起到很好的补充作用。它提供了Python，Ruby，Erlang，PHP客户端，使用很方便。</p>
+
+<p>Redis提供了很多高级的数据结构：哈希表，列表，集合，字典，这些东西看上去很好吃的样子</p>
+
+<h4 id="section">想必你也在思考了，那这东西可以用在什么场景呢，</h4>
+
+<p>Redis作者自己是这样说的：
++ 取最新N个数据的操作</p>
+
+<p>比如典型的取你网站的最新文章，通过下面方式，我们可以将最新的5000条评论的ID放在Redis的List集合中，并将超出集合部分从数据库获取</p>
+
+<ul>
+  <li>排行榜应用，取TOP N操作</li>
+</ul>
+
+<p>这个需求与上面需求的不同之处在于，前面操作以时间为权重，这个是以某个条件为权重，比如按顶的次数排序，这时候就需要我们的sorted set出马了，将你要排序的值设置成sorted set的score，将具体的数据设置成相应的value，每次只需要执行一条ZADD命令即可。</p>
+
+<ul>
+  <li>需要精准设定过期时间的应用</li>
+</ul>
+
+<p>比如你可以把上面说到的sorted set的score值设置成过期时间的时间戳，那么就可以简单地通过过期时间排序，定时清除过期数据了，不仅是清除Redis中的过期数据，你完全可以把Redis里这个过期时间当成是对数据库中数据的索引，用Redis来找出哪些数据需要过期删除，然后再精准地从数据库中删除相应的记录。</p>
+
+<ul>
+  <li>计数器应用</li>
+</ul>
+
+<p>Redis的命令都是原子性的，你可以轻松地利用INCR，DECR命令来构建计数器系统。</p>
+
+<ul>
+  <li>Uniq操作，获取某段时间所有数据排重值</li>
+</ul>
+
+<p>这个使用Redis的set数据结构最合适了，只需要不断地将数据往set中扔就行了，set意为集合，所以会自动排重。</p>
+
+<ul>
+  <li>实时系统，反垃圾系统</li>
+</ul>
+
+<p>通过上面说到的set功能，你可以知道一个终端用户是否进行了某个操作，可以找到其操作的集合并进行分析统计对比等。没有做不到，只有想不到。</p>
+
+<ul>
+  <li>Pub/Sub构建实时消息系统</li>
+</ul>
+
+<p>Redis的Pub/Sub系统可以构建实时的消息系统，比如很多用Pub/Sub构建的实时聊天系统的例子。</p>
+
+<ul>
+  <li>构建队列系统</li>
+</ul>
+
+<p>使用list可以构建队列系统，使用sorted set甚至可以构建有优先级的队列系统。</p>
+
+<ul>
+  <li>缓存</li>
+</ul>
+
+<p>这个不必说了，性能优于Memcached，数据结构更多样化。</p>
+
+<p>我用到的场景是
+python + redis + msgpack</p>
+
+<p>redis-py是个好东西</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">redis</span>
+</span><span class="line"><span class="c">#db是选择的数据库，Redis默认有16个库</span>
+</span><span class="line"><span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span class="line"><span class="n">keylist</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="s">&quot;*&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keylist</span><span class="p">:</span>
+</span><span class="line">    <span class="n">record</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>后话:
+msgpack简介
+MessagePack是一个基于二进制高效的对象序列化Library用于跨语言通信。
+它可以像JSON那样，在许多种语言之间交换结构对象；但是它比JSON更快速也更轻巧。
+支持Python、Ruby、Java、C/C++、Javascript等众多语言。
+Happy Hacking</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/">Nginx模块开发</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
+
+<h4 id="whyngnix-">Why要开发Ngnix 模块：</h4>
+
+<blockquote>
+  <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
+</blockquote>
+
+<h4 id="nginx-">Nginx 配置结构了解</h4>
+<p>Nginx的配置文件是以block的形式组织的，一个block通常使用大括号“{}”表示。block分为几个层级，整个配置文件为main层级，这 是最大的层级；在main层级下可以有event、http等层级，而http中又会有server block，server block中可以包含location block</p>
+
+<h4 id="nginx">Nginx模块工作原理概述</h4>
+<p>Nginx本身做的工作实际很少，当它接到一个HTTP请求时，它仅仅是通过查找配置文件将此次请求映射到一个location block，而此location中所配置的各个指令则会启动不同的模块去完成工作，因此模块可以看做Nginx真正的劳动工作者。通常一个 location中的指令会涉及一个handler模块和多个filter模块（当然，多个location可以复用同一个模块）。handler模块负 责处理请求，完成响应内容的生成，而filter模块对响应内容进行处理。因此Nginx模块开发分为handler开发和filter开发</p>
+
+<h4 id="nginx-1">展示一个简单的Nginx模块开发全过程</h4>
+<p>我们开发一个叫echo的handler模块，这个模块功能非常简单，它接收“echo”指令，指令可指定一个字符串参数，模块会输出这个字符串作为HTTP响应。例如，做如下配置：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
+</span><span class="line">    echo "hello nginx";
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<table>
+  <tbody>
+    <tr>
+      <td>首先我们需要一个结构用于存储从配置文件中读进来的相关指令参数，即模块配置信息结构。根据Nginx模块开发规则这个结构的命名规则为ngx_http<em>[module-name]</em>[main</td>
+      <td>srv</td>
+      <td>loc]_conf_t</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>实现这个功能需要三步：
++ 读入配置文件中echo指令及其参数；
++ 进行HTTP包装（添加HTTP头等工作）；
++ 将结果返回给客户端。</p>
+
+<h4 id="nginx-2">Nginx模块的安装</h4>
+<p>Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：</p>
+
+<ul>
+  <li>编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=模块完整名称
+</span><span class="line">HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
+</span><span class="line">NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>进入Nginx源代码，使用下面命令编译安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=安装目录 --add-module=模块源代码文件目录
+</span><span class="line">make
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=ngx_http_echo_module
+</span><span class="line">HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
+</span><span class="line">NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">编译安装命令为：</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
+</span><span class="line">make
+</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
+</span><span class="line">    echo "This is my first nginx module!!!";
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>然后用curl测试一下：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -i http://localhost/echo</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/6/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/4/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid&#8217;s Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

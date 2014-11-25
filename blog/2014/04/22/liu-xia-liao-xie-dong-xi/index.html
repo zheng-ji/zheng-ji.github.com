@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>留下了些东西 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="腾讯经历">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/04/22/liu-xia-liao-xie-dong-xi">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">留下了些东西</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-22T19:32:00+08:00" pubdate data-updated="true">Apr 22<span>nd</span>, 2014</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>出于对这两个月的交代，记录下完成自动化平台开发的这段经历。</p>
+
+<p>所在的 Team 业务性很浓，浓到大家已经不愿意改变，可以忍受无尽的重复劳动和时间摧残。业务繁多，导致需要花费很多时间去学习和适应人为的规则，在我看来是很不应该了。</p>
+
+<p>当某一天 leader 突然说希望有一个自动化的平台来处理我们的业务，解放外包以及正职人员的劳动力，降低新人熟悉业务的门槛。我很诧异但也很高兴他会提出来这件事情，不具说原因了，至少我很开心，每日机械的做业务是件很忧伤的事情。</p>
+
+<h3 id="section">做的事</h3>
+<p>项目中，我承担了大部分后台功能的开发（C++），感谢同事的信任（也许我相对比较吃苦爱折腾）。今天系统上线了并承接10个业务，挺欣慰的。
+   该系统是个做个自动化的运营开发系统，并不复杂。</p>
+
+<ul>
+  <li>支持批量查询现网游戏日志的数据库，多线程去执行多个大区的数据。可以切换不同的数据库。UI类似phpmyadmin的界面;</li>
+  <li>上传统计代码后，自动编译和发布可执行文件到各个统计机;</li>
+  <li>支持任务队列补算;</li>
+  <li>跟踪任务执行情况，trace 错误信息;</li>
+  <li>解析统计机器的crontab的内容，可在系统配置调度信息;</li>
+  <li>解析统计机器的调度脚本,增删改查程序，以及其执行顺序;</li>
+</ul>
+
+<p>希望该系统可以取代原本粗暴重复的操作。提升效率的同时也降低出错的可能。</p>
+
+<h3 id="section-1">说到写文档。</h3>
+
+<p><code>资深同事</code>觉得要写的高 (厚) 大（黑）上 (学)，甚至吹嘘地出彩。大公司的生存之道，这些潜规则你不愿意去遵守，有时候会受伤，很多时候我选择忠于内心,包括这次。因为我终究认为这东西很平凡，它的优点在于有价值，不是纯粹为 KPI 为生的物品。我用 <code>markdown</code> 把整个后台设计和类图都清爽的表达出来。在给组内推行 markdown 的时候，本以为如此好用的工具会得到大家青睐，但显然大家还是不愿意接受，遗憾。</p>
+
+<h3 id="something">something</h3>
+<p>系统模拟了业务人员平时的工作流程，所以适应起来相对容易。不过依然有部分同事会排斥，新东西的诞生让他们有了不信任感。也许需要给他们更多的时间来适应。或许生活中我们也会这样，新事物总需要经受住考验质疑，只有足够好才会被历史选择。</p>
+
+<p>这个开发过程中，也让我看到很多不好的过程，比如代码发布，持续构建，技术选择。做的不是很好，但平日的阅读和折腾理解让我坚信有更对的选择。比如访问量不大的系统用C++写CGI就是很蛋疼的选择，PM 的个人视野也限制了进展的效率。</p>
+
+<p>这个工具开发烧了我不少脑筋，需要足够智能去适配业务，以及变态的需求，极力去推动这个系统也让软技能也有一番磨练。</p>
+
+<hr />
+
+<p>末了，我在腾讯还是留下了一个让自己自豪的东西。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-22T19:32:00+08:00" pubdate data-updated="true">Apr 22<span>nd</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/product/'>Product</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu/" title="Previous Post:  Expect 与系统自动交互">&laquo;  Expect 与系统自动交互</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/04/28/wei-wen-yi-lu/" title="Next Post: 伪文青">伪文青 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="留下了些东西"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

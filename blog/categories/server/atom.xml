@@ -1,0 +1,647 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Server | 织网]]></title>
+  <link href="http://zheng-ji.github.com/blog/categories/server/atom.xml" rel="self"/>
+  <link href="http://zheng-ji.github.com/"/>
+  <updated>2014-11-25T22:51:13+08:00</updated>
+  <id>http://zheng-ji.github.com/</id>
+  <author>
+    <name><![CDATA[zheng-ji]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[rsyslog 接收远程日志]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/"/>
+    <updated>2014-07-27T14:26:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi</id>
+    <content type="html"><![CDATA[<p>Rsyslog 接收远程日志</p>
+
+<p>需要开启运程模式, 以ubuntu为例子</p>
+
+<p><code>
+vim /etc/default/rsyslog
+RSYSLOGD_OPTIONS="-c5 -r -x"
+</code></p>
+
+<p>编写模板,文档中说到要在<code>rsyslog.conf</code>里面编辑</p>
+
+<p><code>
+vim /etc/rsyslog.conf
+$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
+$template DynFile, "/data/log/%$year%%$month%%$day%/%$year%%$month%%$day%%$hour%.log"
+$template dotalogformat, "%msg%\n"
+</code></p>
+
+<p>编写过滤规则, 修改 <code>/etc/rsysconf.d/your_business.conf</code></p>
+
+<p>```
+# 开通端口
+$ModLoad imtcp
+$InputTCPServerRun 1514</p>
+
+<h1 id="section">过滤规则</h1>
+<p>if $msg contains “xx” then ?DynFile;dotalogformat</p>
+
+<h1 id="sysloglog-">为了不让它写入syslog.log 而直接写入目标模板</h1>
+<p>:msg, contains, “xx” ~
+```</p>
+
+<p>重启服务</p>
+
+<p><code>
+sudo service rsyslog start
+</code></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[折腾docker]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker/"/>
+    <updated>2014-07-16T20:20:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker</id>
+    <content type="html"><![CDATA[<p>早在1年前就听过 <a href="http://docs.docker.com/">docker</a>这个 Golang 社区的明星产品 。</p>
+
+<h3 id="section">简单地介绍</h3>
+
+<p>Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。这大大地提高了程序运行的灵活性和可移植性，极大的降低运维成本。</p>
+
+<h3 id="section-1">组成</h3>
+
+<ul>
+  <li>Docker 服务器守护程序（server daemon），用于管理所有的容器。</li>
+  <li>Docker 命令行客户端，用于控制服务器守护程序。</li>
+  <li>Docker 镜像：查找和浏览 docker 容器镜像。它也访问这里得到：<a href="https://index.docker.io/">链接</a></li>
+</ul>
+
+<h3 id="docker">有了虚拟机为什么还要docker?</h3>
+<p>virtualbox 等虚拟机提供的是完整的操作系统环境, 迁移的时候太大了。它们包含了大量类似硬件驱动、虚拟处理器、网络接口等等并不需要的信息，也需要比较长时间的启动，同时也会消耗大量的内存、CPU 资源。</p>
+
+<p>Docker 相比起来就非常轻量级了。运行起来就和一个常规程序差不多。这个容器不仅仅运行快，创建一个镜像和制作文件系统快照也很快,甚至比vagrant更节约资源</p>
+
+<h3 id="section-2">初体验</h3>
+<p>下载docker 并安装 ubuntu 12.04 这里如果没有指明 <code>ubuntu:12.04</code>, 会将所有ubuntu镜像都下载。由于被墙，速度惨不忍睹.</p>
+
+<p><code>
+zj@zheng-ji:~$ sudo apt-get install docker.io
+zj@zheng-ji:~$ sudo docker pull ubuntu:12.04 
+</code></p>
+
+<p>查看已有的镜像</p>
+
+<p><code>
+zj@zheng-ji:~$ sudo docker images
+</code></p>
+
+<p>使用 bash 命令进入docker的指定镜像</p>
+
+<p><code>
+zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash
+</code></p>
+
+<p>这时候我就可以像一个新系统一样把玩了, 比如创建一个目录。</p>
+
+<p><code>
+zj@zheng-ji:~$ mkdir /home/zj/test
+</code></p>
+
+<p>好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 <a href="https://registry.hub.docker.com/u/">这里</a> 注册一个账户，然后再上传，类似在 github  上面一样的操作。</p>
+
+<p>```
+sudo docker ps </p>
+
+<p>//因为我已经commit 过一次，所以名字变成我的别名 zhengji/helloworld
+zj@zheng-ji:~$ docker ps
+CONTAINER ID        IMAGE                       COMMAND             CREATED             STATUS              PORTS                     NAMES
+8dad3aa4451f        zhengji/helloworld:latest   bin/bash            27 minutes ago      Up 27 minutes       0.0.0.0:49156-&gt;3000/tcp   high_galileo    <br />
+```</p>
+
+<p>可以看到要保存的镜像的 CONTAINER ID</p>
+
+<p>这个时候提交</p>
+
+<p>```
+zj@zheng-ji:~$ sudo docker commit 8dad3aa4451f zhengji/helloworld -m “test”
+61f9527f368395ee228af07062b3f1a26fa7143ba2721c4f9755ae93d588358e</p>
+
+<p>zj@zheng-ji:~$ sudo docker push zhengji/helloworld
+```</p>
+
+<p>下次pull 下来就可以使用了</p>
+
+<p><code>
+sudo docker pull zhengji/helloworld
+</code></p>
+
+<hr />
+
+<h3 id="section-3">可能遇到的坑</h3>
+
+<ul>
+  <li>需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析</li>
+</ul>
+
+<p><code>
+DOCKER_OPTS = "-dns 8.8.8.8"
+</code></p>
+
+<ul>
+  <li>设置 ufw 端口可转发</li>
+</ul>
+
+<p><code>
+vim /etc/default/ufw
+DEFAULT_FORWARD_POLICY = "ACCEPT"
+</code></p>
+
+<h3 id="section-4">参考链接</h3>
+
+<ul>
+  <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
+  <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
+  <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[微信公众号开发]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/"/>
+    <updated>2014-01-07T18:47:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa</id>
+    <content type="html"><![CDATA[<h3 id="section">微信公众账号开发</h3>
+
+<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
+&gt; 人生苦短,我爱python</p>
+
+<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
+
+<p><img src="/images/2013/12/nba.jpg"></p>
+
+<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
+
+<h5 id="section-1">注册</h5>
+<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
+
+<h5 id="section-2">微信认证</h5>
+<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
+
+<p>加密/校验流程如下：</p>
+
+<ul>
+  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
+  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
+  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
+</ul>
+
+<p>```python
+class BaseHandler(tornado.web.RequestHandler):
+    #基类,实现基本认证，子类只需要继承就可以完成微信认证
+    def prepare(self):
+        timestamp = self.get_argument(“timestamp”, None)
+        nonce = self.get_argument(“nonce”, None)
+        signature = self.get_argument(“signature”, None)
+        print ‘request:’, timestamp, nonce, signature
+        print self.request.method, timestamp, nonce, signature
+        if validate(timestamp, nonce, signature) is False:
+            print “=========validate failed =====”
+            self.finish()</p>
+
+<p>def validate(timestamp, nonce, signature):
+    print ‘validate:’, timestamp, nonce, signature
+    if timestamp is None or nonce is None or signature is None:
+        return False
+    tmp = [TOKEN, timestamp, nonce]
+    tmp = sorted(tmparr)
+    tmpStr = ‘‘.join(tmp)
+    hashStr = sha1(tmpStr).hexdigest()
+    return (hashStr == signature)
+```</p>
+
+<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
+
+<p><code>
+class serverHandler(BaseHandler):
+    def get(self):
+        echostr = self.get_argument('echostr', None)
+        self.write(echostr)
+</code> </p>
+
+<h5 id="section-3">. 菜单订制</h5>
+<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
+
+<p><code>
+class UIHandler(tornado.web.RequestHandler):
+    def get(self):
+        msg = self.render_string('menu.json')
+        createMenu(menu)
+</code></p>
+
+<h5 id="section-4">. 响应用户按键输入</h5>
+
+<p><code>
+xml = uni(self.request.body)        #获取微信服务器发送过来的xml,转化为unicode
+dic = xml2dict(xml)                 #将xml解析成dict
+if dic['MsgType'].lower() == 'event':
+    event = dic['Event'].lower()
+    if event == 'subscribe':
+        ctx = do_subscribe(dic)     #订阅逻辑
+        msg = self.render_string('text_resp.xml', dic=ctx)
+        self.write(msg)
+    elif event == 'click':
+        ctx = do_click(dic)         #点击逻辑
+        msg = self.render_string('text_resp.xml', dic=ctx)
+        self.write(msg)
+</code></p>
+
+<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
+
+<h4 id="section-5">相关链接</h4>
+<ul>
+  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
+  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
+</ul>
+
+<h4 id="section-6">开发中用到的库</h4>
+<ul>
+  <li><code>tornado</code></li>
+  <li><code>virtualenv</code></li>
+  <li><code>pyquery(做爬虫)</code></li>
+  <li><code>pymongo</code></li>
+  <li><code>lxml</code></li>
+  <li><code>urllib2</code></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ZeroRPC-基于ZMQ的RPC通讯库]]></title>
+    <link href="http://zheng-ji.github.com/blog/2013/09/29/zerorpcshi-ge-hao-dong-xi/"/>
+    <updated>2013-09-29T20:56:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2013/09/29/zerorpcshi-ge-hao-dong-xi</id>
+    <content type="html"><![CDATA[<p><a href="https://www.dotcloud.com/">dotCloud</a> 是一家具有伟大基因的公司,我认为的伟大是有着开源贡献的情怀，就像Amazon,Google等，而不是国内的某些巨头，虽然作为新兴的云服务提供商还不足以比肩巨头，致力于用技术解决公司的运营问题的同时也回馈社会，让我为之喝彩.我也有理由相信这样的公司会走的更远，因为他们有胸怀有远见，是否重视技术就更不言而喻了.</p>
+
+<p>这篇文章旨在介绍由<strong>dotCloud</strong>开源的<a href="https://github.com/dotcloud/zerorpc-python">ZeroRpc</a>,在dotcloud公司的基础服务得到很大应用，在阅读其manual之后更是被其简洁明了的使用方法所吸引 
+&gt;ZeroRPC is a modern communication layer for distributed systems built on top of ZeroMQ,</p>
+
+<p>一直以来我一直喜欢python 的简洁，用过ZeroMQ做过网络通讯方面的编程，也使用RPC 做过远程过程调用，上次使用LevelDB的RPC是用python的[第三方库] (https://github.com/dotcloud/zerorpc-python)</p>
+
+<p>这次刚好在Github上面看到这样的好玩意，便想与大家分享,ZeroRpc不仅仅支持代码层面的调用，也支持CLi， 这种设计本身就很有弹性.赞！</p>
+
+<p>安装zerorpc</p>
+
+<p><code>
+sudo pip install zerorpc 
+</code></p>
+
+<p>在还没开始看demo之前
+我们需要了解ZeroRpc是由三层架构组成：</p>
+
+<ul>
+  <li>传输层是使用<a href="http://www.zeromq.org/">ZMQ</a> 以及msgpack(http://msgpack.org/),基于ZeroMQ的分布式通讯层,通讯的数据被MsgPack 序列化过所以更快</li>
+  <li>消息层,比较复杂,处理heartbeat, multiplexing, and events.</li>
+  <li>RPC层:处理请求,响应</li>
+</ul>
+
+<p>官方的<a href="http://zerorpc.dotcloud.com/">文档</a>给出以下demo</p>
+
+<h4 id="serverpy">server.py</h4>
+
+<p>```python
+import zerorpc
+class HelloRPC(object):
+    def hello(self, name):
+        return “Hello, %s” % name</p>
+
+<p>s = zerorpc.Server(HelloRPC())
+s.bind(“tcp://0.0.0.0:4242”)
+s.run()
+```</p>
+
+<h4 id="clientpy">client.py</h4>
+
+<p>```python
+import zerorpc</p>
+
+<p>c = zerorpc.Client()
+c.connect(“tcp://127.0.0.1:4242”)
+print c.hello(“RPC”)
+```
+client也可用命令行代替</p>
+
+<p><code>python
+zerorpc tcp://127.0.0.1:4242 hello RPC
+</code></p>
+
+<p>够简明易懂了吧
+再来一个返回连续字节流的例子</p>
+
+<h4 id="serverpy-1">server.py</h4>
+
+<p>```python
+import zerorpc</p>
+
+<p>class StreamingRPC(object):
+    @zerorpc.stream
+    def streaming_range(self, fr, to, step):
+        return xrange(fr, to, step)</p>
+
+<p>s = zerorpc.Server(StreamingRPC())
+s.bind(“tcp://0.0.0.0:4242”)
+s.run()
+```</p>
+
+<h4 id="clientpy-1">client.py</h4>
+
+<p>```python
+import zerorpc</p>
+
+<p>c = zerorpc.Client()
+c.connect(“tcp://127.0.0.1:4242”)</p>
+
+<p>for item in c.streaming_range(10, 20, 2):
+    print item
+```</p>
+
+<p>client也可用命令行代替,–json 表示头部是一个json对象</p>
+
+<p><code>
+zerorpc tcp://127.0.0.1:4242 streaming_range 10 20 2 --json
+</code></p>
+
+<p>Happy Hacking</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[单机玩Hadoop]]></title>
+    <link href="http://zheng-ji.github.com/blog/2013/09/22/dan-ji-wan-hadoop/"/>
+    <updated>2013-09-22T18:11:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2013/09/22/dan-ji-wan-hadoop</id>
+    <content type="html"><![CDATA[<p>以前在Amazon Web Service<a href="http://aws.amazon.com/">AWS</a> 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热，特别是某些公司会把这些当作自我标榜更是让人恶心.本着折腾的信，把自己玩hadoop的过程写下来 ：）</p>
+
+<ul>
+  <li>创建hadoop用户组;</li>
+</ul>
+
+<p><code>
+sudo addgroup hadoop
+sudo adduser -ingroup hadoop hadoop
+</code></p>
+
+<p>给hadoop用户添加权限，编辑/etc/sudoers文件; 在root   ALL=(ALL:ALL)   ALL下</p>
+
+<p><code>
+hadoop  ALL=(ALL:ALL) ALL
+</code></p>
+
+<ul>
+  <li>在Ubuntu下安装JDK </li>
+</ul>
+
+<p><code>
+sudo apt-add-repository ppa:flexiondotorg/java
+sudo apt-get update
+sudo apt-get install sun-java6-jre sun-java6-jdk sun-java6-plugin
+</code>
+如果你在第二条命令遇到错误:</p>
+
+<p><code>
+W: GPG 错误：http://ppa.launchpad.net precise Release: 由于没有公钥，无法验证下列签名： NO_PUBKEY 2EA8F35793D8809A
+请执行
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2EA8F35793D8809A  
+</code></p>
+
+<p>编辑 sudo vi /etc/environment
+在其中添加如下两行：</p>
+
+<p><code>
+JAVA_HOME=/usr/lib/jvm/java-6-sun
+CLASSPATH=.:/usr/lib/jvm/java-6-sun/lib
+</code></p>
+
+<ul>
+  <li>安装ssh 服务</li>
+</ul>
+
+<p><code>
+sudo apt-get install ssh openssh-server
+</code></p>
+
+<p>首先要转换成hadoop用户，执行以下命令：</p>
+
+<p><code>
+su - hadoop
+</code></p>
+
+<p>采用 rsa 方式 生成key</p>
+
+<p><code>
+ssh-keygen -t rsa -P ""
+</code></p>
+
+<p>进入~/.ssh/目录下，将id_rsa.pub追加到authorized_keys授权文件中,使其无密码登录本机</p>
+
+<p><code>
+cd ~/.ssh
+cat id_rsa.pub &gt;&gt; authorized_keys
+</code></p>
+
+<ul>
+  <li>下载<a href="http://www.apache.org/dyn/closer.cgi/hadoop/common/">hadoop</a>,并安装</li>
+</ul>
+
+<p><code>
+sudo cp hadoop-0.20.203.0rc1.tar.gz /usr/local/
+</code></p>
+
+<p>解压hadoop-0.20.203.tar.gz；</p>
+
+<p><code>
+cd /usr/local
+sudo tar -zxf hadoop-0.20.203.0rc1.tar.gz
+</code></p>
+
+<p>将解压出的文件夹改名为hadoop;</p>
+
+<p><code>
+sudo mv hadoop-0.20.203.0 hadoop
+</code></p>
+
+<p>将该hadoop文件夹的属主用户设为hadoop，</p>
+
+<p><code>
+sudo chown -R hadoop:hadoop hadoop
+</code></p>
+
+<p>打开hadoop/conf/hadoop-env.sh文件;</p>
+
+<p><code>
+sudo vi hadoop/conf/hadoop-env.sh
+</code></p>
+
+<p>配置conf/hadoop-env.sh,配置本机jdk的路径;</p>
+
+<p><code>
+export JAVA_HOME=/usr/lib/jvm/java-6-sun/
+export HADOOP_HOME=/usr/local/hadoop
+export PATH=$PATH:/usr/local/hadoop/bin
+</code></p>
+
+<p>记得source hadoop-env.sh </p>
+
+<p>编辑conf/core-site.xml文件;</p>
+
+<p>```
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!-- Put site-specific property overrides in this file. --></p>
+<configuration>
+    <property>  
+        <name>fs.default.name</name>  
+        <value>hdfs://localhost:9000</value>   
+    </property>  
+</configuration>
+<p>```</p>
+
+<p>编辑conf/mapred-site.xml文件;</p>
+
+<p>```
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!-- Put site-specific property overrides in this file. --></p>
+<configuration>  
+     <property>   
+           <name>mapred.job.tracker</name>  
+            <value>localhost:9001</value>   
+      </property>  
+</configuration>
+<p>```</p>
+
+<p>编辑conf/hdfs-site.xml文件;</p>
+
+<p>```</p>
+<configuration>
+    <property>
+        <name>dfs.name.dir</name>
+        <value>/usr/local/hadoop/datalog1,/usr/local/hadoop/datalog2</value>
+    </property>
+    <property>
+        <name>dfs.data.dir</name>
+        <value>/usr/local/hadoop/data1,/usr/local/hadoop/data2</value>
+    </property>
+    <property>
+        <name>dfs.replication</name>
+        <value>2</value>
+    </property>
+</configuration>
+<p>```</p>
+
+<ul>
+  <li>运行hadoop,并启动</li>
+</ul>
+
+<p><code>
+cd /usr/local/hadoop/
+bin/hadoop namenode -format // 进入hadoop目录下，格式化hdfs文件系统
+bin/start-all.sh //启动脚本
+</code></p>
+
+<p>检测hadoop是否启动成功</p>
+
+<p><code>
+hadoop@hp:/usr/local/hadoop/bin$ sudo jps
+11822 DataNode
+12461 Jps
+11581 NameNode
+12157 JobTracker
+12064 SecondaryNameNode
+12377 TaskTracker
+</code></p>
+
+<p>说明hadoop单机版环境配置好了
+此时访问<a href="http://localhost:50030/">http://localhost:50030/</a>,便可以看到管理界面
+<img src="/images/2013/09/hadoop.png">
+让我们来完成那篇著名论文的wordcounw吧</p>
+
+<p>创建输入文件夹,并挂载hdfs</p>
+
+<p><code>
+hadoop@hp:/usr/local/hadoop$ mkdir input //创建输入文件夹
+hadoop@hp:/usr/local/hadoop$ cp conf/* input
+hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -put input/ input
+</code></p>
+
+<p>执行wordcount程序,输入为input，输出数据目录为output。,</p>
+
+<p><code>
+bin/hadoop jar hadoop-examples-0.20.203.0.jar wordcount input output
+</code></p>
+
+<p>出现了运行情况如下</p>
+
+<p><code>
+13/09/22 17:59:40 INFO input.FileInputFormat: Total input paths to process : 15
+13/09/22 17:59:41 INFO mapred.JobClient: Running job: job_201309221738_0006
+13/09/22 17:59:42 INFO mapred.JobClient:  map 0% reduce 0%
+13/09/22 17:59:58 INFO mapred.JobClient:  map 13% reduce 0%
+13/09/22 18:00:07 INFO mapred.JobClient:  map 26% reduce 0%
+13/09/22 18:00:16 INFO mapred.JobClient:  map 40% reduce 8%
+13/09/22 18:00:22 INFO mapred.JobClient:  map 53% reduce 13%
+13/09/22 18:00:28 INFO mapred.JobClient:  map 66% reduce 13%
+13/09/22 18:00:31 INFO mapred.JobClient:  map 66% reduce 17%
+13/09/22 18:00:34 INFO mapred.JobClient:  map 80% reduce 17%
+13/09/22 18:00:37 INFO mapred.JobClient:  map 80% reduce 22%
+13/09/22 18:00:40 INFO mapred.JobClient:  map 93% reduce 22%
+13/09/22 18:00:46 INFO mapred.JobClient:  map 100% reduce 26%
+13/09/22 18:00:55 INFO mapred.JobClient:  map 100% reduce 100%
+13/09/22 18:01:00 INFO mapred.JobClient: Job complete: job_201309221738_0006
+13/09/22 18:01:00 INFO mapred.JobClient: Counters: 25
+13/09/22 18:01:00 INFO mapred.JobClient:   Job Counters 
+</code></p>
+
+<p>查看执行结果</p>
+
+<p><code>
+hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -cat output/*
+</code></p>
+
+<p>截取部分结果现场</p>
+
+<p><code>
+hadoop@hp:/usr/local/hadoop$ hadoop fs -cat output/*
+"". 4
+"*" 10
+"alice,bob  10
+"console"   1
+"hadoop.root.logger".   1
+"jks".  4
+   79
+$HADOOP_BALANCER_OPTS"   1
+$HADOOP_DATANODE_OPTS"   1
+$HADOOP_HOME/conf/slaves 1
+$HADOOP_HOME/logs    1
+$HADOOP_JOBTRACKER_OPTS" 1
+$HADOOP_NAMENODE_OPTS"   1
+$HADOOP_SECONDARYNAMENODE_OPTS"  1
+</code></p>
+
+<p>停止hadoop</p>
+
+<p><code>
+hadoop@hp:/usr/local/hadoop$ ./stop-all.sh 
+</code></p>
+
+<p>hadoop这只小象在单机可以这么玩</p>
+
+]]></content>
+  </entry>
+  
+</feed>

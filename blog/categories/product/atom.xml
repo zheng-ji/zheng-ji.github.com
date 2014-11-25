@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Product | 织网]]></title>
+  <link href="http://zheng-ji.github.com/blog/categories/product/atom.xml" rel="self"/>
+  <link href="http://zheng-ji.github.com/"/>
+  <updated>2014-11-25T22:51:13+08:00</updated>
+  <id>http://zheng-ji.github.com/</id>
+  <author>
+    <name><![CDATA[zheng-ji]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[留下了些东西]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/04/22/liu-xia-liao-xie-dong-xi/"/>
+    <updated>2014-04-22T19:32:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/04/22/liu-xia-liao-xie-dong-xi</id>
+    <content type="html"><![CDATA[<p>出于对这两个月的交代，记录下完成自动化平台开发的这段经历。</p>
+
+<p>所在的 Team 业务性很浓，浓到大家已经不愿意改变，可以忍受无尽的重复劳动和时间摧残。业务繁多，导致需要花费很多时间去学习和适应人为的规则，在我看来是很不应该了。</p>
+
+<p>当某一天 leader 突然说希望有一个自动化的平台来处理我们的业务，解放外包以及正职人员的劳动力，降低新人熟悉业务的门槛。我很诧异但也很高兴他会提出来这件事情，不具说原因了，至少我很开心，每日机械的做业务是件很忧伤的事情。</p>
+
+<h3 id="section">做的事</h3>
+<p>项目中，我承担了大部分后台功能的开发（C++），感谢同事的信任（也许我相对比较吃苦爱折腾）。今天系统上线了并承接10个业务，挺欣慰的。
+   该系统是个做个自动化的运营开发系统，并不复杂。</p>
+
+<ul>
+  <li>支持批量查询现网游戏日志的数据库，多线程去执行多个大区的数据。可以切换不同的数据库。UI类似phpmyadmin的界面;</li>
+  <li>上传统计代码后，自动编译和发布可执行文件到各个统计机;</li>
+  <li>支持任务队列补算;</li>
+  <li>跟踪任务执行情况，trace 错误信息;</li>
+  <li>解析统计机器的crontab的内容，可在系统配置调度信息;</li>
+  <li>解析统计机器的调度脚本,增删改查程序，以及其执行顺序;</li>
+</ul>
+
+<p>希望该系统可以取代原本粗暴重复的操作。提升效率的同时也降低出错的可能。</p>
+
+<h3 id="section-1">说到写文档。</h3>
+
+<p><code>资深同事</code>觉得要写的高 (厚) 大（黑）上 (学)，甚至吹嘘地出彩。大公司的生存之道，这些潜规则你不愿意去遵守，有时候会受伤，很多时候我选择忠于内心,包括这次。因为我终究认为这东西很平凡，它的优点在于有价值，不是纯粹为 KPI 为生的物品。我用 <code>markdown</code> 把整个后台设计和类图都清爽的表达出来。在给组内推行 markdown 的时候，本以为如此好用的工具会得到大家青睐，但显然大家还是不愿意接受，遗憾。</p>
+
+<h3 id="something">something</h3>
+<p>系统模拟了业务人员平时的工作流程，所以适应起来相对容易。不过依然有部分同事会排斥，新东西的诞生让他们有了不信任感。也许需要给他们更多的时间来适应。或许生活中我们也会这样，新事物总需要经受住考验质疑，只有足够好才会被历史选择。</p>
+
+<p>这个开发过程中，也让我看到很多不好的过程，比如代码发布，持续构建，技术选择。做的不是很好，但平日的阅读和折腾理解让我坚信有更对的选择。比如访问量不大的系统用C++写CGI就是很蛋疼的选择，PM 的个人视野也限制了进展的效率。</p>
+
+<p>这个工具开发烧了我不少脑筋，需要足够智能去适配业务，以及变态的需求，极力去推动这个系统也让软技能也有一番磨练。</p>
+
+<hr />
+
+<p>末了，我在腾讯还是留下了一个让自己自豪的东西。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[微信公众号开发]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/"/>
+    <updated>2014-01-07T18:47:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa</id>
+    <content type="html"><![CDATA[<h3 id="section">微信公众账号开发</h3>
+
+<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
+&gt; 人生苦短,我爱python</p>
+
+<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
+
+<p><img src="/images/2013/12/nba.jpg"></p>
+
+<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
+
+<h5 id="section-1">注册</h5>
+<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
+
+<h5 id="section-2">微信认证</h5>
+<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
+
+<p>加密/校验流程如下：</p>
+
+<ul>
+  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
+  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
+  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
+</ul>
+
+<p>```python
+class BaseHandler(tornado.web.RequestHandler):
+    #基类,实现基本认证，子类只需要继承就可以完成微信认证
+    def prepare(self):
+        timestamp = self.get_argument(“timestamp”, None)
+        nonce = self.get_argument(“nonce”, None)
+        signature = self.get_argument(“signature”, None)
+        print ‘request:’, timestamp, nonce, signature
+        print self.request.method, timestamp, nonce, signature
+        if validate(timestamp, nonce, signature) is False:
+            print “=========validate failed =====”
+            self.finish()</p>
+
+<p>def validate(timestamp, nonce, signature):
+    print ‘validate:’, timestamp, nonce, signature
+    if timestamp is None or nonce is None or signature is None:
+        return False
+    tmp = [TOKEN, timestamp, nonce]
+    tmp = sorted(tmparr)
+    tmpStr = ‘‘.join(tmp)
+    hashStr = sha1(tmpStr).hexdigest()
+    return (hashStr == signature)
+```</p>
+
+<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
+
+<p><code>
+class serverHandler(BaseHandler):
+    def get(self):
+        echostr = self.get_argument('echostr', None)
+        self.write(echostr)
+</code> </p>
+
+<h5 id="section-3">. 菜单订制</h5>
+<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
+
+<p><code>
+class UIHandler(tornado.web.RequestHandler):
+    def get(self):
+        msg = self.render_string('menu.json')
+        createMenu(menu)
+</code></p>
+
+<h5 id="section-4">. 响应用户按键输入</h5>
+
+<p><code>
+xml = uni(self.request.body)        #获取微信服务器发送过来的xml,转化为unicode
+dic = xml2dict(xml)                 #将xml解析成dict
+if dic['MsgType'].lower() == 'event':
+    event = dic['Event'].lower()
+    if event == 'subscribe':
+        ctx = do_subscribe(dic)     #订阅逻辑
+        msg = self.render_string('text_resp.xml', dic=ctx)
+        self.write(msg)
+    elif event == 'click':
+        ctx = do_click(dic)         #点击逻辑
+        msg = self.render_string('text_resp.xml', dic=ctx)
+        self.write(msg)
+</code></p>
+
+<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
+
+<h4 id="section-5">相关链接</h4>
+<ul>
+  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
+  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
+</ul>
+
+<h4 id="section-6">开发中用到的库</h4>
+<ul>
+  <li><code>tornado</code></li>
+  <li><code>virtualenv</code></li>
+  <li><code>pyquery(做爬虫)</code></li>
+  <li><code>pymongo</code></li>
+  <li><code>lxml</code></li>
+  <li><code>urllib2</code></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[叫神马荣誉出品–豆芽换书]]></title>
+    <link href="http://zheng-ji.github.com/blog/2012/07/12/jiao-shen-ma-rong-yu-chu-pin-dou-ya-huan-shu/"/>
+    <updated>2012-07-12T00:22:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2012/07/12/jiao-shen-ma-rong-yu-chu-pin-dou-ya-huan-shu</id>
+    <content type="html"><![CDATA[<p><strong>叫神马团队</strong>在一起的最后一个作品-<strong>《豆芽换书》</strong>,这是我大学最后一次以leader的身份完成了团队最后的作品，而我在这其中也独立负责后台开发的功能.
+ 值得纪念</p>
+
+<p>简介：
+&gt;豆瓣第三方软件，基于豆瓣API开发的LBS 与 SNS的换书软件，让你的闲书不再闲，让你从此交友多了一个理由，支持百度地图定位，聊天私信功能，豆瓣书籍分享。</p>
+
+<p><img src="/images/2013/douya/ICON.jpg"></p>
+
+<p><img src="/images/2013/douya/welcome.jpg"></p>
+
+<p><img src="/images/2013/douya/main.jpg"></p>
+
+<p><img src="/images/2013/douya/around.jpg"></p>
+
+<p><img src="/images/2013/douya/share.jpg"></p>
+
+<p><img src="/images/2013/douya/myshare.jpg"></p>
+
+<p><img src="/images/2013/douya/collect.jpg"></p>
+
+<p><img src="/images/2013/douya/review.jpg"></p>
+
+<p><img src="/images/2013/douya/description.jpg"></p>
+
+<p><img src="/images/2013/douya/friend.jpg"></p>
+
+<p><img src="/images/2013/douya/chat.jpg"></p>
+
+<p><img src="/images/2013/douya/settiing.jpg"></p>
+
+<p>叫神马团队的简介在该软件“关于我们有介绍”~关心我们的同学可以下载使用的同时点击详情</p>
+
+]]></content>
+  </entry>
+  
+</feed>

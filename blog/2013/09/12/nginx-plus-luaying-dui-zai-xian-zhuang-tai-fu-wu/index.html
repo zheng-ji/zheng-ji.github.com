@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>nginx+lua应对在线状态服务 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="几天前在@ideawu的博客上看到了其一篇文章中讲到的技术题.
+《在线状态服务在网站系统中的应用》 。于是内心折腾的火焰便熊熊燃烧起来，连续几天晚上折腾到凌晨1点。感谢@agentzh 春哥与阿里巴巴的技术贡献,让我可以安心睡觉 :) 在线状态服务这样的场景在互联网应用上比比皆是 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/09/12/nginx-plus-luaying-dui-zai-xian-zhuang-tai-fu-wu">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Nginx+lua应对在线状态服务</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-12T23:12:00+08:00" pubdate data-updated="true">Sep 12<span>th</span>, 2013</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>几天前在@ideawu的博客上看到了其一篇文章中讲到的技术题.
+<a href="http://www.ideawu.net/blog/archives/732.html">《在线状态服务在网站系统中的应用》</a> 。于是内心折腾的火焰便熊熊燃烧起来，连续几天晚上折腾到凌晨1点。感谢@agentzh 春哥与阿里巴巴的技术贡献,让我可以安心睡觉 :) </p>
+
+<p>在线状态服务这样的场景在互联网应用上比比皆是</p>
+
+<ul>
+  <li>聊天系统中同时在线的人数</li>
+  <li>游戏中同时在线玩家等</li>
+</ul>
+
+<p>文中所言,现实的在线状态应用场景是:
+网页中用JavaScript启动一个定时器, 定期报告在线状态, 也就是向在线状态服务器发送心跳包.对某个同时在线100万人, 每天1亿PV的网站来说, 在线状态服务器一天接收到的心跳包大概是10亿个, 也即每秒10000个请求(10000qps).要实现这样的在线状态服务器, 也是一个挑战.</p>
+
+<p>好了，我当时真的很兴奋，感觉自己像接到了任务，立马打起了鸡血研究. 脑海中涌现出来的直觉是，使用tornado + Redis，这样的高并发组合应对这样的场景应该是无压力的，但是因为这样的事情我做过，想挑战自己非舒适的区域，挖掘新的知识大陆。
+我们一直都说，没有经过打磨的想法一般都是廉价的。后来我想到的是Ngnix这样的服务器来抗如此高的请求，那么我们就自己写个拓展，查询内存数据库，这里我选择用redis来做kv内存数据库，</p>
+
+<p>文中谈到的自己设计精巧的kv数据库，甚至用C++写针对性的http服务，来提升通用服务器的性能。曾经写过一个KV数据库，其性能真的是渣渣。<a href="https://github.com/zheng-ji/KvDb">源码链接</a>。欢迎吐槽.
+一直以来听闻春哥的nginx lua模块拓展，可以为nginx定制业务。想想以前用c语言实现，简直就是痛苦,这一次可以使用lua，甚为欢悦，没有什么比探索新东西带来的乐趣更令人振奋了</p>
+
+<p>首先要有lua的运行环境。他是一种胶水粘合剂 ：） 还必须安装<strong>luajit</strong></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#设置环境变量，后续安装需要
+</span><span class="line">shell&gt; export LUAJIT_LIB=/usr/local/lib
+</span><span class="line">shell&gt; export LUAJIT_INC=/usr/local/include/luajit-&lt;VERSION&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="nginx-">需要安装的nginx 插件</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_devel_kit https://github.com/simpl/ngx_devel_kit
+</span><span class="line">set-misc-nginx-module https://github.com/agentzh/set-misc-nginx-module
+</span><span class="line">memc-nginx-module https://github.com/agentzh/memc-nginx-module 
+</span><span class="line">lua-nginx-module https://github.com/chaoslawful/lua-nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="nginx">下载之后，安装nginx插件</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/path/to/nginx_src --add-module=/path/to/ngx_devel_kit --add-module=set-misc-nginx-module \
+</span><span class="line">--add-module=/path/to/lua-nginx-module -add-module=ngx_devel_kit 
+</span><span class="line">make 
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>nginx.conf 文件                 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {  
+</span><span class="line">    default_type 'text/plain';  
+</span><span class="line">    echo 'hello echo';  
+</span><span class="line">}  
+</span><span class="line">
+</span><span class="line">location /lua {  
+</span><span class="line">    default_type 'text/plain';  
+</span><span class="line">    content_by_lua 'ngx.say("hello, lua")';  
+</span><span class="line">}  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>也许你会遇到一些麻烦,执行如下命令</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+</span><span class="line">shell&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>重启服务器之后，应该就可以看到hello,lua :) (到这里仅仅是开始，折腾了有点久)</p>
+
+<h3 id="ideawu-">好了，来完成ideawu的作业 ：）</h3>
+
+<blockquote>
+  <p>在线状态服务, 是这样的一个服务, 它维护了网站当前的在线用户列表, 接受其它模块的查询. 是实现统计网站同时在线人数, 维护在线用户列表等功能的基础服务. 在Facebook的聊天系统中, 在线状态是为聊天系统服务的, 所以在线状态是一种”强”在线, 也即用户保持着和Comet服务器的连接, 可随时接受服务器推送(push)的消息.在高并发请求的情况下如何完成该需求呢</p>
+</blockquote>
+
+<p>使用 Lua 脚本语言操作 Redis。这里使用 content_by_lua_file （nginx_lua_module 模块具有）来引入 Lua 脚本文件。
+agentzh 提供了一个很方便的开发包，如下：<a href="https://github.com/agentzh/lua-resty-redis.git">lua-resty-redis</a></p>
+
+<p>该包中，有一个 lib 目录，将 lib 目录下的文件和子目录拷贝至目录 /home/zj/soft/data/www/lua/
+在 Nginx 配置文件中，需要加一行代码，以便引入 redis.lua。
+注：加在 http 段里。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_package_path "/home/zj/soft/data/www/lua//?.lua;;";  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>为了使得 lua 脚本的修改能及时生效，需要加入一行代码，如下：注：在 server 段里，加入代码，如果不加此代码或者设置为 on 时，则需要重启 Nginx。 不过nginx 会报警</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache off;  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>nginx.conf 里</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /getolNum {
+</span><span class="line">    content_by_lua_file /conf/online.lua;  
+</span><span class="line">} </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="onlinelua-">online.lua 源码</h5>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+</pre></td><td class="code"><pre><code class="lua"><span class="line"><span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">&quot;</span><span class="s">redis&quot;</span>
+</span><span class="line"><span class="kd">local</span> <span class="n">cache</span> <span class="o">=</span> <span class="n">redis</span><span class="p">.</span><span class="n">new</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="s1">&#39;</span><span class="s">127.0.0.1&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="s">6379&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+</span><span class="line">    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">&quot;</span><span class="s">failed to connect:&quot;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+</span><span class="line">    <span class="k">return</span>
+</span><span class="line"><span class="k">end</span>
+</span><span class="line">
+</span><span class="line"><span class="n">cache</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">30000</span><span class="p">)</span>
+</span><span class="line"><span class="n">args</span> <span class="o">=</span> <span class="n">ngx</span><span class="p">.</span><span class="n">req</span><span class="p">.</span><span class="n">get_uri_args</span><span class="p">()</span>
+</span><span class="line"><span class="n">user</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;</span><span class="s">user&quot;</span><span class="p">]</span>
+</span><span class="line"><span class="c1">--设置用户 3 min 过期</span>
+</span><span class="line"><span class="n">cache</span><span class="p">:</span><span class="n">setex</span><span class="p">(</span><span class="n">user</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="mi">23</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="kd">local</span> <span class="n">res</span><span class="p">,</span><span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">:</span><span class="n">keys</span><span class="p">(</span><span class="s1">&#39;</span><span class="s">*&#39;</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="c1">--count res num</span>
+</span><span class="line"><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span class="line"><span class="k">for</span> <span class="n">_</span> <span class="k">in</span> <span class="nb">pairs</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="k">do</span>
+</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class="line"><span class="k">end</span>
+</span><span class="line"><span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+</span><span class="line"><span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">:</span><span class="n">close</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="lua"><span class="line"><span class="n">curl</span> <span class="n">localhost</span><span class="o">/</span><span class="n">getOlnum</span><span class="err">?</span><span class="n">user</span><span class="o">=</span><span class="n">zj</span>
+</span><span class="line"><span class="err">返回：</span><span class="mi">1</span>
+</span><span class="line"><span class="n">curl</span> <span class="n">localhost</span><span class="o">/</span><span class="n">getOlnum</span><span class="err">?</span><span class="n">user</span><span class="o">=</span><span class="n">zhengji</span>
+</span><span class="line"><span class="err">返回：</span><span class="mi">2</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking :)</p>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-12T23:12:00+08:00" pubdate data-updated="true">Sep 12<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/nginx/'>Nginx</a>, <a class='category' href='/blog/categories/server/'>Server</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/" title="Previous Post: MiniGame 服务端设计">&laquo; MiniGame 服务端设计</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/" title="Next Post: Jsonp解决跨域请求">Jsonp解决跨域请求 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="Nginx+lua应对在线状态服务"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/25/tired/">慢</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
