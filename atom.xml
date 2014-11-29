@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2014-11-25T23:07:21+08:00</updated>
+  <updated>2014-11-29T14:20:26+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,44 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[用到的Tcpdump]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump/"/>
+    <updated>2014-11-29T14:15:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump</id>
+    <content type="html"><![CDATA[<p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
+简单说下我常用的 TcpDump的方法</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">-i 指定网卡
+</span><span class="line">-Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
+</span><span class="line">-s 0 表示整包抓取
+</span><span class="line">-c 1024 表示包得大小</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
+这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
+
+<p>Tcpdump 中的 flag 有必要提下：</p>
+
+<ul>
+  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
+  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
+  <li>SYNC 表示主动连接到对方，建立连接</li>
+  <li>FIN 表示传送结束，发送方等待对方响应</li>
+</ul>
+
+<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[慢]]></title>
@@ -1701,116 +1739,6 @@ Happy Hacking :-)</p>
 
 <p>夜深了,晚安, 愿有梦的程序猿好梦。</p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[深入strtok函数]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/02/05/shen-ru-strtokhan-shu/"/>
-    <updated>2014-02-05T16:35:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/02/05/shen-ru-strtokhan-shu</id>
-    <content type="html"><![CDATA[<p>下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。</p>
-
-<h3 id="man-strtok">Man strtok</h3>
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">strtok</span><span class="err">的函数原型为</span><span class="o">:</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">strtok</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>功能以包含在delim中的字符为分界符，将s切分成一个个子串；
-如果s为空值NULL，则函数保存的指针 SAVE_PTR在下一次调用中将作为起始位置，
-这里说到的save_ptr是啥？还未知，
-但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
-之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束</p>
-
-<h3 id="how-to-use">How to use?</h3>
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">char</span> <span class="n">s</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot; zheng-ji is so stupid&quot;</span><span class="p">;</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">del</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="p">;</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">token</span> <span class="p">;</span>
-</span><span class="line"><span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
-</span><span class="line"><span class="k">while</span><span class="p">(</span><span class="n">token</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">token</span><span class="p">);</span>
-</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>输出：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zheng</span><span class="o">-</span><span class="n">ji</span>
-</span><span class="line"><span class="n">is</span>
-</span><span class="line"><span class="n">so</span>
-</span><span class="line"><span class="n">stupid</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="saveptr">探究save_ptr的获得的结论</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">olds</span><span class="p">;</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="n">strtok</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="err">，</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="err">）</span><span class="p">{</span>
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span><span class="n">token</span><span class="p">;</span>
-</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">s</span> <span class="o">=</span> <span class="n">olds</span><span class="p">;</span>
-</span><span class="line">    <span class="cm">/*将指针移到第一个非delim中的字符的位置*/</span>
-</span><span class="line">    <span class="n">s</span> <span class="o">+=</span> <span class="n">strspn</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">s</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
-</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="cm">/*获取到delim中字符在字符串s中第一次出现的位置*/</span>
-</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
-</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">strpbrk</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
-</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">__rawmemchr</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
-</span><span class="line">    <span class="k">else</span> <span class="p">{</span>
-</span><span class="line">        <span class="cm">/*重新给old赋值 */</span>
-</span><span class="line">        <span class="o">*</span><span class="n">s</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
-</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">token</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>源码告知我们:</p>
-
-<ul>
-  <li>之前我们觉得神奇的SAVE_PTR(源码中为 static char * olds)原来是个静态字符指针，每次调用都被赋值。</li>
-  <li>如果第一位出现了需要被删除的字符，是会被跳过的。</li>
-  <li>如果传入的s为NULL，则将olds 作为继续解析的字符串。</li>
-  <li>该函数会修改原有的字符串。</li>
-  <li>非线程安全的函数，由于用到了静态全局变量，因此当有多个线程同时调用这个函数的时候就会出现问题.这个静态的指针变量就会变的混乱。同时在同一个程序中同时有两个字符串要解析，并且同时进行解析也是会出错的。</li>
-</ul>
 ]]></content>
   </entry>
   

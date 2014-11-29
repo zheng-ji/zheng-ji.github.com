@@ -9,7 +9,9 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="这三个月以来,有30天是凌晨才离开公司的.甚至有好几天都通宵没有睡过,累。 貌似熟悉了凌晨的路灯,和冷冽的寒风。 技术的东西,整理在 EvertNote 里，但想写一些非技术的冲动似乎更强。 生活有很长的路要走, 几乎每天都在发现不足之处,只能让内心更强大, 去接受,去改变, &hellip;">
+  <meta name="description" content="开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出tcpdump，遗憾的是我略懂皮毛，有必要深入一些。
+简单说下我常用的 TcpDump的方法 1
+tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候还是会忘记， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +69,74 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-29T14:15:00+08:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/11/29/yong-dao-de-tcpdump/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
+简单说下我常用的 TcpDump的方法</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">-i 指定网卡
+</span><span class="line">-Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
+</span><span class="line">-s 0 表示整包抓取
+</span><span class="line">-c 1024 表示包得大小</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
+这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
+
+<p>Tcpdump 中的 flag 有必要提下：</p>
+
+<ul>
+  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
+  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
+  <li>SYNC 表示主动连接到对方，建立连接</li>
+  <li>FIN 表示传送结束，发送方等待对方响应</li>
+</ul>
+
+<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -887,147 +957,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/16/zhe-teng-docker/">折腾docker</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-07-16T20:20:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/07/16/zhe-teng-docker/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>早在1年前就听过 <a href="http://docs.docker.com/">docker</a>这个 Golang 社区的明星产品 。</p>
-
-<h3 id="section">简单地介绍</h3>
-
-<p>Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。这大大地提高了程序运行的灵活性和可移植性，极大的降低运维成本。</p>
-
-<h3 id="section-1">组成</h3>
-
-<ul>
-  <li>Docker 服务器守护程序（server daemon），用于管理所有的容器。</li>
-  <li>Docker 命令行客户端，用于控制服务器守护程序。</li>
-  <li>Docker 镜像：查找和浏览 docker 容器镜像。它也访问这里得到：<a href="https://index.docker.io/">链接</a></li>
-</ul>
-
-<h3 id="docker">有了虚拟机为什么还要docker?</h3>
-<p>virtualbox 等虚拟机提供的是完整的操作系统环境, 迁移的时候太大了。它们包含了大量类似硬件驱动、虚拟处理器、网络接口等等并不需要的信息，也需要比较长时间的启动，同时也会消耗大量的内存、CPU 资源。</p>
-
-<p>Docker 相比起来就非常轻量级了。运行起来就和一个常规程序差不多。这个容器不仅仅运行快，创建一个镜像和制作文件系统快照也很快,甚至比vagrant更节约资源</p>
-
-<h3 id="section-2">初体验</h3>
-<p>下载docker 并安装 ubuntu 12.04 这里如果没有指明 <code>ubuntu:12.04</code>, 会将所有ubuntu镜像都下载。由于被墙，速度惨不忍睹.</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo apt-get install docker.io
-</span><span class="line">zj@zheng-ji:~$ sudo docker pull ubuntu:12.04 </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>查看已有的镜像</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker images</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使用 bash 命令进入docker的指定镜像</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这时候我就可以像一个新系统一样把玩了, 比如创建一个目录。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ mkdir /home/zj/test</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 <a href="https://registry.hub.docker.com/u/">这里</a> 注册一个账户，然后再上传，类似在 github  上面一样的操作。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps 
-</span><span class="line">
-</span><span class="line">//因为我已经commit 过一次，所以名字变成我的别名 zhengji/helloworld
-</span><span class="line">zj@zheng-ji:~$ docker ps
-</span><span class="line">CONTAINER ID        IMAGE                       COMMAND             CREATED             STATUS              PORTS                     NAMES
-</span><span class="line">8dad3aa4451f        zhengji/helloworld:latest   bin/bash            27 minutes ago      Up 27 minutes       0.0.0.0:49156-&gt;3000/tcp   high_galileo      </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>可以看到要保存的镜像的 CONTAINER ID</p>
-
-<p>这个时候提交</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker commit 8dad3aa4451f zhengji/helloworld -m "test"
-</span><span class="line">61f9527f368395ee228af07062b3f1a26fa7143ba2721c4f9755ae93d588358e
-</span><span class="line">
-</span><span class="line">zj@zheng-ji:~$ sudo docker push zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>下次pull 下来就可以使用了</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker pull zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<h3 id="section-3">可能遇到的坑</h3>
-
-<ul>
-  <li>需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">DOCKER_OPTS = "-dns 8.8.8.8"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>设置 ufw 端口可转发</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/ufw
-</span><span class="line">DEFAULT_FORWARD_POLICY = "ACCEPT"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-4">参考链接</h3>
-
-<ul>
-  <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
-  <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
-  <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1047,6 +976,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
@@ -1074,10 +1007,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
       </li>
     
   </ul>

@@ -9,7 +9,23 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="以前在Amazon Web ServiceAWS 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热， &hellip;">
+  <meta name="description" content="最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐 使用shell获取进程，并删除 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+#取得当前进程号
+current_pid=$$
+#获得特定进程号并重定向到一个临时文件中
+ps &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +83,153 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/28/shellji-qiao-xiao-jie/">Shell技巧小结</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-28T22:52:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/28/shellji-qiao-xiao-jie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐</p>
+
+<ul>
+  <li>使用shell获取进程，并删除</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#取得当前进程号
+</span><span class="line">current_pid=$$
+</span><span class="line">#获得特定进程号并重定向到一个临时文件中
+</span><span class="line">ps -aux|grep "/usr/sbin/httpd" | grep -v "grep"| awk '{print $2}' &gt;/tmp/${current_pid}.txt
+</span><span class="line">#commands start
+</span><span class="line">for pid in `cat /tmp/${current_pid}.txt`
+</span><span class="line">do
+</span><span class="line">{
+</span><span class="line">    echo "kill -9 $pid"
+</span><span class="line">    kill -9 $pid
+</span><span class="line">}
+</span><span class="line">done 
+</span><span class="line">rm -f /tmp/${current_pid}.txt </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>shell的函数处理</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">func()
+</span><span class="line">{
+</span><span class="line">    echo $a $b $c
+</span><span class="line">    echo $1 $2 $3
+</span><span class="line">}
+</span><span class="line">a="aaa"
+</span><span class="line">b="bbb"
+</span><span class="line">c="ccc"
+</span><span class="line">func $a e f</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>函数传参是通过 funcname $para1 $para2 …,函数内部是使用$1,$2,$3
+结果为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">aaa bbb ccc
+</span><span class="line">aaa e f </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>信号捕捉
+trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
+其中,name是捕捉到信号以后所采取的一系列操作。实际中，name一般是一个专门用来处理所捕捉信号的函数。name需要用双引号（“”）引起来。signal是待捕捉的信号。
+最常见的行动包括： 清除临时文件 忽略该信号(如trap “” 23) 询问用户是否终止该脚本进程</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">trap 'exitprocess' 2　　　　#捕捉到信号２之后执行exitprocess function
+</span><span class="line">LOOP=0
+</span><span class="line">function exitprocess()
+</span><span class="line">{
+</span><span class="line">    echo "You Just hit &lt;CTRL-C&gt;, at number $LOOP"
+</span><span class="line">    echo "I will now exit"
+</span><span class="line">    exit 1
+</span><span class="line">}
+</span><span class="line">while : # 循环直到捕捉到信号（注意中间的空格） 
+</span><span class="line">do
+</span><span class="line">    LOOP=$LOOP+1
+</span><span class="line">    echo $LOOP
+</span><span class="line">    sleep 1
+</span><span class="line">done </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>给一个文本，获取其中2000 ~ 3000 行怎么破？</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cat data.txt | tail -n +2000 | head -n 1000 &gt; result.txt</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查找文件是否存在
+&lt;div class=&#8217;bogus-wrapper&#8217;&gt;<notextile><figure class="code">&lt;div class=&#8221;highlight&#8221;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&#8221;gutter&#8221;&gt;&lt;pre class=&#8221;line-numbers&#8221;&gt;<span class="line-number">1</span>
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&#8217;code&#8217;&gt;&lt;pre&gt;<code class=""><span class="line">find /data -name hello.cpp </span></code>&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;</figure></notextile>&lt;/div&gt;</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1685,168 +1848,6 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/">分布式处理框架-Gearman</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-20T00:00:00+08:00" pubdate data-updated="true">Jun 20<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>近日折腾Gearman.有兴趣可以参考阅读<a href="http://www.gearman.org/">这个</a>,<a href="http://pythonhosted.org/gearman/">这个</a>，还有<a href="http://www.s135.com/dips/">这个</a></p>
-
-<p>官方说法：</p>
-
-<blockquote>
-  <p>Gearman provides a generic application framework to farm out work to other machines or processes that are better suited to do the work. It allows you to do work in parallel, to load balance processing, and to call functions between languages. It can be used in a variety of applications, from high-availability web sites to the transport of database replication events. In other words, it is the nervous system for how distributed processing communicates. </p>
-</blockquote>
-
-<p>Gearman是一个提供机器与进程之间相互协作的通信框架。可以让你并行处理作业以及负载均衡，提供不同的语言接口使得不同语言可以互相协作。用处很广泛，从web站点到数据库Replication事件。换句话说，是一个分布式的通讯框架</p>
-
-<h4 id="section">特点</h4>
-
-<ul>
-  <li>
-    <p>开源：
-  多语言支持：Gearman支持的语言种类非常丰富。让我们能够用一种语言来编写Worker程序，但是用另外一种语言编写Client程序。</p>
-  </li>
-  <li>
-    <p>灵活：不必拘泥于固定的形式。您可以采用你希望的任何形式，例如 Map/Reduce。</p>
-  </li>
-  <li>
-    <p>快速：Gearman的协议非常简单，并且有一个用C语言实现的，经过优化的服务器，保证应用的负载在非常低的水平。</p>
-  </li>
-  <li>
-    <p>可植入：因为Gearman非常小巧、灵活置入到现有的任何系统中。</p>
-  </li>
-  <li>
-    <p>无单点故障：Gearman可扩展系统，可以避免系统的失败。</p>
-  </li>
-</ul>
-
-<h4 id="section-1">场景</h4>
-<p>听上去很诱惑的样子了。试想下：
-我们的服务器有IO读写密集型，存储密集型，CPU使用不频繁，内存使用不频繁。如果我们能根据业务充分调动起各个服务器的特点。实现服务器的最大价值。Gearman可以登上舞台 ：）</p>
-
-<p>图解工作流
-<img src="/images/2013/08/gearman.png" /></p>
-
-<h4 id="gearman-">Gearman 有三个角色</h4>
-<ul>
-  <li>Job Server:中央调度，消息中心，负载均衡</li>
-  <li>Client：发起Job,可由任何语言编写</li>
-  <li>Worker：负责执行Job，执行业务流</li>
-</ul>
-
-<p>实操安装Gearman（以ubuntu为例子）,默认的端口4730</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>安装python-gearman</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install python-gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>用python编写
-worker代码</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">#worker.py
-</span><span class="line">import os
-</span><span class="line">import gearman
-</span><span class="line">import math 
-</span><span class="line"> 
-</span><span class="line">class CustomGearmanWorker(gearman.GearmanWorker):
-</span><span class="line">   def on_job_execute(self, current_job):
-</span><span class="line">          return super(CustomGearmanWorker, self).on_job_execute(current_job)
-</span><span class="line">def task_callback(gearman_worker, job):
-</span><span class="line">    print job.data
-</span><span class="line">    return job.data + " has received" 
-</span><span class="line">                   
-</span><span class="line">new_worker = CustomGearmanWorker(['127.0.0.1:4730'])
-</span><span class="line">new_worker.register_task("ping", task_callback)
-</span><span class="line">new_worker.work()</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>client代码</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/env python2.7</span>
-</span><span class="line"><span class="c"># -*- coding: utf-8 -*-</span>
-</span><span class="line"><span class="c"># # file: client.py</span>
-</span><span class="line"><span class="kn">from</span> <span class="nn">gearman</span> <span class="kn">import</span> <span class="n">GearmanClient</span>
-</span><span class="line"><span class="n">new_client</span> <span class="o">=</span> <span class="n">GearmanClient</span><span class="p">([</span><span class="s">&#39;127.0.0.1:4730&#39;</span><span class="p">])</span>
-</span><span class="line"><span class="n">current_request</span> <span class="o">=</span> <span class="n">new_client</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span><span class="s">&#39;ping&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span>
-</span><span class="line"><span class="n">new_result</span> <span class="o">=</span> <span class="n">current_request</span><span class="o">.</span><span class="n">result</span>
-</span><span class="line"><span class="k">print</span> <span class="n">new_resul</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>结果</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">foo</span> <span class="n">has</span> <span class="n">received</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>用Go测试下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#gearman的Go库,内有example</span>
-</span><span class="line"><span class="n">go</span> <span class="n">get</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mikespook</span><span class="o">/</span><span class="n">gearman</span><span class="o">-</span><span class="n">go</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>Happy Hacking!</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1868,6 +1869,10 @@ worker代码</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
@@ -1895,10 +1900,6 @@ worker代码</p>
     
       <li class="post">
         <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
       </li>
     
   </ul>

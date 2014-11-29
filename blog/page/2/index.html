@@ -9,8 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
-优点简而言之是： 二进制，速度快，便于拓展； 自动生成代码接口，支持多语言 对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。 关于 protobuf 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西 &hellip;">
+  <meta name="description" content="早在1年前就听过 docker这个 Golang 社区的明星产品 。 简单地介绍 Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +67,147 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/16/zhe-teng-docker/">折腾docker</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-16T20:20:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/07/16/zhe-teng-docker/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>早在1年前就听过 <a href="http://docs.docker.com/">docker</a>这个 Golang 社区的明星产品 。</p>
+
+<h3 id="section">简单地介绍</h3>
+
+<p>Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。这大大地提高了程序运行的灵活性和可移植性，极大的降低运维成本。</p>
+
+<h3 id="section-1">组成</h3>
+
+<ul>
+  <li>Docker 服务器守护程序（server daemon），用于管理所有的容器。</li>
+  <li>Docker 命令行客户端，用于控制服务器守护程序。</li>
+  <li>Docker 镜像：查找和浏览 docker 容器镜像。它也访问这里得到：<a href="https://index.docker.io/">链接</a></li>
+</ul>
+
+<h3 id="docker">有了虚拟机为什么还要docker?</h3>
+<p>virtualbox 等虚拟机提供的是完整的操作系统环境, 迁移的时候太大了。它们包含了大量类似硬件驱动、虚拟处理器、网络接口等等并不需要的信息，也需要比较长时间的启动，同时也会消耗大量的内存、CPU 资源。</p>
+
+<p>Docker 相比起来就非常轻量级了。运行起来就和一个常规程序差不多。这个容器不仅仅运行快，创建一个镜像和制作文件系统快照也很快,甚至比vagrant更节约资源</p>
+
+<h3 id="section-2">初体验</h3>
+<p>下载docker 并安装 ubuntu 12.04 这里如果没有指明 <code>ubuntu:12.04</code>, 会将所有ubuntu镜像都下载。由于被墙，速度惨不忍睹.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo apt-get install docker.io
+</span><span class="line">zj@zheng-ji:~$ sudo docker pull ubuntu:12.04 </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查看已有的镜像</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker images</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>使用 bash 命令进入docker的指定镜像</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这时候我就可以像一个新系统一样把玩了, 比如创建一个目录。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ mkdir /home/zj/test</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 <a href="https://registry.hub.docker.com/u/">这里</a> 注册一个账户，然后再上传，类似在 github  上面一样的操作。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps 
+</span><span class="line">
+</span><span class="line">//因为我已经commit 过一次，所以名字变成我的别名 zhengji/helloworld
+</span><span class="line">zj@zheng-ji:~$ docker ps
+</span><span class="line">CONTAINER ID        IMAGE                       COMMAND             CREATED             STATUS              PORTS                     NAMES
+</span><span class="line">8dad3aa4451f        zhengji/helloworld:latest   bin/bash            27 minutes ago      Up 27 minutes       0.0.0.0:49156-&gt;3000/tcp   high_galileo      </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>可以看到要保存的镜像的 CONTAINER ID</p>
+
+<p>这个时候提交</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker commit 8dad3aa4451f zhengji/helloworld -m "test"
+</span><span class="line">61f9527f368395ee228af07062b3f1a26fa7143ba2721c4f9755ae93d588358e
+</span><span class="line">
+</span><span class="line">zj@zheng-ji:~$ sudo docker push zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>下次pull 下来就可以使用了</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker pull zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<h3 id="section-3">可能遇到的坑</h3>
+
+<ul>
+  <li>需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">DOCKER_OPTS = "-dns 8.8.8.8"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置 ufw 端口可转发</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/ufw
+</span><span class="line">DEFAULT_FORWARD_POLICY = "ACCEPT"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-4">参考链接</h3>
+
+<ul>
+  <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
+  <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
+  <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1370,146 +1510,6 @@ Happy Hacking :-)</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/02/05/shen-ru-strtokhan-shu/">深入strtok函数</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-02-05T16:35:00+08:00" pubdate data-updated="true">Feb 5<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/02/05/shen-ru-strtokhan-shu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。</p>
-
-<h3 id="man-strtok">Man strtok</h3>
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">strtok</span><span class="err">的函数原型为</span><span class="o">:</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">strtok</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>功能以包含在delim中的字符为分界符，将s切分成一个个子串；
-如果s为空值NULL，则函数保存的指针 SAVE_PTR在下一次调用中将作为起始位置，
-这里说到的save_ptr是啥？还未知，
-但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
-之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束</p>
-
-<h3 id="how-to-use">How to use?</h3>
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">char</span> <span class="n">s</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot; zheng-ji is so stupid&quot;</span><span class="p">;</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">del</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="p">;</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">token</span> <span class="p">;</span>
-</span><span class="line"><span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
-</span><span class="line"><span class="k">while</span><span class="p">(</span><span class="n">token</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">token</span><span class="p">);</span>
-</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>输出：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zheng</span><span class="o">-</span><span class="n">ji</span>
-</span><span class="line"><span class="n">is</span>
-</span><span class="line"><span class="n">so</span>
-</span><span class="line"><span class="n">stupid</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="saveptr">探究save_ptr的获得的结论</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">olds</span><span class="p">;</span>
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="n">strtok</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="err">，</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="err">）</span><span class="p">{</span>
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span><span class="n">token</span><span class="p">;</span>
-</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">s</span> <span class="o">=</span> <span class="n">olds</span><span class="p">;</span>
-</span><span class="line">    <span class="cm">/*将指针移到第一个非delim中的字符的位置*/</span>
-</span><span class="line">    <span class="n">s</span> <span class="o">+=</span> <span class="n">strspn</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">s</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
-</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="cm">/*获取到delim中字符在字符串s中第一次出现的位置*/</span>
-</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
-</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">strpbrk</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
-</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">__rawmemchr</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
-</span><span class="line">    <span class="k">else</span> <span class="p">{</span>
-</span><span class="line">        <span class="cm">/*重新给old赋值 */</span>
-</span><span class="line">        <span class="o">*</span><span class="n">s</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
-</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">token</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>源码告知我们:</p>
-
-<ul>
-  <li>之前我们觉得神奇的SAVE_PTR(源码中为 static char * olds)原来是个静态字符指针，每次调用都被赋值。</li>
-  <li>如果第一位出现了需要被删除的字符，是会被跳过的。</li>
-  <li>如果传入的s为NULL，则将olds 作为继续解析的字符串。</li>
-  <li>该函数会修改原有的字符串。</li>
-  <li>非线程安全的函数，由于用到了静态全局变量，因此当有多个线程同时调用这个函数的时候就会出现问题.这个静态的指针变量就会变的混乱。同时在同一个程序中同时有两个字符串要解析，并且同时进行解析也是会出错的。</li>
-</ul>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1531,6 +1531,10 @@ Happy Hacking :-)</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
@@ -1558,10 +1562,6 @@ Happy Hacking :-)</p>
     
       <li class="post">
         <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
       </li>
     
   </ul>

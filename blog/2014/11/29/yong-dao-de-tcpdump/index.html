@@ -5,11 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>折腾libevent - 织网</title>
+  <title>用到的Tcpdump - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="好奇折腾libeven 原理介绍转自IBM developworks 处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。 网络连接使用的主要方法如下： 循环： 早期系统使用简单的循环选择解决方案， &hellip;">
+  <meta name="description" content="开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出tcpdump，遗憾的是我略懂皮毛，有必要深入一些。
+简单说下我常用的 TcpDump的方法 1
+tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候还是会忘记， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +20,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2012/03/22/zhe-teng-libevent">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +72,7 @@
   
   <header>
     
-      <h1 class="entry-title">折腾libevent</h1>
+      <h1 class="entry-title">用到的Tcpdump</h1>
     
     
       <p class="meta">
@@ -86,7 +88,7 @@
   
 
 
-<time datetime="2012-03-22T20:25:00+08:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2012</time>
+<time datetime="2014-11-29T14:15:00+08:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,53 +98,36 @@
   </header>
 
 
-<div class="entry-content"><h4 id="libeven">好奇折腾libeven</h4>
+<div class="entry-content"><p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
+简单说下我常用的 TcpDump的方法</p>
 
-<p>原理介绍转自<a href="www.ibm.com/developerworks/cn/aix/library/au-libev/">IBM developworks</a></p>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。</p>
-
-<p>网络连接使用的主要方法如下：</p>
-
-<ul>
-  <li>循环：</li>
-</ul>
-
-<p>早期系统使用简单的循环选择解决方案，即循环遍历打开的网络连接的列表，判断是否有要读取的数据。这种方法既缓慢（尤其是随着连接数量增加越来越慢),又低效（因为在处理当前连接时其他连接可能正在发送请求并等待响应）。在系统循环遍历每个连接时，其他连接不得不等待。如果有100 个连接，其中只有一个有数据，那么仍然必须处理其他 99 个连接，才能轮到真正需要处理的连接。</p>
-
-<ul>
-  <li>poll、epoll 和变体：</li>
-</ul>
-
-<p>这是对循环方法的改进，它用一个结构保存要监视的每个连接的数组，当在网络套接字上发现数据时，通过回调机制调用处理函数。poll 的问题是这个结构会非常大，在列表中添加新的网络连接时，修改结构会增加负载并影响性能。
-选择：</p>
-
-<ul>
-  <li>select() 函数调用使用一个静态结构，它事先被硬编码为相当小的数量（1024 个连接），因此不适用于非常大的部署。</li>
-</ul>
-
-<p>上面的所有解决方案都用简单的循环等待并处理请求，然后把请求分派给另一个函数以处理实际的网络交互。关键在于循环和网络套接字需要大量管理代码，这样才能监听、更新和控制不同的连接和接口。</p>
-
-<p>libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。</p>
-
-<p>创建 libevent 服务器的基本方法是:
-1. 注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。
-2. 执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；
-3. 在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。
-流程：</p>
+<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">event_set() //函数创建新的事件结构
-</span><span class="line">event_add() //在事件队列机制中添加事件；
-</span><span class="line">event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">-i 指定网卡
+</span><span class="line">-Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
+</span><span class="line">-s 0 表示整包抓取
+</span><span class="line">-c 1024 表示包得大小</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>============Tips===============</p>
+<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
+这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
 
-<p>Tips:编译过程中需要 -levent
-Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
+<p>Tcpdump 中的 flag 有必要提下：</p>
 
+<ul>
+  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
+  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
+  <li>SYNC 表示主动连接到对方，建立连接</li>
+  <li>FIN 表示传送结束，发送方等待对方响应</li>
+</ul>
+
+<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
 </div>
 
 
@@ -165,12 +150,12 @@ Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/To
   
 
 
-<time datetime="2012-03-22T20:25:00+08:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2012</time>
+<time datetime="2014-11-29T14:15:00+08:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/network/'>NetWork</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -186,10 +171,8 @@ Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/To
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2012/03/17/fu-wu-qi-she-ji-mo-xing/" title="Previous Post: 服务器设计模型">&laquo; 服务器设计模型</a>
+        <a class="basic-alignment left" href="/blog/2014/11/25/tired/" title="Previous Post: 慢">&laquo; 慢</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2012/05/07/zuo-kuai-le-de-cheng-xu-yuan/" title="Next Post: 做快乐的程序员">做快乐的程序员 &raquo;</a>
       
     </p>
   </footer>
@@ -199,7 +182,7 @@ Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/To
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="折腾libevent"></div>
+<div class="ds-thread" data-title="用到的Tcpdump"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

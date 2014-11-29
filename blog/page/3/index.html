@@ -9,7 +9,11 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意 跳表简介 数据结构 应用场景 跳表简介 Skip List是 一种随机化的数据结构， &hellip;">
+  <meta name="description" content="下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。 Man strtok
+1
+2
+strtok的函数原型为:
+char * &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +71,146 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/05/shen-ru-strtokhan-shu/">深入strtok函数</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-05T16:35:00+08:00" pubdate data-updated="true">Feb 5<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/02/05/shen-ru-strtokhan-shu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。</p>
+
+<h3 id="man-strtok">Man strtok</h3>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">strtok</span><span class="err">的函数原型为</span><span class="o">:</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">strtok</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>功能以包含在delim中的字符为分界符，将s切分成一个个子串；
+如果s为空值NULL，则函数保存的指针 SAVE_PTR在下一次调用中将作为起始位置，
+这里说到的save_ptr是啥？还未知，
+但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
+之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束</p>
+
+<h3 id="how-to-use">How to use?</h3>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">char</span> <span class="n">s</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot; zheng-ji is so stupid&quot;</span><span class="p">;</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">del</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="p">;</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">token</span> <span class="p">;</span>
+</span><span class="line"><span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
+</span><span class="line"><span class="k">while</span><span class="p">(</span><span class="n">token</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">token</span><span class="p">);</span>
+</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>输出：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zheng</span><span class="o">-</span><span class="n">ji</span>
+</span><span class="line"><span class="n">is</span>
+</span><span class="line"><span class="n">so</span>
+</span><span class="line"><span class="n">stupid</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="saveptr">探究save_ptr的获得的结论</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">olds</span><span class="p">;</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="n">strtok</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="err">，</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="err">）</span><span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span><span class="n">token</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">s</span> <span class="o">=</span> <span class="n">olds</span><span class="p">;</span>
+</span><span class="line">    <span class="cm">/*将指针移到第一个非delim中的字符的位置*/</span>
+</span><span class="line">    <span class="n">s</span> <span class="o">+=</span> <span class="n">strspn</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">s</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="cm">/*获取到delim中字符在字符串s中第一次出现的位置*/</span>
+</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">strpbrk</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">__rawmemchr</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">        <span class="cm">/*重新给old赋值 */</span>
+</span><span class="line">        <span class="o">*</span><span class="n">s</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">token</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>源码告知我们:</p>
+
+<ul>
+  <li>之前我们觉得神奇的SAVE_PTR(源码中为 static char * olds)原来是个静态字符指针，每次调用都被赋值。</li>
+  <li>如果第一位出现了需要被删除的字符，是会被跳过的。</li>
+  <li>如果传入的s为NULL，则将olds 作为继续解析的字符串。</li>
+  <li>该函数会修改原有的字符串。</li>
+  <li>非线程安全的函数，由于用到了静态全局变量，因此当有多个线程同时调用这个函数的时候就会出现问题.这个静态的指针变量就会变的混乱。同时在同一个程序中同时有两个字符串要解析，并且同时进行解析也是会出错的。</li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1479,153 +1623,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/28/shellji-qiao-xiao-jie/">Shell技巧小结</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-09-28T22:52:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/09/28/shellji-qiao-xiao-jie/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐</p>
-
-<ul>
-  <li>使用shell获取进程，并删除</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">#取得当前进程号
-</span><span class="line">current_pid=$$
-</span><span class="line">#获得特定进程号并重定向到一个临时文件中
-</span><span class="line">ps -aux|grep "/usr/sbin/httpd" | grep -v "grep"| awk '{print $2}' &gt;/tmp/${current_pid}.txt
-</span><span class="line">#commands start
-</span><span class="line">for pid in `cat /tmp/${current_pid}.txt`
-</span><span class="line">do
-</span><span class="line">{
-</span><span class="line">    echo "kill -9 $pid"
-</span><span class="line">    kill -9 $pid
-</span><span class="line">}
-</span><span class="line">done 
-</span><span class="line">rm -f /tmp/${current_pid}.txt </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>shell的函数处理</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">func()
-</span><span class="line">{
-</span><span class="line">    echo $a $b $c
-</span><span class="line">    echo $1 $2 $3
-</span><span class="line">}
-</span><span class="line">a="aaa"
-</span><span class="line">b="bbb"
-</span><span class="line">c="ccc"
-</span><span class="line">func $a e f</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>函数传参是通过 funcname $para1 $para2 …,函数内部是使用$1,$2,$3
-结果为：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">aaa bbb ccc
-</span><span class="line">aaa e f </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>信号捕捉
-trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
-其中,name是捕捉到信号以后所采取的一系列操作。实际中，name一般是一个专门用来处理所捕捉信号的函数。name需要用双引号（“”）引起来。signal是待捕捉的信号。
-最常见的行动包括： 清除临时文件 忽略该信号(如trap “” 23) 询问用户是否终止该脚本进程</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">trap 'exitprocess' 2　　　　#捕捉到信号２之后执行exitprocess function
-</span><span class="line">LOOP=0
-</span><span class="line">function exitprocess()
-</span><span class="line">{
-</span><span class="line">    echo "You Just hit &lt;CTRL-C&gt;, at number $LOOP"
-</span><span class="line">    echo "I will now exit"
-</span><span class="line">    exit 1
-</span><span class="line">}
-</span><span class="line">while : # 循环直到捕捉到信号（注意中间的空格） 
-</span><span class="line">do
-</span><span class="line">    LOOP=$LOOP+1
-</span><span class="line">    echo $LOOP
-</span><span class="line">    sleep 1
-</span><span class="line">done </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>给一个文本，获取其中2000 ~ 3000 行怎么破？</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cat data.txt | tail -n +2000 | head -n 1000 &gt; result.txt</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>查找文件是否存在
-&lt;div class=&#8217;bogus-wrapper&#8217;&gt;<notextile><figure class="code">&lt;div class=&#8221;highlight&#8221;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&#8221;gutter&#8221;&gt;&lt;pre class=&#8221;line-numbers&#8221;&gt;<span class="line-number">1</span>
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&#8217;code&#8217;&gt;&lt;pre&gt;<code class=""><span class="line">find /data -name hello.cpp </span></code>&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;</figure></notextile>&lt;/div&gt;</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1647,6 +1644,10 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
@@ -1674,10 +1675,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
     
       <li class="post">
         <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/09/07/percona-server-zuo-zhu-cong/">Percona Server 做主从</a>
       </li>
     
   </ul>
