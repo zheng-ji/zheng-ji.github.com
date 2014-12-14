@@ -9,23 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐 使用shell获取进程，并删除 1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-#取得当前进程号
-current_pid=$$
-#获得特定进程号并重定向到一个临时文件中
-ps &hellip;">
+  <meta name="description" content="dotCloud 是一家具有伟大基因的公司,我认为的伟大是有着开源贡献的情怀，就像Amazon,Google等，而不是国内的某些巨头，虽然作为新兴的云服务提供商还不足以比肩巨头，致力于用技术解决公司的运营问题的同时也回馈社会，让我为之喝彩.我也有理由相信这样的公司会走的更远，因为他们有胸怀有远见， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -83,6 +67,161 @@ ps &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/29/zerorpcshi-ge-hao-dong-xi/">ZeroRPC-基于ZMQ的RPC通讯库</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-29T20:56:00+08:00" pubdate data-updated="true">Sep 29<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/29/zerorpcshi-ge-hao-dong-xi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://www.dotcloud.com/">dotCloud</a> 是一家具有伟大基因的公司,我认为的伟大是有着开源贡献的情怀，就像Amazon,Google等，而不是国内的某些巨头，虽然作为新兴的云服务提供商还不足以比肩巨头，致力于用技术解决公司的运营问题的同时也回馈社会，让我为之喝彩.我也有理由相信这样的公司会走的更远，因为他们有胸怀有远见，是否重视技术就更不言而喻了.</p>
+
+<p>这篇文章旨在介绍由<strong>dotCloud</strong>开源的<a href="https://github.com/dotcloud/zerorpc-python">ZeroRpc</a>,在dotcloud公司的基础服务得到很大应用，在阅读其manual之后更是被其简洁明了的使用方法所吸引 
+&gt;ZeroRPC is a modern communication layer for distributed systems built on top of ZeroMQ,</p>
+
+<p>一直以来我一直喜欢python 的简洁，用过ZeroMQ做过网络通讯方面的编程，也使用RPC 做过远程过程调用，上次使用LevelDB的RPC是用python的[第三方库] (https://github.com/dotcloud/zerorpc-python)</p>
+
+<p>这次刚好在Github上面看到这样的好玩意，便想与大家分享,ZeroRpc不仅仅支持代码层面的调用，也支持CLi， 这种设计本身就很有弹性.赞！</p>
+
+<p>安装zerorpc</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo pip install zerorpc </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在还没开始看demo之前
+我们需要了解ZeroRpc是由三层架构组成：</p>
+
+<ul>
+  <li>传输层是使用<a href="http://www.zeromq.org/">ZMQ</a> 以及msgpack(http://msgpack.org/),基于ZeroMQ的分布式通讯层,通讯的数据被MsgPack 序列化过所以更快</li>
+  <li>消息层,比较复杂,处理heartbeat, multiplexing, and events.</li>
+  <li>RPC层:处理请求,响应</li>
+</ul>
+
+<p>官方的<a href="http://zerorpc.dotcloud.com/">文档</a>给出以下demo</p>
+
+<h4 id="serverpy">server.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line"><span class="k">class</span> <span class="nc">HelloRPC</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="s">&quot;Hello, </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">name</span>
+</span><span class="line">
+</span><span class="line"><span class="n">s</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">HelloRPC</span><span class="p">())</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s">&quot;tcp://0.0.0.0:4242&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="clientpy">client.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line">
+</span><span class="line"><span class="n">c</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
+</span><span class="line"><span class="n">c</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&quot;tcp://127.0.0.1:4242&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="k">print</span> <span class="n">c</span><span class="o">.</span><span class="n">hello</span><span class="p">(</span><span class="s">&quot;RPC&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>client也可用命令行代替</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">zerorpc</span> <span class="n">tcp</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">4242</span> <span class="n">hello</span> <span class="n">RPC</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>够简明易懂了吧
+再来一个返回连续字节流的例子</p>
+
+<h4 id="serverpy-1">server.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">StreamingRPC</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class="line">    <span class="nd">@zerorpc.stream</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">streaming_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fr</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">fr</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="n">s</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">StreamingRPC</span><span class="p">())</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s">&quot;tcp://0.0.0.0:4242&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="n">s</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="clientpy-1">client.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">zerorpc</span>
+</span><span class="line">
+</span><span class="line"><span class="n">c</span> <span class="o">=</span> <span class="n">zerorpc</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
+</span><span class="line"><span class="n">c</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s">&quot;tcp://127.0.0.1:4242&quot;</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">streaming_range</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">item</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>client也可用命令行代替,–json 表示头部是一个json对象</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">zerorpc</span> <span class="n">tcp</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">4242</span> <span class="n">streaming_range</span> <span class="mi">10</span> <span class="mi">20</span> <span class="mi">2</span> <span class="o">--</span><span class="n">json</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1784,70 +1923,6 @@ Oracle查询流程</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/29/hui-gu-zeromq/">回顾 ZeroMQ</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/06/29/hui-gu-zeromq/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些<a href="https://github.com/zheng-ji/log2aws">后端服务</a>。当时用Go语言实现 源代码,使用的便是<a href="https://github.com/alecthomas/gozmq">gozmq库</a>.这个消息通信框架库的文章有很多，比较著名的当属<a href="www.searchtb.com/2012/08/zeromq-primer.html">一淘</a>的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档</p>
-
-<h4 id="section">优点：</h4>
-<ul>
-  <li>
-    <p>高度封装。
-它处于会话层之上，应用层之下，你不需要自己写一行的socket函数调用就能完成复杂的网络通信工作。</p>
-  </li>
-  <li>
-    <p>点对点的消息传输上。
-传统的消息队列都需要一个消息服务器来存储转发消息。而ZeroMQ则把侧重点放在了点对点的消息传输上。ZeroMQ能缓存消息，但是是在发送端缓存。ZeroMQ里有水位设置的相关接口来控制缓存量。当然，ZeroMQ也支持传统的消息队列（通过zmq_device来实现）。这样使得客户端在重启的时候可以重新发送上次未发送成功的消息</p>
-  </li>
-  <li>
-    <p>灵活的收发模式。
-REQ-REP 请求响应模式，PUSH-PULL： 推拉模式， PUB-SUB： 发布订阅模式 等。 其中任何一方都可以作为服务端</p>
-  </li>
-  <li>
-    <p>以统一接口支持多种底层通信方式
-支持线程间通信，进程间通信，跨主机通信，假如你想把本机多进程的软件放到跨主机的环境里去执行，通常要将IPC接口用套接字重写一遍。非常麻烦。而有了ZeroMQ就方便多了，只要把通信协议从”ipc:///xxx”改为”tcp://<em>.</em>.<em>.</em>:<em>**</em>”就可以了，其他代码通通不需要改，如果这个是从配置文件里读的话，那么程序就完全不要动了，直接复制到其他机器上就可以了。</p>
-  </li>
-  <li>
-    <p>异步高效。
-ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模式，通过单独出一个IO线程来实现，要把资源释放函数交给ZeroMQ让ZeroMQ发完消息自己释放，所以消息发送调用之后不要立刻释放相关资源。</p>
-  </li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1869,6 +1944,10 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
@@ -1896,10 +1975,6 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
     
       <li class="post">
         <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/04/redisre-bei/">redis热备</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2014-11-29T14:20:26+08:00</updated>
+  <updated>2014-12-14T10:50:51+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,169 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[nginx错误码]]></title>
+    <link href="http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma/"/>
+    <updated>2014-12-13T15:18:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma</id>
+    <content type="html"><![CDATA[<p>在定位线上服务问题的时候，通常会去查看<code>Nginx</code> 的<code>error log</code></p>
+
+<p>那么 error 的定义, 对查找问题就显得很有帮助</p>
+
+<ul>
+  <li>upstream prematurely closed connection</li>
+</ul>
+
+<blockquote>
+  <p>请求uri的时候出现的异常，是由于upstream还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
+</blockquote>
+
+<ul>
+  <li>recv() failed (104: Connection reset by peer) </li>
+</ul>
+
+<blockquote>
+  <p>服务器的并发连接数超过了其承载量，服务器会将其中一些连接Down掉；客户关掉了浏览器，而服务器还在给客户端发送数据; (3)浏览器端按了Stop</p>
+</blockquote>
+
+<ul>
+  <li>(111: Connection refused) while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>用户在连接时，若遇到后端upstream挂掉或者不通，会收到该错误</p>
+</blockquote>
+
+<ul>
+  <li>(111: Connection refused) while reading response header from upstream </li>
+</ul>
+
+<blockquote>
+  <p>用户在连接成功后读取数据时，若遇到后端upstream挂掉或者不通，会收到该错误</p>
+</blockquote>
+
+<ul>
+  <li>(111: Connection refused) while sending request to upstream </li>
+</ul>
+
+<blockquote>
+  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端upstream挂掉或者不通，会收到该错误</p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx连接后面的upstream时超时</p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while reading upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx 读取来自upstream的响应时超时 </p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while reading response header from upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx读取来自upstream的响应头时超时</p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while reading upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx读取来自upstream的响应时超时</p>
+</blockquote>
+
+<ul>
+  <li>(104: Connection reset by peer) while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>upstream发送了RST，将连接重置</p>
+</blockquote>
+
+<ul>
+  <li>upstream sent invalid header while reading response header from upstream </li>
+</ul>
+
+<blockquote>
+  <p>upstream发送的响应头无效</p>
+</blockquote>
+
+<ul>
+  <li>upstream sent no valid HTTP/1.0 header while reading response header from upstream</li>
+</ul>
+
+<blockquote>
+  <p>upstream发送的响应头无效</p>
+</blockquote>
+
+<ul>
+  <li>client intended to send too large body </li>
+</ul>
+
+<blockquote>
+  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client发送的body超过了设置值</p>
+</blockquote>
+
+<ul>
+  <li>reopening logs </li>
+</ul>
+
+<blockquote>
+  <p>用户发送kill  -USR1命令</p>
+</blockquote>
+
+<ul>
+  <li>gracefully shutting down</li>
+</ul>
+
+<blockquote>
+  <p>用户发送kill  -WINCH命令</p>
+</blockquote>
+
+<ul>
+  <li>no live upstreams while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>upstream下的server全都挂了</p>
+</blockquote>
+
+<ul>
+  <li>SSL_do_handshake() failed</li>
+</ul>
+
+<blockquote>
+  <p>SSL握手失败</p>
+</blockquote>
+
+<ul>
+  <li>ngx_slab_alloc() failed: no memory in SSL session shared cache</li>
+</ul>
+
+<blockquote>
+  <p>ssl_session_cache大小不够等原因造成</p>
+</blockquote>
+
+<ul>
+  <li>could not add new SSL session to the session cache while SSL handshaking</li>
+</ul>
+
+<blockquote>
+  <p>ssl_session_cache大小不够等原因造成</p>
+</blockquote>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[用到的Tcpdump]]></title>
