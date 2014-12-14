@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2014-12-14T10:54:39+08:00</updated>
+  <updated>2014-12-14T10:58:20+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -27,7 +27,7 @@
 </ul>
 
 <blockquote>
-  <p>请求uri的时候出现的异常，是由于upstream还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
+  <p>请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
 </blockquote>
 
 <ul>
@@ -43,7 +43,7 @@
 </ul>
 
 <blockquote>
-  <p>用户在连接时，若遇到后端upstream挂掉或者不通，会收到该错误</p>
+  <p>用户在连接时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
 </blockquote>
 
 <ul>
@@ -51,7 +51,7 @@
 </ul>
 
 <blockquote>
-  <p>用户在连接成功后读取数据时，若遇到后端upstream挂掉或者不通，会收到该错误</p>
+  <p>用户在连接成功后读取数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
 </blockquote>
 
 <ul>
@@ -59,7 +59,7 @@
 </ul>
 
 <blockquote>
-  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端upstream挂掉或者不通，会收到该错误</p>
+  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
 </blockquote>
 
 <ul>
@@ -67,7 +67,7 @@
 </ul>
 
 <blockquote>
-  <p>nginx连接后面的upstream时超时</p>
+  <p>nginx 连接后面的 upstream 时超时</p>
 </blockquote>
 
 <ul>
@@ -75,7 +75,7 @@
 </ul>
 
 <blockquote>
-  <p>nginx 读取来自upstream的响应时超时 </p>
+  <p>nginx 读取来自 upstream 的响应时超时 </p>
 </blockquote>
 
 <ul>
@@ -83,7 +83,7 @@
 </ul>
 
 <blockquote>
-  <p>nginx读取来自upstream的响应头时超时</p>
+  <p>nginx 读取来自 upstream 的响应头时超时</p>
 </blockquote>
 
 <ul>
@@ -91,7 +91,7 @@
 </ul>
 
 <blockquote>
-  <p>nginx读取来自upstream的响应时超时</p>
+  <p>nginx读取来自 upstream 的响应时超时</p>
 </blockquote>
 
 <ul>
@@ -99,7 +99,7 @@
 </ul>
 
 <blockquote>
-  <p>upstream发送了RST，将连接重置</p>
+  <p>upstream发送了 RST，将连接重置</p>
 </blockquote>
 
 <ul>
@@ -107,7 +107,7 @@
 </ul>
 
 <blockquote>
-  <p>upstream发送的响应头无效</p>
+  <p>upstream 发送的响应头无效</p>
 </blockquote>
 
 <ul>
@@ -115,7 +115,7 @@
 </ul>
 
 <blockquote>
-  <p>upstream发送的响应头无效</p>
+  <p>upstream 发送的响应头无效</p>
 </blockquote>
 
 <ul>
@@ -123,7 +123,7 @@
 </ul>
 
 <blockquote>
-  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client发送的body超过了设置值</p>
+  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client 发送的 body 超过了设置值</p>
 </blockquote>
 
 <ul>
@@ -147,7 +147,7 @@
 </ul>
 
 <blockquote>
-  <p>upstream下的server全都挂了</p>
+  <p>upstream 下的 server 全都挂了</p>
 </blockquote>
 
 <ul>
@@ -171,7 +171,7 @@
 </ul>
 
 <blockquote>
-  <p>ssl_session_cache大小不够等原因造成</p>
+  <p>ssl_session_cache 大小不够等原因造成</p>
 </blockquote>
 ]]></content>
   </entry>
