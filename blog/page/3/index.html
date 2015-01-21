@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="这段时间在帮朋友写一个网络程序, 这个过程中重温了原生的socket编程, 在调试中遇到了一些问题，为此好好回顾了计算机网络, 学生时代学的不好啊！ 并由此引出的思考, 遂做笔记如下。 如果你也写过socket程序，作为一个没有太多经验的人，有时候你会发现明明要发送的数据只发送了一部分； &hellip;">
+  <meta name="description" content="在linux下 做一些操作的时候，比如使用 scp, telnet 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。 这个时候，你可以使用 expect &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,164 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu/">Expect 与系统自动交互</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-13T23:05:00+08:00" pubdate data-updated="true">Mar 13<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在<code>linux</code>下 做一些操作的时候，比如使用 <em>scp</em>, <em>telnet</em> 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。</p>
+
+<p>这个时候，你可以使用 <em>expect</em> 语言帮我们解决问题。</p>
+
+<h3 id="section">官方定义</h3>
+<blockquote>
+  <p>Expect是一个用来实现自动交互功能的软件套件 (Expect [is a] software suite for automating interactive tools)</p>
+</blockquote>
+
+<p>expect 是 <a href="http://en.wikipedia.org/wiki/Don_Libes">Don Libes</a> 编写的免费编程工具语言, 由expect-send对组成：</p>
+
+<p>expect等待输出中输出特定的字符，通常是一个提示符，然后发送特定的响应。</p>
+
+<hr />
+
+<p>先来个 helloworld, 注意需要在exp脚本前面加上 <code>#!/usr/bin/expect</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
+</span><span class="line">send_user <span class="s2">&quot;hello world&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这里的 send_user 类似 echo </p>
+
+<h3 id="section-1">常见用法</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="nb">set </span>i 0
+</span><span class="line"><span class="nb">set </span>user <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
+</span><span class="line"><span class="nb">set </span>timeout 300
+</span><span class="line"><span class="nb">set </span>i 0
+</span><span class="line"><span class="k">while</span> <span class="o">{</span> <span class="nv">$i</span> &lt; 10 <span class="o">}</span> <span class="o">{</span>
+</span><span class="line">    puts <span class="nv">$i</span>;
+</span><span class="line">    incr i;
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以上分别是:</p>
+
+<ul>
+  <li>将0赋值给变量i;</li>
+  <li>获取脚本的第一个参数给变量user;</li>
+  <li>设置超时时间是300秒</li>
+  <li>循环使用，不多说</li>
+</ul>
+
+<hr />
+
+<p>在 expect脚本中, 最亮点的是 spawn 会启动一个进程，由 expect 和 send 组合负责跟该进程交互, in short </p>
+
+<ul>
+  <li>expect捕获进程需要什么信息</li>
+  <li>send将这个信息发给进程</li>
+  <li>expect eof与spawn对应，表示捕获终端输出信息的终止，即进程已结束</li>
+  <li>expect都是使用 {}，且{, }使用时，前后需要留空格。 只要其中一项符合，就会执行该项，类似switch</li>
+</ul>
+
+<p>看完以下代码相信你就明白其魅力了 ：）</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
+</span><span class="line">
+</span><span class="line"><span class="nb">set </span>timeout 10
+</span><span class="line"><span class="nb">set </span>host <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
+</span><span class="line"><span class="nb">set </span>username <span class="o">[</span>lindex <span class="nv">$argv</span> 1<span class="o">]</span>
+</span><span class="line"><span class="nb">set </span>password <span class="o">[</span>lindex <span class="nv">$argv</span> 2<span class="o">]</span>
+</span><span class="line">
+</span><span class="line">spawn ssh <span class="nv">$username</span>@<span class="nv">$host</span>
+</span><span class="line">expect <span class="o">{</span>
+</span><span class="line">    <span class="s2">&quot;(yes/no)?&quot;</span> <span class="o">{</span>
+</span><span class="line">        send <span class="s2">&quot;yes\n&quot;</span>
+</span><span class="line">        expect <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span> send <span class="s2">&quot;$password\n&quot;</span> <span class="o">}</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">    <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span>
+</span><span class="line">        send <span class="s2">&quot;$password\n&quot;</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span><span class="line">
+</span><span class="line">expect <span class="s2">&quot;$&quot;</span>
+</span><span class="line">expect eof
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>使用时, 执行如下脚本命令.  其中<code>expect</code> 捕获到 “*assword:”, 发送 <code>$password</code> 变量,  捕获到<code>$</code>符号，表示登陆成功，结束 spawn 进程</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">./autosh.exp xxx<span class="o">(</span>ip地址<span class="o">)</span> xxx<span class="o">(</span>用户名<span class="o">)</span> xxx<span class="o">(</span>密码<span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p>感觉这样的脚本在自动化运维可以有很多运用之处, 至少让你可以在执行需要交互命令的时候跑去喝茶。
+Happy Hacking :-)</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1496,71 +1654,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/11/10/shui-de-xin-jing/">上善若水-想和这段生活谈谈</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-11-10T21:29:00+08:00" pubdate data-updated="true">Nov 10<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/11/10/shui-de-xin-jing/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>来深圳已经四个多月了，我不会扯淡地说些恍如隔日，白驹过隙之云，就我真实的感受而言，这些日子发生了很多事情，感觉经历了不少事情。关键字是： <strong><em>MiniGame比赛，后苑生活，吉他，折腾捣鼓</em></strong></p>
-
-<p><img src="/images/2013/10/Gitar.jpg" />
-<img src="/images/2013/10/Violin.jpg" /></p>
-
-<p>本以为音乐会随着时光离我远去，原来它一直都在。小时候学过小提琴，后来因为羡慕同龄人可以一起踢球玩耍而渐渐荒废，每次面对房间里那把吉他心中不免有些愧疚，想拿起来练却因为种种原因作罢，归咎于我的无能吧。毕业前夕，邂逅吉他。开始新的音乐旅程.无数次的脱皮结茧也没有打消我的热情，疯狂爱上优美的弦音。虽不能说废寝忘食，却也可以每天自学一段时间，现在算是可以弹奏喜欢的歌曲。有一天当我教宿舍的朋友如何入门的时候，突然感觉自己已经在喜欢的路上走了一段距离。那时候看看手里的茧,听着手中指弹的发声，瞬间感动。这背后，是心性的变化。沉淀下来是可以做不少你曾经觉得甚是神奇的事情.</p>
-
-<p><strong><em>上善若水，水善利万物而不争。天下柔者莫过于水,而能攻者有莫过于水。</em></strong>
-来深的这段时间里，我想这是我最大的收获。我喜欢这句话。</p>
-
-<p>心态的变化体现在对技术折腾上。曾经在时间，任务，压力面前我总是妥协倾向更快速解决问题。这样，知其然不知其所以然的祸根就埋下了，也伴有一些焦急，<strong><em>“一件事情如果你说不好，十有八九你是做不好的”</em></strong>。当然我依然改变不了捣鼓研究的热情，转变的是，我更愿意以一种好奇求问的心态，想想他们适合怎样的场景，在允许的情况下，我很乐意探其究竟。从细节中去发现美。曾以为会花费不少时间，如今看来，倒是在效率上给我带来了很大的提高，思维上也改造了不少 ：）.这几天疯狂地满足了折腾的欲望</p>
-
-<ul>
-  <li>折腾ArchLinux，</li>
-  <li>阅读完一本《MongoDb权威指南》</li>
-  <li>开发一个chrome插件,稍后会把经验分享给大家</li>
-  <li>博客做了改版，也顺带理清了octopress的框架,给他加了不少插件。</li>
-</ul>
-
-<p>捣鼓的热情，可以让人忘记时间甚至烦恼，沉浸在知识的海洋，也会为自己小小欣慰一把，这种小情绪怡然自得，如果你也是个不安分的人，相信你在此刻会有共鸣。</p>
-
-<p>提起工作，必须承认，离开有2年半感情的<a href="http://youmi.net">Youmi</a>，它有我大学一半的青春与回忆，对我来说是一个不容易的事情，我爱那里的人，初创团队的KISS，让我感受到很强的工程师文化，i like it。那里有我的可敬的精神<a href="http://sysrt.net">偶像</a>，但我希望我的人生多一些阅历，于是在毕业的岔口我来到了tx。选择没有对错，这一路总有不同的风景，</p>
-
-<p>在大公司，不可避免，我做的是螺丝钉般很琐碎的工作，很诚实地说，基本无技术上的锻炼,很长一段时间也将是。这一直是我内心一个心结。这对热爱技术的我，算是一种无奈吧。只能靠自己更高效地工作争取会宿舍去捣鼓消化技术的热情，真的很羡慕那些工程师味道浓厚，真正做事，创造价值的团队，每每在微博看到业界意见领袖（<a href="http://coolshell.cn">@coolshell</a>,<a href="http://dbanotes.net">@Fenng</a>..）的团队，便会像阿Q一样自嘲下自己,也好，多些经历也是好事，这样我会更加鞭策着去努力。话说回来，无论光景怎么变，我能做的就是始终都不能放弃学习与积累。这个过程中本身就是一件很开心的事情。很欣喜的是这一路我并不孤单，<a href="http://everet.org">华亮</a>和我也是一样在努力着。</p>
-
-<p>在平淡，甚至有点黯然失色的日子里，携安静的内心,还有吉他与代码，多一份坦然，多一份汗水，多一份坚持去面对生活，感悟生活，这是我对“上善若水”的理解。文字还是稚嫩，写这文章的心情是平静,不带偏激和情绪，我想和这段生活谈谈。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1582,6 +1675,10 @@
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
@@ -1609,10 +1706,6 @@
     
       <li class="post">
         <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a>
       </li>
     
   </ul>
@@ -1660,7 +1753,7 @@
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - zheng-ji -
+  Copyright &copy; 2015 - zheng-ji -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
   <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
   </script>

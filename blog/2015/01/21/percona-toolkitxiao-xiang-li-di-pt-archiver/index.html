@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>回顾 ZeroMQ - 织网</title>
+  <title>Percona 小箱里的pt-archiver - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些后端服务。当时用Go语言实现 源代码,使用的便是gozmq库.这个消息通信框架库的文章有很多，比较著名的当属一淘的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档 优点： 高度封装。 &hellip;">
-  
+  <meta name="description" content="在管理线上数据库，时常要做一些数据归档操作，在没有了解 Percona toolkit 之前，第一个想到的是在夜深人静的时候使用 MySqlDump 来完成这件事情。但它不是我们的优质选择，理由有： MySqlDump 只能备份在本机，不能直接做远端备份 导出数据量太大的时候会锁表, &hellip;">
+  <meta name="keywords" content="MySQL pt-archiver">
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/06/29/hui-gu-zeromq">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">回顾 ZeroMQ</h1>
+      <h1 class="entry-title">Percona 小箱里的pt-archiver</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
+<time datetime="2015-01-21T23:27:00+08:00" pubdate data-updated="true">Jan 21<span>st</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,32 +96,60 @@
   </header>
 
 
-<div class="entry-content"><p>今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些<a href="https://github.com/zheng-ji/log2aws">后端服务</a>。当时用Go语言实现 源代码,使用的便是<a href="https://github.com/alecthomas/gozmq">gozmq库</a>.这个消息通信框架库的文章有很多，比较著名的当属<a href="www.searchtb.com/2012/08/zeromq-primer.html">一淘</a>的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档</p>
+<div class="entry-content"><p>在管理线上数据库，时常要做一些数据归档操作，在没有了解 <code>Percona toolkit</code> 之前，第一个想到的是在夜深人静的时候使用 <code>MySqlDump</code> 来完成这件事情。但它不是我们的优质选择，理由有：</p>
 
-<h4 id="section">优点：</h4>
 <ul>
-  <li>
-    <p>高度封装。
-它处于会话层之上，应用层之下，你不需要自己写一行的socket函数调用就能完成复杂的网络通信工作。</p>
-  </li>
-  <li>
-    <p>点对点的消息传输上。
-传统的消息队列都需要一个消息服务器来存储转发消息。而ZeroMQ则把侧重点放在了点对点的消息传输上。ZeroMQ能缓存消息，但是是在发送端缓存。ZeroMQ里有水位设置的相关接口来控制缓存量。当然，ZeroMQ也支持传统的消息队列（通过zmq_device来实现）。这样使得客户端在重启的时候可以重新发送上次未发送成功的消息</p>
-  </li>
-  <li>
-    <p>灵活的收发模式。
-REQ-REP 请求响应模式，PUSH-PULL： 推拉模式， PUB-SUB： 发布订阅模式 等。 其中任何一方都可以作为服务端</p>
-  </li>
-  <li>
-    <p>以统一接口支持多种底层通信方式
-支持线程间通信，进程间通信，跨主机通信，假如你想把本机多进程的软件放到跨主机的环境里去执行，通常要将IPC接口用套接字重写一遍。非常麻烦。而有了ZeroMQ就方便多了，只要把通信协议从”ipc:///xxx”改为”tcp://<em>.</em>.<em>.</em>:<em>**</em>”就可以了，其他代码通通不需要改，如果这个是从配置文件里读的话，那么程序就完全不要动了，直接复制到其他机器上就可以了。</p>
-  </li>
-  <li>
-    <p>异步高效。
-ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模式，通过单独出一个IO线程来实现，要把资源释放函数交给ZeroMQ让ZeroMQ发完消息自己释放，所以消息发送调用之后不要立刻释放相关资源。</p>
-  </li>
+  <li><code>MySqlDump</code> 只能备份在本机，不能直接做远端备份</li>
+  <li>导出数据量太大的时候会锁表, 即使它的速度很快，但是在线上服务这是很危险的操作</li>
+  <li>它仅仅只能导出，无法做到同时删除(可能不是太有必要)</li>
 </ul>
 
+<p>面对上述的场景，<code>Percona Toolkit</code> 让DBA 有了更好地选择，<a href="http://www.percona.com/doc/percona-toolkit/2.1/pt-archiver.html">pt-archiver</a> 应时而生。</p>
+
+<h2 id="pt-archiver-">pt-archiver 介绍：</h2>
+
+<p>根据官方文档的说法，几乎不会对线上的OTLP操作有影响：</p>
+
+<blockquote>
+  <p>The goal is a low-impact, forward-only job to nibble old data out of the table without impacting OLTP queries much</p>
+</blockquote>
+
+<p>它可以帮助我们将数据归档到文件, 另一个数据库，或者同一个数据库的另一个表, 亦或是用于合并两个表的内容。</p>
+
+<h2 id="section">用法介绍：</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">pt-archiver [OPTION...] --source DSN --where WHERE</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>归档的文件方便使用 load data infile 命令导入数据。另外你还可以用它来执行 delete 操作。这个工具默认的会删除源中的数据，使用的时候请注意。</p>
+
+<p>假如我们将数据库里符合条件的记录归档到文件，并不做删除操作。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">pt-archiver --ask-pass --progress 100000 --no-delete --no-check-charset --source h=localhost,u=root,D=blog,t=comment--file /home/ubuntu/tmp/comment--where 'time &lt; "2013-12-31h"'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>注意的选项参数：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">--ask-pass        提示要求输密码
+</span><span class="line">--progress num    执行num行在界面通知我们
+</span><span class="line">--source h,D,t    数据源
+</span><span class="line">--no-delete       加上这个参数并不会执行删除操作
+</span><span class="line">--dry-run         仅仅将执行语句打印在终端，事实上并不执行。可以用于检测执行过程
+</span><span class="line">--where           执行语句，需要用冒号包围起来
+</span><span class="line">--limit           批量操作的数量，合理提高这个数值可以加快archive速度</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">小总结</h3>
+
+<p>通过开启 mysql 的 <code>general log</code>, 可以发现pt-archiver 执行时，是分批commit 的事务，因此执行效率会慢，在8核16G 内存的生产环境机器备份 1kw 条记录, 耗时150 分钟。 但基本不对服务造成影响，而且可以不用深夜进行, 值得一用。</p>
+
+<p>最近攒了好多好工具和经验，要好好整理搬上来和大家分享才是。</p>
 </div>
 
 
@@ -144,12 +172,12 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
   
 
 
-<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
+<time datetime="2015-01-21T23:27:00+08:00" pubdate data-updated="true">Jan 21<span>st</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/network/'>NetWork</a>, <a class='category' href='/blog/categories/server/'>Server</a>
+    <a class='category' href='/blog/categories/database/'>DataBase</a>
   
 </span>
 
@@ -165,10 +193,8 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/" title="Previous Post: 分布式处理框架-Gearman">&laquo; 分布式处理框架-Gearman</a>
+        <a class="basic-alignment left" href="/blog/2014/12/13/nginxcuo-wu-ma/" title="Previous Post: nginx错误码">&laquo; nginx错误码</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/07/15/feng-pei-zhi-lu/" title="Next Post: 封培之旅">封培之旅 &raquo;</a>
       
     </p>
   </footer>
@@ -178,7 +204,7 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="回顾 ZeroMQ"></div>
+<div class="ds-thread" data-title="Percona 小箱里的pt-archiver"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

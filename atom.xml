@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2014-12-14T10:58:20+08:00</updated>
+  <updated>2015-01-21T23:53:58+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,68 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Percona 小箱里的pt-archiver]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/"/>
+    <updated>2015-01-21T23:27:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver</id>
+    <content type="html"><![CDATA[<p>在管理线上数据库，时常要做一些数据归档操作，在没有了解 <code>Percona toolkit</code> 之前，第一个想到的是在夜深人静的时候使用 <code>MySqlDump</code> 来完成这件事情。但它不是我们的优质选择，理由有：</p>
+
+<ul>
+  <li><code>MySqlDump</code> 只能备份在本机，不能直接做远端备份</li>
+  <li>导出数据量太大的时候会锁表, 即使它的速度很快，但是在线上服务这是很危险的操作</li>
+  <li>它仅仅只能导出，无法做到同时删除(可能不是太有必要)</li>
+</ul>
+
+<p>面对上述的场景，<code>Percona Toolkit</code> 让DBA 有了更好地选择，<a href="http://www.percona.com/doc/percona-toolkit/2.1/pt-archiver.html">pt-archiver</a> 应时而生。</p>
+
+<h2 id="pt-archiver-">pt-archiver 介绍：</h2>
+
+<p>根据官方文档的说法，几乎不会对线上的OTLP操作有影响：</p>
+
+<blockquote>
+  <p>The goal is a low-impact, forward-only job to nibble old data out of the table without impacting OLTP queries much</p>
+</blockquote>
+
+<p>它可以帮助我们将数据归档到文件, 另一个数据库，或者同一个数据库的另一个表, 亦或是用于合并两个表的内容。</p>
+
+<h2 id="section">用法介绍：</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">pt-archiver [OPTION...] --source DSN --where WHERE</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>归档的文件方便使用 load data infile 命令导入数据。另外你还可以用它来执行 delete 操作。这个工具默认的会删除源中的数据，使用的时候请注意。</p>
+
+<p>假如我们将数据库里符合条件的记录归档到文件，并不做删除操作。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">pt-archiver --ask-pass --progress 100000 --no-delete --no-check-charset --source h=localhost,u=root,D=blog,t=comment--file /home/ubuntu/tmp/comment--where 'time &lt; "2013-12-31h"'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>注意的选项参数：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">--ask-pass        提示要求输密码
+</span><span class="line">--progress num    执行num行在界面通知我们
+</span><span class="line">--source h,D,t    数据源
+</span><span class="line">--no-delete       加上这个参数并不会执行删除操作
+</span><span class="line">--dry-run         仅仅将执行语句打印在终端，事实上并不执行。可以用于检测执行过程
+</span><span class="line">--where           执行语句，需要用冒号包围起来
+</span><span class="line">--limit           批量操作的数量，合理提高这个数值可以加快archive速度</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">小总结</h3>
+
+<p>通过开启 mysql 的 <code>general log</code>, 可以发现pt-archiver 执行时，是分批commit 的事务，因此执行效率会慢，在8核16G 内存的生产环境机器备份 1kw 条记录, 耗时150 分钟。 但基本不对服务造成影响，而且可以不用深夜进行, 值得一用。</p>
+
+<p>最近攒了好多好工具和经验，要好好整理搬上来和大家分享才是。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[nginx错误码]]></title>
@@ -1707,134 +1769,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 <hr />
 
 <p>末了，我在腾讯还是留下了一个让自己自豪的东西。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[ Expect 与系统自动交互]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu/"/>
-    <updated>2014-03-13T23:05:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu</id>
-    <content type="html"><![CDATA[<p>在<code>linux</code>下 做一些操作的时候，比如使用 <em>scp</em>, <em>telnet</em> 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。</p>
-
-<p>这个时候，你可以使用 <em>expect</em> 语言帮我们解决问题。</p>
-
-<h3 id="section">官方定义</h3>
-<blockquote>
-  <p>Expect是一个用来实现自动交互功能的软件套件 (Expect [is a] software suite for automating interactive tools)</p>
-</blockquote>
-
-<p>expect 是 <a href="http://en.wikipedia.org/wiki/Don_Libes">Don Libes</a> 编写的免费编程工具语言, 由expect-send对组成：</p>
-
-<p>expect等待输出中输出特定的字符，通常是一个提示符，然后发送特定的响应。</p>
-
-<hr />
-
-<p>先来个 helloworld, 注意需要在exp脚本前面加上 <code>#!/usr/bin/expect</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
-</span><span class="line">send_user <span class="s2">&quot;hello world&quot;</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这里的 send_user 类似 echo </p>
-
-<h3 id="section-1">常见用法</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="nb">set </span>i 0
-</span><span class="line"><span class="nb">set </span>user <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>timeout 300
-</span><span class="line"><span class="nb">set </span>i 0
-</span><span class="line"><span class="k">while</span> <span class="o">{</span> <span class="nv">$i</span> &lt; 10 <span class="o">}</span> <span class="o">{</span>
-</span><span class="line">    puts <span class="nv">$i</span>;
-</span><span class="line">    incr i;
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以上分别是:</p>
-
-<ul>
-  <li>将0赋值给变量i;</li>
-  <li>获取脚本的第一个参数给变量user;</li>
-  <li>设置超时时间是300秒</li>
-  <li>循环使用，不多说</li>
-</ul>
-
-<hr />
-
-<p>在 expect脚本中, 最亮点的是 spawn 会启动一个进程，由 expect 和 send 组合负责跟该进程交互, in short </p>
-
-<ul>
-  <li>expect捕获进程需要什么信息</li>
-  <li>send将这个信息发给进程</li>
-  <li>expect eof与spawn对应，表示捕获终端输出信息的终止，即进程已结束</li>
-  <li>expect都是使用 {}，且{, }使用时，前后需要留空格。 只要其中一项符合，就会执行该项，类似switch</li>
-</ul>
-
-<p>看完以下代码相信你就明白其魅力了 ：）</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
-</span><span class="line">
-</span><span class="line"><span class="nb">set </span>timeout 10
-</span><span class="line"><span class="nb">set </span>host <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>username <span class="o">[</span>lindex <span class="nv">$argv</span> 1<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>password <span class="o">[</span>lindex <span class="nv">$argv</span> 2<span class="o">]</span>
-</span><span class="line">
-</span><span class="line">spawn ssh <span class="nv">$username</span>@<span class="nv">$host</span>
-</span><span class="line">expect <span class="o">{</span>
-</span><span class="line">    <span class="s2">&quot;(yes/no)?&quot;</span> <span class="o">{</span>
-</span><span class="line">        send <span class="s2">&quot;yes\n&quot;</span>
-</span><span class="line">        expect <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span> send <span class="s2">&quot;$password\n&quot;</span> <span class="o">}</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">    <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span>
-</span><span class="line">        send <span class="s2">&quot;$password\n&quot;</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span><span class="line">
-</span><span class="line">expect <span class="s2">&quot;$&quot;</span>
-</span><span class="line">expect eof
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使用时, 执行如下脚本命令.  其中<code>expect</code> 捕获到 “*assword:”, 发送 <code>$password</code> 变量,  捕获到<code>$</code>符号，表示登陆成功，结束 spawn 进程</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line">./autosh.exp xxx<span class="o">(</span>ip地址<span class="o">)</span> xxx<span class="o">(</span>用户名<span class="o">)</span> xxx<span class="o">(</span>密码<span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<p>感觉这样的脚本在自动化运维可以有很多运用之处, 至少让你可以在执行需要交互命令的时候跑去喝茶。
-Happy Hacking :-)</p>
-
 ]]></content>
   </entry>
   
