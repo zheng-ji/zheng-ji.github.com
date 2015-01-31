@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-01-21T23:54:35+08:00</updated>
+  <updated>2015-01-31T13:33:22+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -330,13 +330,13 @@ ServerB 就可以连接外网了。</p>
     <content type="html"><![CDATA[<h3 id="section">看到的现象</h3>
 
 <p>今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下
-{% img /images/2014/10/top.png %}
+<img src="/images/2014/10/top.png">
 但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。
-{% img /images/2014/10/nestat.png %}
+<img src="/images/2014/10/nestat.png">
 而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢，不可能一个8核16G的机器系统自己占用了4G吧?</p>
 
 <p>带着这个疑问，查阅了资料，发现其中并非表明所看到的这么简单. 我们来看以下 使用 <code>free -m</code> 命令
-{% img /images/2014/10/free.png %}</p>
+<img src="/images/2014/10/free.png"></p>
 
 <h3 id="mem--">Mem 参数 解释</h3>
 <ul>

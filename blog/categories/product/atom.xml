@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Product | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/product/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-01-21T23:54:35+08:00</updated>
+  <updated>2015-01-31T13:33:22+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -68,7 +68,7 @@
 
 <p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
 
-<p>{% img /images/2013/12/nba.jpg %}</p>
+<p><img src="/images/2013/12/nba.jpg"></p>
 
 <p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
 
@@ -178,29 +178,29 @@ if dic['MsgType'].lower() == 'event':
 <p>简介：
 &gt;豆瓣第三方软件，基于豆瓣API开发的LBS 与 SNS的换书软件，让你的闲书不再闲，让你从此交友多了一个理由，支持百度地图定位，聊天私信功能，豆瓣书籍分享。</p>
 
-<p>{% img /images/2013/douya/ICON.jpg %}</p>
+<p><img src="/images/2013/douya/ICON.jpg"></p>
 
-<p>{% img /images/2013/douya/welcome.jpg %}</p>
+<p><img src="/images/2013/douya/welcome.jpg"></p>
 
-<p>{% img /images/2013/douya/main.jpg %}</p>
+<p><img src="/images/2013/douya/main.jpg"></p>
 
-<p>{% img /images/2013/douya/around.jpg %}</p>
+<p><img src="/images/2013/douya/around.jpg"></p>
 
-<p>{% img /images/2013/douya/share.jpg %}</p>
+<p><img src="/images/2013/douya/share.jpg"></p>
 
-<p>{% img /images/2013/douya/myshare.jpg %}</p>
+<p><img src="/images/2013/douya/myshare.jpg"></p>
 
-<p>{% img /images/2013/douya/collect.jpg %}</p>
+<p><img src="/images/2013/douya/collect.jpg"></p>
 
-<p>{% img /images/2013/douya/review.jpg %}</p>
+<p><img src="/images/2013/douya/review.jpg"></p>
 
-<p>{% img /images/2013/douya/description.jpg %}</p>
+<p><img src="/images/2013/douya/description.jpg"></p>
 
-<p>{% img /images/2013/douya/friend.jpg %}</p>
+<p><img src="/images/2013/douya/friend.jpg"></p>
 
-<p>{% img /images/2013/douya/chat.jpg %}</p>
+<p><img src="/images/2013/douya/chat.jpg"></p>
 
-<p>{% img /images/2013/douya/settiing.jpg %}</p>
+<p><img src="/images/2013/douya/settiing.jpg"></p>
 
 <p>叫神马团队的简介在该软件“关于我们有介绍”~关心我们的同学可以下载使用的同时点击详情</p>
 

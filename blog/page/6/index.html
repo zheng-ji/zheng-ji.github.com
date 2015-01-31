@@ -9,7 +9,47 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content=" 这天我被折腾疯了 开始博客迁移，从 http:innerbrilliant.sinaapp.com 迁移至 zheng-ji.info 文档式编程的感觉爽 ：） ">
+  <meta name="description" content="在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来： 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +107,155 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/">返回值的透彻理解</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-20T23:06:00+08:00" pubdate data-updated="true">Apr 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">swap</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="n">a</span><span class="p">;</span>
+</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line"><span class="kt">int</span> <span class="nf">get_ini</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span>  <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">a</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">i</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory0</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">20</span><span class="p">);</span>
+</span><span class="line">    <span class="n">strcpy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="s">&quot;hello world&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory1</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory2</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="n">p</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+</span><span class="line">    <span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">);</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">;</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题1</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">z</span> <span class="o">=</span> <span class="n">get_ini</span><span class="p">(</span><span class="n">z</span><span class="p">);</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题2</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c0</span> <span class="o">=</span> <span class="n">get_memory0</span><span class="p">();</span><span class="c1">//问题3</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c0 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c1</span> <span class="o">=</span> <span class="n">get_memory1</span><span class="p">();</span><span class="c1">//问题4</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c1</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c2</span> <span class="o">=</span> <span class="n">get_memory2</span><span class="p">();</span><span class="c1">//问题5</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c2</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">问题1：</h4>
+<p>a,b没有发生交换，所有函数会在程序运行的时候程序栈上分配一块存储区，这块栈的函数存储区随函数开始而开始，随着函数结束而结束，函数结束后， 这块存储区自动释放，以供其他用途，栈的默认大小是1M,swap(int a, int b)是一个参数传值的函数，函数内部的a,b是参数int a 和 int b的局部拷贝，所以a，b实际可以看成局部变量，他们的值由int a ,int b实参复制而来，只在函数内部有效，当函数体内的a,b离开函数作用域时候，a,b变量就销毁了.函数实参值没有发生改变。</p>
+
+<h4 id="section-1">问题2：</h4>
+<p>返回值i是一个局部变量，函数的返回参数怎么可能是局部变量？函数的返回值由传值和传址两种，传值会在返回处生成一个临时对象，
+用于存放局部变量i的一份拷贝。临时对象没有名称。虽然i被销毁了，但是他的拷贝仍然存在。并在函数返回处赋值给z.c0 = “hello world”</p>
+
+<h4 id="section-2">问题3：</h4>
+<p>程序运行期间堆的内存一直都在。返回的p是会被销毁，但是在返回处有p的拷贝对象，指向堆的地址。c1 = “hello world”</p>
+
+<h4 id="section-3">问题4:</h4>
+<p>常量存储区：”hello world”在程序运行期间都在</p>
+
+<h4 id="section-4">问题5：</h4>
+<p>p[]不是指针，是一个数组变量，函数返回时左值拷贝只想的是局部变量的p[12]的首地址，当局部数组p[12]离开作用域后会自动销毁，
+这时，函数返回的左值，拷贝指向的是一个被销毁的局部变量地址。所以c2 = 未知</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1082,115 +1271,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/07/05/fastcgi-plus-nginx-plus-c/">FastCGI + Nginx + C</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-07-05T23:22:00+08:00" pubdate data-updated="true">Jul 5<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/07/05/fastcgi-plus-nginx-plus-c/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>最近做完IP工具，梳理下学到的知识</p>
-
-<p>**关键词:whois UNIX FastCGI Nginx PHP GCC **</p>
-
-<p><strong>CGI</strong>全称是“公共网关接口”(Common Gateway Interface)，HTTP服务器与你的或其它机器上的程序进行“交谈”的一种工具，其程序须运行在网络服务器上。　CGI可以用任何一种语言编写，只要这种语言具有标准输入、输出和环境变量。如PHP,PERL等</p>
-
-<h3 id="fastcgi-">FASTCGI 特点</h3>
-
-<ul>
-  <li>FastCGI的不依赖于任何Web服务器的内部架构，因此即使服务器技术的变化, FastCGI依然稳定不变。</li>
-  <li>FastCGI具有语言无关性</li>
-</ul>
-
-<h3 id="fastcgi--1">FASTCGI 工作原理</h3>
-
-<ul>
-  <li>Web Server启动时载入FastCGI进程管理器（IIS ISAPI或Apache Module)</li>
-  <li>FastCGI进程管理器自身初始化，启动多个CGI解释器进程(可见多个php-cgi)并等待来自Web Server的连接。</li>
-  <li>当客户端请求到达Web Server时，FastCGI进程管理器选择并连接到一个CGI解释器。Web server将CGI环境变量和标准输入发送到FastCGI子进程php-cgi。</li>
-  <li>FastCGI子进程完成处理后将标准输出和错误信息从同一连接返回Web Server。当FastCGI子进程关闭连接时，请求便告处理完成。FastCGI子进程接着等待并处理来自FastCGI进程管理器(运行在Web Server中)的下一个连接。 在CGI模式中，php-cgi在此便退出了。</li>
-</ul>
-
-<p>在上述情况中，你可以想象CGI通常有多慢。每一个Web请求PHP都必须重新解析php.ini、重新载入全部扩展并重初始化全部数据结构。使用FastCGI，所有这些都只在进程启动时发生一次。一个额外的好处是，持续数据库连接(Persistent database connection)可以工作</p>
-
-<h3 id="nginxfastcgi">Nginx+FastCGI运行原理</h3>
-
-<p>Nginx不支持对外部程序的直接调用或者解析，所有的外部程序（包括PHP）必须通过FastCGI接口来调用。FastCGI接口在Linux下是 socket（这个socket可以是文件socket，也可以是ip socket）。为了调用CGI程序，还需要一个FastCGI的wrapper（wrapper可以理解为用于启动另一个程序的程序），这个 wrapper绑定在某个固定socket上，如端口或者文件socket。当Nginx将CGI请求发送给这个socket的时候，通过FastCGI 接口，wrapper接收到请求，然后派生出一个新的线程，这个线程调用解释器或者外部程序处理脚本并读取返回数据；接着，wrapper再将返回的数据 通过FastCGI接口，沿着固定的socket传递给Nginx；最后，Nginx将返回的数据发送给客户端。这就是Nginx+FastCGI的整个 运作过程，如图1-3所示。</p>
-
-<p><img src="/images/2013/fastcgi.jpg" /></p>
-
-<h3 id="fastcgi">我使用FastCGI的场景</h3>
-
-<p>通过随机产生千万条IP地址，shell命令处理文本，用whois爬取信息，入库，接着用C语言写的客户端通过FASTCGI 实现与Nginx服务器的通信</p>
-
-<h4 id="section">通信方式</h4>
-
-<p>写好的c 程序在spawn-fcgi（一种fastcgi管理工具）下转换为unix sock ,由nginx指定文件监听sock文件描述符。</p>
-
-<p>FastCGI 代码示例</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &quot;fcgi_stdio.h&quot;</span>
-</span><span class="line"><span class="kt">int</span> <span class="nf">main</span><span class="p">(){</span>
-</span><span class="line">    <span class="kt">int</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class="line">    <span class="k">while</span><span class="p">(</span><span class="n">FCGI_Accept</span><span class="p">()</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">        <span class="c1">//通信协议的格式，\r\n\r\n是向浏览器通信</span>
-</span><span class="line">        <span class="c1">//，之前因为只写\r\n导致Page unavailable</span>
-</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Content-type: text/html</span><span class="se">\r\n</span><span class="s">&quot;</span>
-</span><span class="line">                <span class="s">&quot;</span><span class="se">\r\n</span><span class="s">&quot;</span>
-</span><span class="line">                <span class="s">&quot;Request number %d running on host &lt;em&gt;%s&lt;/em&gt;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
-</span><span class="line">                <span class="o">++</span><span class="n">count</span><span class="p">,</span> <span class="n">getenv</span><span class="p">(</span><span class="s">&quot;SERVER_NAME&quot;</span><span class="p">));</span><span class="c1">//环境变量</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>### 感悟:</p>
-
-<p>排查错误的基础是要有好的思维习惯，比如去看日志，然后定位错误。能让我写到linux c 程序很高兴,特别最后坚持写完字符串处理函数，同时也更认清自己的好多基础上的不足，在此感谢荣哥 :) 。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1212,6 +1292,10 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
@@ -1239,10 +1323,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
     
       <li class="post">
         <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
       </li>
     
   </ul>

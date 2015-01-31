@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-01-21T23:53:58+08:00</updated>
+  <updated>2015-01-31T13:33:22+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,125 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[搭建elasticsearch与kibana]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/01/31/da-jian-elasticsearchyu-kibana/"/>
+    <updated>2015-01-31T12:52:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/01/31/da-jian-elasticsearchyu-kibana</id>
+    <content type="html"><![CDATA[<p>ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
+Kibana 是一个与之配套的 web 界面。</p>
+
+<h3 id="section">安装所需的：</h3>
+
+<ul>
+  <li>需要openJDK</li>
+  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">elasticsearch-1.4.2.deb</a></li>
+  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">kibana-4.0.0-beta3.tar.gz</a></li>
+</ul>
+
+<h3 id="section-1">配置相关</h3>
+<p>启动 elasticsearch 方式如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service elasticsearch restart</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>我是使用 <a href="http://wiki.zheng-ji.info/Sys/supervisor.html">supervisor</a> 启动 kibana, </li>
+  <li>同时使用 <a href="http://wiki.zheng-ji.info/Sys/monit.html">monit</a> 监控elasticsearch </li>
+</ul>
+
+<p>在/etc/defaut/elasticsearch 配置数据文件目录的地址，log 地址，调整内存和堆栈大小，个人认为机器配置的50% 就可以了。</p>
+
+<p>Nginx 配置，使得kibanan可以被外部访问，eleasticsearch 默认监听的是5601：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">server {
+</span><span class="line">        listen 80;
+</span><span class="line">        #auth_basic_user_file /home/ymserver/auth/kibana-user;
+</span><span class="line">        error_log /home/ymserver/log/nginx/kibana.err.log;
+</span><span class="line">        location / {
+</span><span class="line">            proxy_pass http://127.0.0.1:5601$request_uri;
+</span><span class="line">            proxy_set_header Host $http_host;
+</span><span class="line">            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+</span><span class="line">            proxy_set_header X-Forwarded-Proto $scheme;
+</span><span class="line">        }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-2">使用过程</h3>
+<p>Python 有支持elasticsearch 的库 <a href="https://github.com/elasticsearch/elasticsearch-py">elasticsearch-py</a>，
+用其导数据进入elasticsearch,需要指定好索引。</p>
+
+<p>使用restful<a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/">查询</a>， 
+如下例子：其中’2014-12-18’是索引名，q后面是查询条件，_all表示全部索引</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -XGET 'http://localhost:9200/2014-12-18/_search/?q=name:861160022835011'
+</span><span class="line">curl -XGET 'http://localhost:9200/_all/_search/?q=name:861160022835011'
+</span><span class="line">curl -XGET localhost:9200/_search -d '
+</span><span class="line">{
+</span><span class="line">    "query": {
+</span><span class="line">        "bool": {
+</span><span class="line">            "must": [
+</span><span class="line">            {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field1": "X"
+</span><span class="line">                }
+</span><span class="line">            },
+</span><span class="line">            {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field3": "Z"
+</span><span class="line">                }
+</span><span class="line">            }
+</span><span class="line">            ],
+</span><span class="line">            "must_not": {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field2": "Y"
+</span><span class="line">                }
+</span><span class="line">            }
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">}'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-3">性能概述</h3>
+<p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Percona 小箱里的pt-archiver]]></title>
@@ -1726,49 +1845,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
 <p>2014-04-28 </p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[留下了些东西]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/04/22/liu-xia-liao-xie-dong-xi/"/>
-    <updated>2014-04-22T19:32:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/04/22/liu-xia-liao-xie-dong-xi</id>
-    <content type="html"><![CDATA[<p>出于对这两个月的交代，记录下完成自动化平台开发的这段经历。</p>
-
-<p>所在的 Team 业务性很浓，浓到大家已经不愿意改变，可以忍受无尽的重复劳动和时间摧残。业务繁多，导致需要花费很多时间去学习和适应人为的规则，在我看来是很不应该了。</p>
-
-<p>当某一天 leader 突然说希望有一个自动化的平台来处理我们的业务，解放外包以及正职人员的劳动力，降低新人熟悉业务的门槛。我很诧异但也很高兴他会提出来这件事情，不具说原因了，至少我很开心，每日机械的做业务是件很忧伤的事情。</p>
-
-<h3 id="section">做的事</h3>
-<p>项目中，我承担了大部分后台功能的开发（C++），感谢同事的信任（也许我相对比较吃苦爱折腾）。今天系统上线了并承接10个业务，挺欣慰的。
-   该系统是个做个自动化的运营开发系统，并不复杂。</p>
-
-<ul>
-  <li>支持批量查询现网游戏日志的数据库，多线程去执行多个大区的数据。可以切换不同的数据库。UI类似phpmyadmin的界面;</li>
-  <li>上传统计代码后，自动编译和发布可执行文件到各个统计机;</li>
-  <li>支持任务队列补算;</li>
-  <li>跟踪任务执行情况，trace 错误信息;</li>
-  <li>解析统计机器的crontab的内容，可在系统配置调度信息;</li>
-  <li>解析统计机器的调度脚本,增删改查程序，以及其执行顺序;</li>
-</ul>
-
-<p>希望该系统可以取代原本粗暴重复的操作。提升效率的同时也降低出错的可能。</p>
-
-<h3 id="section-1">说到写文档。</h3>
-
-<p><code>资深同事</code>觉得要写的高 (厚) 大（黑）上 (学)，甚至吹嘘地出彩。大公司的生存之道，这些潜规则你不愿意去遵守，有时候会受伤，很多时候我选择忠于内心,包括这次。因为我终究认为这东西很平凡，它的优点在于有价值，不是纯粹为 KPI 为生的物品。我用 <code>markdown</code> 把整个后台设计和类图都清爽的表达出来。在给组内推行 markdown 的时候，本以为如此好用的工具会得到大家青睐，但显然大家还是不愿意接受，遗憾。</p>
-
-<h3 id="something">something</h3>
-<p>系统模拟了业务人员平时的工作流程，所以适应起来相对容易。不过依然有部分同事会排斥，新东西的诞生让他们有了不信任感。也许需要给他们更多的时间来适应。或许生活中我们也会这样，新事物总需要经受住考验质疑，只有足够好才会被历史选择。</p>
-
-<p>这个开发过程中，也让我看到很多不好的过程，比如代码发布，持续构建，技术选择。做的不是很好，但平日的阅读和折腾理解让我坚信有更对的选择。比如访问量不大的系统用C++写CGI就是很蛋疼的选择，PM 的个人视野也限制了进展的效率。</p>
-
-<p>这个工具开发烧了我不少脑筋，需要足够智能去适配业务，以及变态的需求，极力去推动这个系统也让软技能也有一番磨练。</p>
-
-<hr />
-
-<p>末了，我在腾讯还是留下了一个让自己自豪的东西。</p>
 ]]></content>
   </entry>
   

@@ -5,12 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Percona Server 做主从 - 织网</title>
+  <title>搭建elasticsearch与kibana - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Mysql 主从">
-  
+  <meta name="description" content="ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
+Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK 下载并安装 elasticsearch-1.4.2.deb &hellip;">
+  <meta name="keywords" content="elasticsearch kibana">
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/09/07/percona-server-zuo-zhu-cong">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/01/31/da-jian-elasticsearchyu-kibana">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +71,7 @@
   
   <header>
     
-      <h1 class="entry-title">Percona Server 做主从</h1>
+      <h1 class="entry-title">搭建elasticsearch与kibana</h1>
     
     
       <p class="meta">
@@ -86,7 +87,7 @@
   
 
 
-<time datetime="2014-09-07T15:31:00+08:00" pubdate data-updated="true">Sep 7<span>th</span>, 2014</time>
+<time datetime="2015-01-31T12:52:00+08:00" pubdate data-updated="true">Jan 31<span>st</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,111 +97,117 @@
   </header>
 
 
-<div class="entry-content"><p>数据库做主从，这个过程是需要很耐心的。</p>
+<div class="entry-content"><p>ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
+Kibana 是一个与之配套的 web 界面。</p>
 
-<p>数据库做主从目的:</p>
+<h3 id="section">安装所需的：</h3>
 
 <ul>
-  <li>故障恢复， 柔性可用</li>
-  <li>也可以做读写分离</li>
+  <li>需要openJDK</li>
+  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">elasticsearch-1.4.2.deb</a></li>
+  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">kibana-4.0.0-beta3.tar.gz</a></li>
 </ul>
 
-<p>实验过程中 mysql 用的版本是 Percona Server ，</p>
-
-<p><a href="http://www.percona.com/doc/percona-server/5.5/installation/apt_repo.html">安装过程</a></p>
-
-<p>由于修改默认的数据目录，数据文件不再使用 <code>/var/lib/mysql</code>,数据文件夹被我安放位置是 <code>/data/mysql/data</code> 同时log 目录也放在这里 <code>/data/mysql/log</code> 
-注意需要修改目录属主</p>
+<h3 id="section-1">配置相关</h3>
+<p>启动 elasticsearch 方式如下</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo chown mysql:mysql  -R /data/mysql
-</span><span class="line">然后执行 sudo mysql_install_db </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这时候会发生 <code>sudo service mysql stop</code> 失败，原因和方法见此 <a href="http://serverfault.com/questions/32692/cant-start-stop-mysql-service/420222#420222">神贴</a></p>
-
-<p>好了开始进入正题了，备份数据的原理</p>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service elasticsearch restart</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>在主库上把数据更改记录到二进制日志 (Binary Log) </li>
-  <li>备库将主库的日志复制到自己的中继日志中</li>
-  <li>备库读取中继日志的事件，将其重放到备库的数据之上</li>
+  <li>我是使用 <a href="http://wiki.zheng-ji.info/Sys/supervisor.html">supervisor</a> 启动 kibana, </li>
+  <li>同时使用 <a href="http://wiki.zheng-ji.info/Sys/monit.html">monit</a> 监控elasticsearch </li>
 </ul>
 
-<p>从其他服务器克隆备库的方法：</p>
+<p>在/etc/defaut/elasticsearch 配置数据文件目录的地址，log 地址，调整内存和堆栈大小，个人认为机器配置的50% 就可以了。</p>
 
-<ul>
-  <li>使用冷备份：关闭主库，将数据复制到备库，重启主库后，会使用一个新的二进制日志文件，在备库执行 CHANGE MASTER TO 指向这个文件的起始处，缺陷在于关闭主库</li>
-  <li>使用热备份，如果仅使用，mysqlhotcopy,或rsync来复制数据</li>
-  <li>使用快照或备份：需要知道二进制日志坐标，就可以使用主库的快照和备份来初始化备库，只需要把备份或快照恢复到备库，然后使用 CHANGE MASTER TO 指定二进制日志的坐标.</li>
-  <li>用<code>Percona Xtrabackup</code>  个人推荐  <a href="http://www.percona.com/doc/percona-xtrabackup/2.1/howtos/setting_up_replication.html">链接</a></li>
-</ul>
-
-<p>======= 实际的步骤如下 ====</p>
-
-<ul>
-  <li>备份主库的数据</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">innobackupex --user=root --password=xxx /home/zj/backup</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>在/home/zj/backup目录下就生成了2014-08-21_10-11-4` 目录</p>
-
-<ul>
-  <li>复制数据到从库，通过<code>scp</code>将上一步生成的目录放置在从库机器(~/tmp`)将原来的data目录备份, 在从库机器执行</li>
-</ul>
+<p>Nginx 配置，使得kibanan可以被外部访问，eleasticsearch 默认监听的是5601：</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mv /data/mysql/data /data/mysql/data_bak
-</span><span class="line">mv ~/tmp/2014-08-21_10-11-46  /data/mysql/data
-</span><span class="line">chown mysql:mysql -R /data/mysql/data</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">server {
+</span><span class="line">        listen 80;
+</span><span class="line">        #auth_basic_user_file /home/ymserver/auth/kibana-user;
+</span><span class="line">        error_log /home/ymserver/log/nginx/kibana.err.log;
+</span><span class="line">        location / {
+</span><span class="line">            proxy_pass http://127.0.0.1:5601$request_uri;
+</span><span class="line">            proxy_set_header Host $http_host;
+</span><span class="line">            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+</span><span class="line">            proxy_set_header X-Forwarded-Proto $scheme;
+</span><span class="line">        }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<ul>
-  <li>配置主服务器</li>
-</ul>
+<h3 id="section-2">使用过程</h3>
+<p>Python 有支持elasticsearch 的库 <a href="https://github.com/elasticsearch/elasticsearch-py">elasticsearch-py</a>，
+用其导数据进入elasticsearch,需要指定好索引。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">GRANT REPLICATION SLAVE ON *.*  TO 'repl'@'$slaveip' IDENTIFIED BY ''slavepass</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>配置从数据库,并重启</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">server-id=2</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>开始复制</li>
-</ul>
-
-<p>需要定位位置</p>
+<p>使用restful<a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/">查询</a>， 
+如下例子：其中’2014-12-18’是索引名，q后面是查询条件，_all表示全部索引</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cat /data/mysql/data/xtrabackup_binlog_info
-</span><span class="line">log-bin.000001     481</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -XGET 'http://localhost:9200/2014-12-18/_search/?q=name:861160022835011'
+</span><span class="line">curl -XGET 'http://localhost:9200/_all/_search/?q=name:861160022835011'
+</span><span class="line">curl -XGET localhost:9200/_search -d '
+</span><span class="line">{
+</span><span class="line">    "query": {
+</span><span class="line">        "bool": {
+</span><span class="line">            "must": [
+</span><span class="line">            {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field1": "X"
+</span><span class="line">                }
+</span><span class="line">            },
+</span><span class="line">            {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field3": "Z"
+</span><span class="line">                }
+</span><span class="line">            }
+</span><span class="line">            ],
+</span><span class="line">            "must_not": {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field2": "Y"
+</span><span class="line">                }
+</span><span class="line">            }
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">}'</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<ul>
-  <li>在从库执行 </li>
-</ul>
-
-<p><code>
-mysql&gt; CHANGE MASTER TO MASTER_HOST='$masterip',
-       MASTER_USER='repl',
-       MASTER_PASSWORD='$slavepass',
-       MASTER_LOG_FILE='log-bin.000001',
-       MASTER_LOG_POS=481;
-mysql&gt; START SLAVE;
-mysql&gt; SHOW SLAVE STATUS \G
-</code></p>
-
-<hr />
-
-<p>系统学习的书籍，感谢杨先生推荐 : )
-<a href="http://book.douban.com/subject/23008813/">高性能mysql</a></p>
-
+<h3 id="section-3">性能概述</h3>
+<p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
 </div>
 
 
@@ -223,7 +230,7 @@ mysql&gt; SHOW SLAVE STATUS \G
   
 
 
-<time datetime="2014-09-07T15:31:00+08:00" pubdate data-updated="true">Sep 7<span>th</span>, 2014</time>
+<time datetime="2015-01-31T12:52:00+08:00" pubdate data-updated="true">Jan 31<span>st</span>, 2015</time>
       
 
 <span class="categories">
@@ -244,10 +251,8 @@ mysql&gt; SHOW SLAVE STATUS \G
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/" title="Previous Post: rsyslog 接收远程日志">&laquo; rsyslog 接收远程日志</a>
+        <a class="basic-alignment left" href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/" title="Previous Post: Percona 小箱里的pt-archiver">&laquo; Percona 小箱里的pt-archiver</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/10/04/redisre-bei/" title="Next Post: redis热备">redis热备 &raquo;</a>
       
     </p>
   </footer>
@@ -257,7 +262,7 @@ mysql&gt; SHOW SLAVE STATUS \G
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Percona Server 做主从"></div>
+<div class="ds-thread" data-title="搭建elasticsearch与kibana"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

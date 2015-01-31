@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="在管理线上数据库，时常要做一些数据归档操作，在没有了解 Percona toolkit 之前，第一个想到的是在夜深人静的时候使用 MySqlDump 来完成这件事情。但它不是我们的优质选择，理由有： MySqlDump 只能备份在本机，不能直接做远端备份 导出数据量太大的时候会锁表, &hellip;">
+  <meta name="description" content="ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
+Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK 下载并安装 elasticsearch-1.4.2.deb &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +68,155 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-01-31T12:52:00+08:00" pubdate data-updated="true">Jan 31<span>st</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
+Kibana 是一个与之配套的 web 界面。</p>
+
+<h3 id="section">安装所需的：</h3>
+
+<ul>
+  <li>需要openJDK</li>
+  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">elasticsearch-1.4.2.deb</a></li>
+  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">kibana-4.0.0-beta3.tar.gz</a></li>
+</ul>
+
+<h3 id="section-1">配置相关</h3>
+<p>启动 elasticsearch 方式如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service elasticsearch restart</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>我是使用 <a href="http://wiki.zheng-ji.info/Sys/supervisor.html">supervisor</a> 启动 kibana, </li>
+  <li>同时使用 <a href="http://wiki.zheng-ji.info/Sys/monit.html">monit</a> 监控elasticsearch </li>
+</ul>
+
+<p>在/etc/defaut/elasticsearch 配置数据文件目录的地址，log 地址，调整内存和堆栈大小，个人认为机器配置的50% 就可以了。</p>
+
+<p>Nginx 配置，使得kibanan可以被外部访问，eleasticsearch 默认监听的是5601：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">server {
+</span><span class="line">        listen 80;
+</span><span class="line">        #auth_basic_user_file /home/ymserver/auth/kibana-user;
+</span><span class="line">        error_log /home/ymserver/log/nginx/kibana.err.log;
+</span><span class="line">        location / {
+</span><span class="line">            proxy_pass http://127.0.0.1:5601$request_uri;
+</span><span class="line">            proxy_set_header Host $http_host;
+</span><span class="line">            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
+</span><span class="line">            proxy_set_header X-Forwarded-Proto $scheme;
+</span><span class="line">        }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-2">使用过程</h3>
+<p>Python 有支持elasticsearch 的库 <a href="https://github.com/elasticsearch/elasticsearch-py">elasticsearch-py</a>，
+用其导数据进入elasticsearch,需要指定好索引。</p>
+
+<p>使用restful<a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/">查询</a>， 
+如下例子：其中’2014-12-18’是索引名，q后面是查询条件，_all表示全部索引</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -XGET 'http://localhost:9200/2014-12-18/_search/?q=name:861160022835011'
+</span><span class="line">curl -XGET 'http://localhost:9200/_all/_search/?q=name:861160022835011'
+</span><span class="line">curl -XGET localhost:9200/_search -d '
+</span><span class="line">{
+</span><span class="line">    "query": {
+</span><span class="line">        "bool": {
+</span><span class="line">            "must": [
+</span><span class="line">            {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field1": "X"
+</span><span class="line">                }
+</span><span class="line">            },
+</span><span class="line">            {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field3": "Z"
+</span><span class="line">                }
+</span><span class="line">            }
+</span><span class="line">            ],
+</span><span class="line">            "must_not": {
+</span><span class="line">                "term": {
+</span><span class="line">                    "field2": "Y"
+</span><span class="line">                }
+</span><span class="line">            }
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">}'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-3">性能概述</h3>
+<p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -938,81 +1088,6 @@ ServerB 就可以连接外网了。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/04/redisre-bei/">Redis热备</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-04T22:28:00+08:00" pubdate data-updated="true">Oct 4<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/10/04/redisre-bei/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>一转眼到了 10 月份了, 依然很忙, 好多碰到的，解决了的, 没能解决的蛋疼问题, 那些一闪而过的被记载于 evernote里, 信誓旦旦说过要记载下来，终究也还是被时间欺骗。 </p>
-
-<p>在过去的九月份，我们迁移了一批业务到云上。除了 mysql 需要热备处理，redis-server 同样也面临这种问题。相比起来，redis 的热备显得更为简单。</p>
-
-<p>为了可以更好地阐述过程，我们定义了三个角色</p>
-
-<ul>
-  <li>A 服务器，原来拥有 redis 数据库的机器 </li>
-  <li>B 服务器，未来取代 A 服务器的 redis 数据库服务器</li>
-  <li>
-    <p>C 服务器，B 服务器的 slave</p>
-  </li>
-  <li>我们在停止服务的5分钟，在 A 的命令行，执行</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">bgsave</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使得内存里的数据，完整地保存于 dumps.rdb</p>
-
-<ul>
-  <li>
-    <p>配置好 B 服务器的redis server, 用上述的 dumps.rdb 取代该服务器的 dumps.rdb , 这里说的配置好，需要指定好 bind-address, 推荐使用内网 IP, 备份目录</p>
-  </li>
-  <li>
-    <p>在 C 服务器的 redis 配置上 更改为:</p>
-  </li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">slaveof  IP地址 端口
-</span><span class="line">slave-serve-stale-data no
-</span><span class="line">slave-read-only yes # 只读</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就开始备份了。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1032,6 +1107,10 @@ ServerB 就可以连接外网了。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
@@ -1059,10 +1138,6 @@ ServerB 就可以连接外网了。</p>
     
       <li class="post">
         <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/">Mysql的一些配置</a>
       </li>
     
   </ul>
