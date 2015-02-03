@@ -4,7 +4,7 @@
   <title><![CDATA[Category: DataBase | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/database/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-02-02T22:49:38+08:00</updated>
+  <updated>2015-02-03T23:49:06+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,74 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[haproxy - MySQl 的负载均衡]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/02/03/haproxy-plus-mysql/"/>
+    <updated>2015-02-03T23:17:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/02/03/haproxy-plus-mysql</id>
+    <content type="html"><![CDATA[<p>服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。</p>
+
+<p>为了解决这个问题, 可以有的选择是：</p>
+
+<ul>
+  <li>业内炒的比较火的有，奇虎<a href="https://github.com/Qihoo360/Atlas">Atlas</a>, 淘宝前架构师写的<a href="http://weibo.com/dbatools">OneProxy</a>, 官方的MySQL-Proxy;</li>
+  <li>从连接层解决负载均衡的压力，Haproxy 所擅长的事情</li>
+</ul>
+
+<p>对于第一个选择，同事做过调研，使用起来不太放心。官方库就无人维护, 于是，最后选择了 Haproxy 来承担数据库的前端代理.链接数下降明显。</p>
+
+<hr />
+
+<h3 id="section">一些关键的配置</h3>
+
+<p>参考<a href="http://www.sysads.co.uk/2014/08/install-haproxy-1-5-6-on-ubuntu-14-04/">连接</a>:</p>
+
+<p>以下是配置内容</p>
+
+<p>```
+listen mysql-cluster
+    bind 127.0.0.1:3306  # 连接本地3306 到后端的DB
+    mode tcp
+    option mysql-check user haproxy_check # haproxy_check 是该haproxy用户
+    balance roundrobin
+    server mysql-1 10.0.0.1:3306 check # 后端DB
+    server mysql-2 10.0.0.2:3306 check # 后端DB</p>
+
+<p>listen 0.0.0.0:8080 # 监控页面
+    mode http
+    stats enable
+    stats uri /
+    stats realm Strictly\ Private
+    stats auth A_Username:YourPassword
+    stats auth Another_User:passwd
+```</p>
+
+<p>值得注意的是，我们需要在DB 里面添加用户 haproxy_check,使得它有权限访问这个数据库。一开始我习惯用</p>
+
+<p><code>
+假设我的内网ip是 192.168.1.5
+create user 'haproxy_check'@'192.168.1.5' identified by 'xxx';
+flush privileges;
+</code>
+事实上这样连接 haproxy 会报：</p>
+
+<p><code>
+mysql -h127.0.0.1 -uusername -p
+lost connection to mysql server at 'reading initial communication packet'
+</code></p>
+
+<p>后来老实按照 digitalocean 的文章修改成</p>
+
+<p><code>
+INSERT INTO mysql.user (Host,User) values ('192.168.1.5','haproxy_check');
+flush privileges;
+</code></p>
+
+<p>测试就通过了.好奇怪，在我的理解中很不应该, 明天继续看看为什么会这么奇怪。</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[搭建elasticsearch与kibana]]></title>
@@ -274,51 +342,6 @@ set global max_allowed_packet = 2*1024*1024*10
   <li>skip_slave_start
 配置文件中建议加上skip-slave-start，以免在不需要时候slave线程自己开始执行了</li>
 </ul>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[redis热备]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/10/04/redisre-bei/"/>
-    <updated>2014-10-04T22:28:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/10/04/redisre-bei</id>
-    <content type="html"><![CDATA[<p>一转眼到了 10 月份了, 依然很忙, 好多碰到的，解决了的, 没能解决的蛋疼问题, 那些一闪而过的被记载于 evernote里, 信誓旦旦说过要记载下来，终究也还是被时间欺骗。 </p>
-
-<p>在过去的九月份，我们迁移了一批业务到云上。除了 mysql 需要热备处理，redis-server 同样也面临这种问题。相比起来，redis 的热备显得更为简单。</p>
-
-<p>为了可以更好地阐述过程，我们定义了三个角色</p>
-
-<ul>
-  <li>A 服务器，原来拥有 redis 数据库的机器 </li>
-  <li>B 服务器，未来取代 A 服务器的 redis 数据库服务器</li>
-  <li>
-    <p>C 服务器，B 服务器的 slave</p>
-  </li>
-  <li>我们在停止服务的5分钟，在 A 的命令行，执行</li>
-</ul>
-
-<p><code>
-bgsave
-</code></p>
-
-<p>使得内存里的数据，完整地保存于 dumps.rdb</p>
-
-<ul>
-  <li>
-    <p>配置好 B 服务器的redis server, 用上述的 dumps.rdb 取代该服务器的 dumps.rdb , 这里说的配置好，需要指定好 bind-address, 推荐使用内网 IP, 备份目录</p>
-  </li>
-  <li>
-    <p>在 C 服务器的 redis 配置上 更改为:</p>
-  </li>
-</ul>
-
-<p><code>
-slaveof  IP地址 端口
-slave-serve-stale-data no
-slave-read-only yes # 只读
-</code></p>
-
-<p>这样就开始备份了。</p>
 ]]></content>
   </entry>
   

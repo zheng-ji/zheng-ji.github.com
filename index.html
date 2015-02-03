@@ -9,8 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
-Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK 下载并安装 elasticsearch-1.4.2.deb &hellip;">
+  <meta name="description" content="服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。 为了解决这个问题, 可以有的选择是： 业内炒的比较火的有，奇虎Atlas, 淘宝前架构师写的OneProxy, 官方的MySQL-Proxy; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +67,118 @@ Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK �
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/03/haproxy-plus-mysql/">Haproxy - MySQl 的负载均衡</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-03T23:17:00+08:00" pubdate data-updated="true">Feb 3<span>rd</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/02/03/haproxy-plus-mysql/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。</p>
+
+<p>为了解决这个问题, 可以有的选择是：</p>
+
+<ul>
+  <li>业内炒的比较火的有，奇虎<a href="https://github.com/Qihoo360/Atlas">Atlas</a>, 淘宝前架构师写的<a href="http://weibo.com/dbatools">OneProxy</a>, 官方的MySQL-Proxy;</li>
+  <li>从连接层解决负载均衡的压力，Haproxy 所擅长的事情</li>
+</ul>
+
+<p>对于第一个选择，同事做过调研，使用起来不太放心。官方库就无人维护, 于是，最后选择了 Haproxy 来承担数据库的前端代理.链接数下降明显。</p>
+
+<hr />
+
+<h3 id="section">一些关键的配置</h3>
+
+<p>参考<a href="http://www.sysads.co.uk/2014/08/install-haproxy-1-5-6-on-ubuntu-14-04/">连接</a>:</p>
+
+<p>以下是配置内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">listen mysql-cluster
+</span><span class="line">    bind 127.0.0.1:3306  # 连接本地3306 到后端的DB
+</span><span class="line">    mode tcp
+</span><span class="line">    option mysql-check user haproxy_check # haproxy_check 是该haproxy用户
+</span><span class="line">    balance roundrobin
+</span><span class="line">    server mysql-1 10.0.0.1:3306 check # 后端DB
+</span><span class="line">    server mysql-2 10.0.0.2:3306 check # 后端DB
+</span><span class="line">
+</span><span class="line">listen 0.0.0.0:8080 # 监控页面
+</span><span class="line">    mode http
+</span><span class="line">    stats enable
+</span><span class="line">    stats uri /
+</span><span class="line">    stats realm Strictly\ Private
+</span><span class="line">    stats auth A_Username:YourPassword
+</span><span class="line">    stats auth Another_User:passwd</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>值得注意的是，我们需要在DB 里面添加用户 haproxy_check,使得它有权限访问这个数据库。一开始我习惯用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">假设我的内网ip是 192.168.1.5
+</span><span class="line">create user 'haproxy_check'@'192.168.1.5' identified by 'xxx';
+</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>事实上这样连接 haproxy 会报：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h127.0.0.1 -uusername -p
+</span><span class="line">lost connection to mysql server at 'reading initial communication packet'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>后来老实按照 digitalocean 的文章修改成</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">INSERT INTO mysql.user (Host,User) values ('192.168.1.5','haproxy_check');
+</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>测试就通过了.好奇怪，在我的理解中很不应该, 明天继续看看为什么会这么奇怪。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1001,93 +1112,6 @@ ServerB 就可以连接外网了。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-13T21:20:00+08:00" pubdate data-updated="true">Oct 13<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h3 id="section">看到的现象</h3>
-
-<p>今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下
-<img src="/images/2014/10/top.png" />
-但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。
-<img src="/images/2014/10/nestat.png" />
-而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢，不可能一个8核16G的机器系统自己占用了4G吧?</p>
-
-<p>带着这个疑问，查阅了资料，发现其中并非表明所看到的这么简单. 我们来看以下 使用 <code>free -m</code> 命令
-<img src="/images/2014/10/free.png" /></p>
-
-<h3 id="mem--">Mem 参数 解释</h3>
-<ul>
-  <li>total 内存总数: 15875 , total = used + free</li>
-  <li>used 已经使用的内存数: 11900</li>
-  <li>free 空闲的内存数: 3975</li>
-  <li>shared 当前已经废弃不用，总是0</li>
-  <li>buffers: Buffer Cache内存数: 145</li>
-  <li>cached: Page Cache内存数: 5561</li>
-</ul>
-
-<h3 id="bufferscache">-/+ buffers/cache的解惑</h3>
-<ul>
-  <li>-buffers/cache 的内存数: 6193 (大致等于第1行的 used - buffers - cached), 反映的是被程序实实在在吃掉的内存，</li>
-  <li>+buffers/cache 的内存数: 9682 (大致等于第1行的 free + buffers + cached), 反映的是可以挪用的内存总数</li>
-</ul>
-
-<h3 id="cache">两种cache</h3>
-<p>因为cpu速度明显快过内存， 为了提高磁盘存取效率, Linux做了一些精心的设计, 采取了两种主要Cache方式, 来做速度的过度, 这些Cache有效缩短了 I/O系统调用(如read,write,getdents)的时间。</p>
-
-<ul>
-  <li>Buffer Cache, 针对磁盘块的读写</li>
-  <li>Page Cache。针对文件inode的读写。</li>
-</ul>
-
-<h3 id="section-1">内存解读的区别</h3>
-
-<p>第1行<code>(mem)的used/free</code>与第2行<code>(-/+ buffers/cache) used/free</code>的区别在于角度的不同:</p>
-
-<ul>
-  <li>第一行因为对于OS，buffers/cached 都是属于被使用，所以他的可用内存是3975M,已用内存是11900MB,其中包括,内核（OS）使用 + 应用使用的+ buffers + cached.</li>
-  <li>第2行所指的是从应用程序角度来看，对于应用程序来说，buffers/cached 是可用的，是为了提高文件读取的性能而设，当应用程序要用到内存的时候，buffer/cached会很快地被回收。所以从应用程序的角度来说，</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">可用内存=系统free memory + buffers + cached.</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>所以，回到话题开头，虽然内存显示用了12.2G，正在被应用程序使用的是7.9G 还有5.6(cache+buffer) +  4G free 可用.内存原来在这里！</p>
-
-<p>获益匪浅 :) </p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1107,6 +1131,10 @@ ServerB 就可以连接外网了。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
@@ -1134,10 +1162,6 @@ ServerB 就可以连接外网了。</p>
     
       <li class="post">
         <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
       </li>
     
   </ul>

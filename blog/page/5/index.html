@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Oracle初印象 曾经阿里的去O化搞得满城风雨，，随后很多企业也开始跟风去除Oracle，让Oracle这样的企业都为之咳嗽了一阵子。有兴趣的朋友可以看看王坚博士的文章。作为一个开源软件热爱者，首先接触到的一定是Mysql， 随后才是MongoDB,Redis,LevelDb。 &hellip;">
+  <meta name="description" content="最近和小伙伴们在做一个游戏。有机会单挑服务端了。被信任是有压力也有动力 ：），可以尝试各种好玩的技术的感觉是很爽。Jerry 和Cat 所主导的客户端，Mzt的美术都很给力。作为云风的忠实粉，可以独立设计游戏服务器后台，我对这样的挑战期待已久。 逻辑架构图 主要由三大逻辑层组成：
++ 连接（接入） &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +68,132 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/">MiniGame 服务端设计</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-20T18:54:00+08:00" pubdate data-updated="true">Aug 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近和小伙伴们在做一个游戏。有机会单挑服务端了。被信任是有压力也有动力 ：），可以尝试各种好玩的技术的感觉是很爽。Jerry 和Cat 所主导的客户端，Mzt的美术都很给力。作为云风的忠实粉，可以独立设计游戏服务器后台，我对这样的挑战期待已久。</p>
+
+<h4 id="section">逻辑架构图</h4>
+<p><img src="/images/2013/08/minigame.png" /></p>
+
+<p>主要由三大逻辑层组成：
++ 连接（接入）服务器模块:   ConnServer
++ 游戏服务器模块 ：        GameServer
++ 缓存服务器模块：         CacheServer
+  (附：我们自己编写了静态资源的服务器功能，提供给用户下载Apk的功能)</p>
+
+<ul>
+  <li>
+    <p>接入服务器模块
+服务器Socket建立，建立玩家通讯连接，为每一位连上服务器的玩家建立一个线程。
+服务器维护一个连接列表。采用map 的方式记录每一位玩家的连接信息。</p>
+  </li>
+  <li>
+    <p>游戏服务器模块：
+  这是处理游戏业务逻辑的主要模块。它包括了消息包解析器服务（Parser），游戏大厅服务（GameRoom），账户体系服务（Account）,消息中心服务（MsgCenter）,心跳服务（Heartbeat）.日志功能模块（log）</p>
+  </li>
+  <li>消息包解析器服务（Parser）:主要实现了消息状态机。解析收到的客户端的数据包的协议号，然后将消息路由到不同功能模块去处理。</li>
+  <li>账户体系服务（Account）：提供用户注册和登陆管理的模块</li>
+  <li>游戏大厅服务（GameRoom）：采用Redis 内存数据库，构造消息队列。模拟游戏大厅，并对玩家进行配对筛选，构造set类型的匹配对完成1对1 的对战模式</li>
+  <li>消息中心服务（MsgCenter）:完成游戏过程中玩家信息的交互。</li>
+  <li>心跳服务（Heartbeat）：这是一个相对独立的进程，每7秒遍历用户信息，完成心跳检测，清理无效的过期数据，保持游戏数据的一致性.</li>
+  <li>日志功能：打印程序中的日志。</li>
+  <li>
+    <p>静态资源下载器（downloader）：采用tornado拓展编写web服务，提供Apk静态资源下载的模块</p>
+  </li>
+  <li>缓存服务器模块
+  现阶段游戏对服务的要求不需要做到持久化的保存，于是服务器没有采用mysql之类的范式数据库。我们的数据收发一直处于频繁状态，于是我们采用了Redis这种分布式的内存数据库来实现我们的数据缓存模块，后续会介绍数据的键值设计</li>
+</ul>
+
+<h4 id="section-1">类图</h4>
+<p><img src="/images/2013/08/class.png" /></p>
+
+<ul>
+  <li>cache数据库的设计：
+利用Redis的数据特性,新增一个用户保证用户ID的原子性。</li>
+  <li>counter: 对新用户的注册执行自增操作，从而保证账号Id 唯一</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key value
+</span><span class="line">实例 counter 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>用户账号：
+Key设计为 user：name:用户名’，Value用户ID，
+为保证用户可以同时通过id 查找名字 ，也设计了 ‘user:id:ID值’值为用户名</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key                    value
+</span><span class="line">实例 User:name:zhengji         1
+</span><span class="line">实例 User:id:1                 zhengji</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>玩家通讯缓存设计：
+Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key              value
+</span><span class="line">实例 user:zhengji:msg 100, 2,   1324256778.89</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>玩家匹配对设计
+在游戏大厅的功能里，我们采用了redis的list模拟了玩家等待队列的功能 在真正匹配到玩家对的时候，使用table_xx 来记录玩家匹配信息,它是一个set的类型,在游戏退出的时候会被驱动去清除该表的信息</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明   key      value
+</span><span class="line">实例 Table_1 ‘jerry,zhengji’</span></code></pre></td></tr></table></div></figure></notextile></div>
+<pre><code>    为标志每个玩家的table号，我们使用了另外一个键值对 Table:玩家名：tableindex.
+</code></pre>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明   key       value
+</span><span class="line">实例 Table:zhengji 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1528,123 +1655,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/11/google-c-plus-plus-style/">Google C++ Style</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-11T23:12:00+08:00" pubdate data-updated="true">May 11<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/05/11/google-c-plus-plus-style/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。</p>
-
-<ul>
-  <li>有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: <strong>_H</strong></li>
-  <li>
-    <p>能用前置声明的地方尽量不使用 #include
-前置声明是为了降低编译依赖，防止修改一个头文件引发多米诺效应; 举例说明: 如果头文件中用到类 File, 但不需要访问 File 类的声明, 头文件中只需前置声明 class File; 而无须 #include “file/base/file.h”.</p>
-  </li>
-  <li>
-    <p>只有当函数只有 10 行甚至更少时才将其定义为内联函数.
-当函数被声明为内联函数之后, 编译器会将其内联展开, 而不是按通常的函数调用机制进行调用.优点:当函数体比较小的时候, 内联该函数可以令目标代码更加高效. 对于存取函数以及其它函数体比较短, 性能关键的函数</p>
-  </li>
-  <li>
-    <p>义函数时, 参数顺序依次为: 输入参数, 然后是输出参数。
-标准化函数参数顺序可以提高可读性和易维护性</p>
-  </li>
-  <li>
-    <p>造函数体中进行初始化操作
-如果对象需要进行有意义的 (non-trivial) 初始化, 考虑使用明确的 Init() 方法并 (或) 增加一个成员标记用于指示对象是否已经初始化成功.</p>
-  </li>
-  <li>单个参数的构造函数使用 C++ 关键字 explicit.
-  大部分类并不需要可拷贝, 也不需要一个拷贝构造函数或重载赋值运算符. 不幸的是, 如果你不主动声明它们, 编译器会为你自动生成, 而且是 public 的.可以考虑在类的 private: 中添加拷贝构造函数和赋值操作的空实现, 只有声明, 没有定义. 由于这些空函数声明为 private, 当其他代码试图使用它们的时候, 编译器将报错. 方便起见, 我们可以使用 DISALLOW_COPY_AND_ASSIGN 宏:</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">
-</span><span class="line">#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
-</span><span class="line">    TypeName(const TypeName&amp;); \
-</span><span class="line">void operator=(const TypeName&amp;)
-</span><span class="line">class Foo {
-</span><span class="line">    public:
-</span><span class="line">        Foo(int f);
-</span><span class="line">        ~Foo();
-</span><span class="line">
-</span><span class="line">    private:
-</span><span class="line">        DISALLOW_COPY_AND_ASSIGN(Foo);
-</span><span class="line">};</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>仅当只有数据时使用 struct, 其它一概使用 class.</li>
-  <li>
-    <p>编写简短函数
-如果函数超过 40 行, 可以思索一下能不能在不影响程序结构的前提下对其进行分割.</p>
-  </li>
-  <li>存取控制</li>
-</ul>
-
-<p>将所有数据成员声明为 private, 并根据需要提供相应的存取函数. 例如, 某个名为 foo_ 的变量, 其取值函数是 foo(). 还可能需要一个赋值函数 set_foo().一般在头文件中把存取函数定义成内联函数.
-* 声明顺序</p>
-
-<p>在类中使用特定的声明顺序: public: 在 private: 之前, 成员函数在数据成员 (变量) 前;</p>
-
-<p>通常是：
-+ public -&gt; protected -&gt; private;
-+ typedefs 和枚举
-+ 常量
-+ 构造函数
-+ 析构函数
-+ 成员函数, 含静态成员函数
-+ 数据成员, 含静态数据成员
-+ 类型转换</p>
-
-<p>使用 C++ 的类型转换, 如 static_cast&lt;&gt;(). 不要使用 int y = (int)x 或 int y = int(x) 等转换方式;
-不要使用 C 风格类型转换. 而应该使用 C++ 风格.
-* 对于迭代器和其他模板对象使用前缀形式 (++i) 的自增, 自减运算符.</p>
-
-<p>不考虑返回值的话, 前置自增 (++i) 通常要比后置自增 (i++) 效率更高. 因为后置自增 (或自减) 需要对表达式的值 i 进行一次拷贝. 如果 i 是迭代器或其他非数值类型, 拷贝的代价是比较大的.
-* 尽可能用 sizeof(varname) 代替 sizeof(type).</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -1666,6 +1676,10 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
@@ -1693,10 +1707,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
     
       <li class="post">
         <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a>
       </li>
     
   </ul>
