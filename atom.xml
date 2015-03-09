@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-02-13T22:32:49+08:00</updated>
+  <updated>2015-03-10T00:23:04+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,39 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[推倒自己]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/03/09/tui-dao-zi-ji/"/>
+    <updated>2015-03-09T23:45:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/03/09/tui-dao-zi-ji</id>
+    <content type="html"><![CDATA[<p>知乎上面有一个有趣而且严肃的<a href="http://www.zhihu.com/question/24665029/answer/28567915?from=singlemessage&amp;isappinstalled=0">问题</a>, 再次引起我对代码质量的思考。</p>
+
+<p>如知乎所言，代码质量低下如：</p>
+
+<ul>
+  <li>文件关系混乱</li>
+  <li>注释过期、不明确或者没有</li>
+  <li>文档过期、不明确或者没有</li>
+  <li>架构乱设计</li>
+  <li>过度设计</li>
+  <li>不检查用户输入的错误情况</li>
+  <li>不检查API或者函数返回的errorcode或者exception</li>
+  <li>没有单元测试等自动化测试过程</li>
+  <li>编译起来很难</li>
+  <li>到处复制代码，公用的部分不整理成内部库</li>
+</ul>
+
+<p>垃圾代码存在的客观因素有很多, 包括时间压力，业务留坑，绕开技术难点等。回头发现自己生产出坏代码的时候，除了羞愧，我是带有深深的污点强迫症。就好比一个工匠毕其一生修炼雕塑，却留下令自己鄙视的雕纹, 说道关乎尊严或许也不为过的。</p>
+
+<p>于是我愿意，且习惯性推倒自己的过去，希望用每一个顿悟的今天取代往日无知的自我。</p>
+
+<p>春节的时候学习了 flask, 发现以前写过的一些 Web 项目实现不够优雅，在 flask 对比实现下更是丑陋, 同样的功能，如果换一种方法, 可以感受到简洁，编码组织的顺畅， 更好地部署方式。 遂用了2个晚上推倒了以前写过的一个短地址服务。加上了一些提升用户体验的前端代码, 我想这样或许能给使用这个系统的人带来工作效率的提高吧。</p>
+
+<p>那晚回去的路上, 我是开心的，好比闻到洗好晒干的被子发出的芬芳。我想我应该，也会一直记住这种感觉，并践行着。</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[实现一个智能提示框功能]]></title>
@@ -1843,71 +1876,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>nginx 将会默认用下划线去掉http头部（这符合http标准），这么做是为了防止在映射CGI头信息时候有歧义。这个过程中破折号和下划线都被映射成了下划线。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[制作setup.py]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py/"/>
-    <updated>2014-05-03T11:52:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py</id>
-    <content type="html"><![CDATA[<p>做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
-
-<p>以下给出一个 demo </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mkdir hacker
-</span><span class="line">vim foo.py</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑以下内容</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">Hacker</span><span class="p">():</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">motto</span> <span class="o">=</span> <span class="s">&quot;No evil, Be Hacker&quot;</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">printMotto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">motto</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>开始编写 setup.py, 也许是为了知识产权保护，里面按照规矩会让作者填上资料。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">setup</span>
-</span><span class="line"><span class="n">setup</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Hacker&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">version</span><span class="o">=</span><span class="s">&#39;1.0&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">description</span><span class="o">=</span><span class="s">&#39;be hake or be hacked&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">author</span><span class="o">=</span><span class="s">&#39;zheng-ji&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">author_email</span><span class="o">=</span><span class="s">&#39;zhengji91@gmail.com&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">url</span><span class="o">=</span><span class="s">&#39;http://zheng-ji.info&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">py_modules</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">],</span>
-</span><span class="line">        <span class="n">install_requires</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;requests&quot;</span><span class="p">]</span>
-</span><span class="line">     <span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>好了，这个时候执行,</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">sudo</span> <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
-
-<p>删除的话，就得蛋疼去 <code>/usr/lib/python2.7/</code> 手动删除,在 mac 里面是 <code>/Library/Python/2.7/site-packages</code></p>
-
 ]]></content>
   </entry>
   

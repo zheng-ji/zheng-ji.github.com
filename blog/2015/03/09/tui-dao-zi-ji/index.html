@@ -5,16 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Go写Benchmark - 织网</title>
+  <title>推倒自己 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="相比写C++/C，看到Go语言简直是感动，怀念那段写Go的时光。好久没有写Go了， 此次回眸，更觉得他可爱好用，这种感觉类似我第一次使用Python.最近在看一个Go的IpLoc模块，觉得帅! 用到的模块
-Go 的 testing
-使用的时候要 1
-2
-3
-import ( . testing &hellip;">
+  <meta name="description" content="flask life">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -23,7 +18,7 @@ import ( . testing &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/12/08/goxie-benchmark">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/03/09/tui-dao-zi-ji">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -75,7 +70,7 @@ import ( . testing &hellip;">
   
   <header>
     
-      <h1 class="entry-title">Go写Benchmark</h1>
+      <h1 class="entry-title">推倒自己</h1>
     
     
       <p class="meta">
@@ -91,7 +86,7 @@ import ( . testing &hellip;">
   
 
 
-<time datetime="2013-12-08T21:54:00+08:00" pubdate data-updated="true">Dec 8<span>th</span>, 2013</time>
+<time datetime="2015-03-09T23:45:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -101,70 +96,30 @@ import ( . testing &hellip;">
   </header>
 
 
-<div class="entry-content"><p>相比写C++/C，看到Go语言简直是感动，怀念那段写Go的时光。好久没有写Go了， 此次回眸，更觉得他可爱好用，这种感觉类似我第一次使用Python.最近在看一个Go的<a href="https://github.com/slene/iplocll">IpLoc模块</a>，觉得帅!</p>
+<div class="entry-content"><p>知乎上面有一个有趣而且严肃的<a href="http://www.zhihu.com/question/24665029/answer/28567915?from=singlemessage&amp;isappinstalled=0">问题</a>, 再次引起我对代码质量的思考。</p>
 
-<h2 id="section">用到的模块</h2>
-<p>Go 的 testing
-使用的时候要 </p>
+<p>如知乎所言，代码质量低下如：</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">import (
-</span><span class="line">    . testing
-</span><span class="line">)</span></code></pre></td></tr></table></div></figure></notextile></div>
+<ul>
+  <li>文件关系混乱</li>
+  <li>注释过期、不明确或者没有</li>
+  <li>文档过期、不明确或者没有</li>
+  <li>架构乱设计</li>
+  <li>过度设计</li>
+  <li>不检查用户输入的错误情况</li>
+  <li>不检查API或者函数返回的errorcode或者exception</li>
+  <li>没有单元测试等自动化测试过程</li>
+  <li>编译起来很难</li>
+  <li>到处复制代码，公用的部分不整理成内部库</li>
+</ul>
 
-<h2 id="demo-source">demo source</h2>
+<p>垃圾代码存在的客观因素有很多, 包括时间压力，业务留坑，绕开技术难点等。回头发现自己生产出坏代码的时候，除了羞愧，我是带有深深的污点强迫症。就好比一个工匠毕其一生修炼雕塑，却留下令自己鄙视的雕纹, 说道关乎尊严或许也不为过的。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">func testSpeed () {
-</span><span class="line">    r := Benchmark(func(b *B) {
-</span><span class="line">        ips := []string{
-</span><span class="line">            "0.0.0.0",
-</span><span class="line">            "127.0.0.1",k
-</span><span class="line">            "169.254.0.1",
-</span><span class="line">            "192.168.1.1",
-</span><span class="line">            "10.0.0.0",
-</span><span class="line">            "255.255.255.255",
-</span><span class="line">            "112.226.155.1",
-</span><span class="line">            "121.18.72.0",
-</span><span class="line">            "6.18.72.0",
-</span><span class="line">            "200.18.72.0",
-</span><span class="line">        }
-</span><span class="line">        for i := 0; i &lt; b.N; i++ {
-</span><span class="line">            for _, ipAddr := range ips {
-</span><span class="line">                iploc.GetIpInfo(ipAddr)
-</span><span class="line">            }
-</span><span class="line">        }
-</span><span class="line">    })
-</span><span class="line">    fmt.Println(r)
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>于是我愿意，且习惯性推倒自己的过去，希望用每一个顿悟的今天取代往日无知的自我。</p>
 
-<h2 id="section-1">返回值</h2>
-<p>返回值,显示的是执行操作的次数，以及每次消耗的时间
-&lt;div class=&#8217;bogus-wrapper&#8217;&gt;<notextile><figure class="code">&lt;div class=&#8221;highlight&#8221;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&#8221;gutter&#8221;&gt;&lt;pre class=&#8221;line-numbers&#8221;&gt;<span class="line-number">1</span>
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&#8217;code&#8217;&gt;&lt;pre&gt;<code class=""><span class="line">200000         11494 ns/op</span></code>&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;</figure></notextile>&lt;/div&gt;</p>
+<p>春节的时候学习了 flask, 发现以前写过的一些 Web 项目实现不够优雅，在 flask 对比实现下更是丑陋, 同样的功能，如果换一种方法, 可以感受到简洁，编码组织的顺畅， 更好地部署方式。 遂用了2个晚上推倒了以前写过的一个短地址服务。加上了一些提升用户体验的前端代码, 我想这样或许能给使用这个系统的人带来工作效率的提高吧。</p>
+
+<p>那晚回去的路上, 我是开心的，好比闻到洗好晒干的被子发出的芬芳。我想我应该，也会一直记住这种感觉，并践行着。</p>
 
 </div>
 
@@ -188,12 +143,12 @@ import ( . testing &hellip;">
   
 
 
-<time datetime="2013-12-08T21:54:00+08:00" pubdate data-updated="true">Dec 8<span>th</span>, 2013</time>
+<time datetime="2015-03-09T23:45:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/programe/'>Programe</a>
+    <a class='category' href='/blog/categories/life/'>Life</a>
   
 </span>
 
@@ -209,10 +164,8 @@ import ( . testing &hellip;">
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/" title="Previous Post: 最近用到的mysql">&laquo; 最近用到的mysql</a>
+        <a class="basic-alignment left" href="/blog/2015/02/08/trie-suggestion/" title="Previous Post: 实现一个智能提示框功能">&laquo; 实现一个智能提示框功能</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/12/21/yu-jian/" title="Next Post: 遇见">遇见 &raquo;</a>
       
     </p>
   </footer>
@@ -222,7 +175,7 @@ import ( . testing &hellip;">
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Go写Benchmark"></div>
+<div class="ds-thread" data-title="推倒自己"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
@@ -254,6 +207,10 @@ import ( . testing &hellip;">
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
       </li>
     
@@ -279,10 +236,6 @@ import ( . testing &hellip;">
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
       </li>
     
   </ul>

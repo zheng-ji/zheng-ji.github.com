@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="昨晚参加腾讯周年晚会,同事在YY今晚的明星是孙燕姿,可惜最后没有如他所愿”遇见”女神.当晚应邀表演的是同为15周年生日的羽泉.对于从来没有参加过大型演唱会的小白来说,人生又圆满了一点。 在见到 ponyMa 等人时我并没有兴奋。反而是深居简入的 AllenZhang 张小龙,让我小激动了一把, &hellip;">
+  <meta name="description" content="Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话: 当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,6 +73,124 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2014/01/06/re-geng-xin/">热更新</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-06T20:58:00+08:00" pubdate data-updated="true">Jan 6<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/01/06/re-geng-xin/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话:</p>
+
+<ol>
+  <li>当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过,从而reload指定模块就可以在不重启服务的情况下读取修改的配置,</li>
+  <li>sys.module[‘modname’]返回的是该模块的pyc文件，而该文件是没有修改时间的，所以计算修改时间需要取py文件的属性</li>
+</ol>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">auto_reload</span><span class="p">():</span>
+</span><span class="line">    <span class="n">mods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;test_config&quot;</span><span class="p">]</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">mods</span><span class="p">:</span>
+</span><span class="line">        <span class="k">try</span><span class="p">:</span>
+</span><span class="line">            <span class="n">module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">mod</span><span class="p">]</span>
+</span><span class="line">        <span class="k">except</span><span class="p">:</span>
+</span><span class="line">            <span class="k">continue</span>
+</span><span class="line">        <span class="n">filename</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">__file__</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">filename</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">):</span>
+</span><span class="line">            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">,</span> <span class="s">&quot;.py&quot;</span><span class="p">)</span>
+</span><span class="line">            <span class="n">mod_time</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="ow">not</span> <span class="s">&quot;loadtime&quot;</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
+</span><span class="line">            <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="mi">0</span> <span class="c"># first load&#39;s time  1*</span>
+</span><span class="line">            <span class="k">try</span><span class="p">:</span>
+</span><span class="line">                <span class="k">if</span> <span class="n">mod_time</span> <span class="o">&gt;</span> <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span><span class="p">:</span>
+</span><span class="line">                    <span class="nb">reload</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+</span><span class="line">                <span class="k">except</span><span class="p">:</span>
+</span><span class="line">                    <span class="k">pass</span>
+</span><span class="line">        <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="n">mod_time</span> <span class="c"># 2*</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span class="line">    <span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line">    <span class="kn">import</span> <span class="nn">my_config</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="bp">None</span>
+</span><span class="line">    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+</span><span class="line">        <span class="n">auto_reload</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span> <span class="o">!=</span> <span class="n">tmp</span><span class="p">:</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
+</span><span class="line">        <span class="n">tmp</span> <span class="o">=</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
+</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>test_config.py</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">address</span> <span class="o">=</span> <span class="s">&quot;127.0.0.1&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2013/12/21/yu-jian/">遇见</a></h1>
     
     
@@ -119,109 +237,6 @@
 <p><img src="/images/2013/12/gitar.jpg" /></p>
 
 <p>我们以某种莫名的执着与生活妥协着,却期待现实与理想可以在某个点遇见彼此。我试着用这种方式写下这篇碎语,不知道你们看懂了么？</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/08/goxie-benchmark/">Go写Benchmark</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-12-08T21:54:00+08:00" pubdate data-updated="true">Dec 8<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/12/08/goxie-benchmark/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>相比写C++/C，看到Go语言简直是感动，怀念那段写Go的时光。好久没有写Go了， 此次回眸，更觉得他可爱好用，这种感觉类似我第一次使用Python.最近在看一个Go的<a href="https://github.com/slene/iplocll">IpLoc模块</a>，觉得帅!</p>
-
-<h2 id="section">用到的模块</h2>
-<p>Go 的 testing
-使用的时候要 </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">import (
-</span><span class="line">    . testing
-</span><span class="line">)</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="demo-source">demo source</h2>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">func testSpeed () {
-</span><span class="line">    r := Benchmark(func(b *B) {
-</span><span class="line">        ips := []string{
-</span><span class="line">            "0.0.0.0",
-</span><span class="line">            "127.0.0.1",k
-</span><span class="line">            "169.254.0.1",
-</span><span class="line">            "192.168.1.1",
-</span><span class="line">            "10.0.0.0",
-</span><span class="line">            "255.255.255.255",
-</span><span class="line">            "112.226.155.1",
-</span><span class="line">            "121.18.72.0",
-</span><span class="line">            "6.18.72.0",
-</span><span class="line">            "200.18.72.0",
-</span><span class="line">        }
-</span><span class="line">        for i := 0; i &lt; b.N; i++ {
-</span><span class="line">            for _, ipAddr := range ips {
-</span><span class="line">                iploc.GetIpInfo(ipAddr)
-</span><span class="line">            }
-</span><span class="line">        }
-</span><span class="line">    })
-</span><span class="line">    fmt.Println(r)
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="section-1">返回值</h2>
-<p>返回值,显示的是执行操作的次数，以及每次消耗的时间
-&lt;div class=&#8217;bogus-wrapper&#8217;&gt;<notextile><figure class="code">&lt;div class=&#8221;highlight&#8221;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&#8221;gutter&#8221;&gt;&lt;pre class=&#8221;line-numbers&#8221;&gt;<span class="line-number">1</span>
-&lt;/pre&gt;&lt;/td&gt;&lt;td class=&#8217;code&#8217;&gt;&lt;pre&gt;<code class=""><span class="line">200000         11494 ns/op</span></code>&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;</figure></notextile>&lt;/div&gt;</p>
-
 </div>
   
   
@@ -1775,6 +1790,10 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
       </li>
     
@@ -1800,10 +1819,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
       </li>
     
   </ul>

@@ -9,8 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="我想写一篇长期更新的文章，随着知识积累持续更新的文章，而最近遇到的在涉及的Mysql优化，便是一个可以琢磨的点，变量比较多，并且需要在每次采坑才来的深刻。 tmp_table_size
-这个是临时表的大小，与之对应的有 max_heap_size 单位是Byte, tmp_table_size &hellip;">
+  <meta name="description" content="最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 Duplicated Key entry Error, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +67,121 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-23T23:18:00+08:00" pubdate data-updated="true">Oct 23<span>rd</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/10/23/mysql-unique-index/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 <code>Duplicated Key entry Error</code>,</p>
+
+<h3 id="section">回放事件</h3>
+
+<p>我们的数据表，之前是有 <code>UNIQUE INDEX(cuid, aid)</code>, 因为去掉索引，服务持续写入，导致有重复记录，所幸的是，这是一个统计表, 不影响功能，所以需要找出重复的记录</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select cuid,aid from (
+</span><span class="line">    select cuid, aid,count(1) as num
+</span><span class="line">    from register_chn 
+</span><span class="line">    group by cuid,aid having num &gt; 1
+</span><span class="line">) t;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>显示有8条记录,如果手动删除,是很慢且愚蠢的做法,还是用 SQL 执行,镇定之后执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">delete from register_chn where (cuid,aid) in (
+</span><span class="line">    select cuid,aid from (
+</span><span class="line">        select cuid, aid,count(1) as num
+</span><span class="line">        from register_chn
+</span><span class="line">        group by cuid,aid having num &gt; 1
+</span><span class="line">    ) t
+</span><span class="line">);</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>影响了８条记录.然后瞬间加上索引.所幸是成功了, 事实上当时的合理操作应该是用事务。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">BEGIN;
+</span><span class="line">delete from register_chn where (cuid,aid) in (
+</span><span class="line">    select cuid,aid from (
+</span><span class="line">        select cuid, aid,count(1) as num
+</span><span class="line">        from register_chn
+</span><span class="line">        group by cuid,aid having num &gt; 1
+</span><span class="line">    ) t
+</span><span class="line">);
+</span><span class="line">alter table register_chn add unique index(cuid, aid);
+</span><span class="line">COMMINT;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">引发的思考</h3>
+
+<p>后来想想, 上述方法虽然解决问题了, 但是有点碰运气成分。如果频繁快速地产生重复记录,也许就没那么好运了,事实上可以执行以下 SQL:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter ignore table register_chn add unique index(cuid, aid)；</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果你以为很简单,那就错了。这个方法在 MySQL 5.0 上使用是没问题的，但是在5.6 之前是有bug的，亲自测试Percona 版本5.5, 的确会失败
+官方的解决方法是：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">set session old_alter_table = on;
+</span><span class="line">alter ignore table register_chn add unique index(cuid, aid);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在有主备的情况,记得执行前设置一下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">set session sql_log_bin=off. </span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>以免备库报错。同样还需要在备库重复一下主库的操作, 这也算是一个不太完美的解决思路。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1374,101 +1488,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/03/make-setup-dot-py/">制作setup.py</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-05-03T11:52:00+08:00" pubdate data-updated="true">May 3<span>rd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/05/03/make-setup-dot-py/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
-
-<p>以下给出一个 demo </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mkdir hacker
-</span><span class="line">vim foo.py</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑以下内容</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">Hacker</span><span class="p">():</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">motto</span> <span class="o">=</span> <span class="s">&quot;No evil, Be Hacker&quot;</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">printMotto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">motto</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>开始编写 setup.py, 也许是为了知识产权保护，里面按照规矩会让作者填上资料。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">setup</span>
-</span><span class="line"><span class="n">setup</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Hacker&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">version</span><span class="o">=</span><span class="s">&#39;1.0&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">description</span><span class="o">=</span><span class="s">&#39;be hake or be hacked&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">author</span><span class="o">=</span><span class="s">&#39;zheng-ji&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">author_email</span><span class="o">=</span><span class="s">&#39;zhengji91@gmail.com&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">url</span><span class="o">=</span><span class="s">&#39;http://zheng-ji.info&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">py_modules</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">],</span>
-</span><span class="line">        <span class="n">install_requires</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;requests&quot;</span><span class="p">]</span>
-</span><span class="line">     <span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>好了，这个时候执行,</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">sudo</span> <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
-
-<p>删除的话，就得蛋疼去 <code>/usr/lib/python2.7/</code> 手动删除,在 mac 里面是 <code>/Library/Python/2.7/site-packages</code></p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1490,6 +1509,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
@@ -1517,10 +1540,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2014/11/25/tired/">慢</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a>
       </li>
     
   </ul>
