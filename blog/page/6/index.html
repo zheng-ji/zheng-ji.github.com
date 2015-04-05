@@ -9,7 +9,15 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="关于博客 大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。 &hellip;">
+  <meta name="description" content="收藏一些不错的文章 在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。 使用方法： 1
+2
+3
+4
+5
+6
+7
+8
+if &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +75,492 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/">豆瓣喜爱文章下载器</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-12T23:31:00+08:00" pubdate data-updated="true">Jun 12<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>收藏一些不错的文章</p>
+
+<p>在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。</p>
+
+<p>使用方法：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span class="line">    <span class="c">#用户名,可以写入douban ID</span>
+</span><span class="line">    <span class="n">usrnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;laiyonghao&quot;</span><span class="p">,</span><span class="s">&quot;fenng&quot;</span><span class="p">]</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">usrnames</span><span class="p">:</span>
+</span><span class="line">                <span class="n">cwl</span> <span class="o">=</span> <span class="n">Crawler</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span class="line">        <span class="n">cwl</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span class="line">        <span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">(</span><span class="n">cwl</span><span class="p">)</span>
+</span><span class="line">        <span class="n">parser</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<blockquote>
+  <p>运行 python main.py</p>
+</blockquote>
+
+<p>结果 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">tmp</span>
+</span><span class="line">    <span class="err">├──</span> <span class="n">fenng</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">Got</span> <span class="n">talent</span><span class="err">?</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">QCon</span> <span class="n">Beijing</span> <span class="mi">2013</span> <span class="err">乱记</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">北京生存指南</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">发现「讷客」</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">父亲谈创新</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">和菜头对豆瓣用户骂声的回应</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">胡扯两句</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">年会：公司人的新民俗</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">一个关于嘲笑的小故事</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">有些事，蹲在家里是永远实现不了的。</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">赞</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">└──</span> <span class="err">中国说唱教父</span><span class="o">--</span><span class="err">尹相杰</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="err">转</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span>
+</span><span class="line">    <span class="err">└──</span> <span class="n">laiyonghao</span>
+</span><span class="line">        <span class="err">├──</span> <span class="n">Live</span> <span class="n">Together</span><span class="p">,</span> <span class="n">Hate</span> <span class="n">Each</span> <span class="n">Other</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">当初的愿望实现了么？</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">豆瓣阅读即将开售（已上线）</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">婚礼主题曲背后的故事</span>
+</span><span class="line">        <span class="err">└──</span> <span class="err">科普也需严谨</span><span class="o">---</span><span class="err">对《数学之美》密码部分的评论</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>源代码<a href="https://github.com/zheng-ji/douban-likes-crawler.git">链接</a>
+Happy Hacking : )</p>
+
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/">C++与Python的混合编程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-08T23:42:00+08:00" pubdate data-updated="true">Jun 8<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="python">python拓展编写</h4>
+<p>C++编写python的拓展。提高程序运行效率
+我理解的一般流程:
+* 编写自己的业务逻辑代码本例子如</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">string add(int a,int b)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>包装为python函数，用于解析python传进来的参数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_add</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">);</span>
+</span><span class="line"><span class="c1">//解析参数</span>
+</span><span class="line"><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line"><span class="c1">//构建返回值</span>
+</span><span class="line"><span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>编写映射函数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="n">PyMethodDef</span> <span class="n">bintMethods</span><span class="p">[]</span> <span class="o">=</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">        <span class="p">{</span><span class="s">&quot;add&quot;</span><span class="p">,</span> <span class="n">wrap_add</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For add&quot;</span><span class="p">},</span>
+</span><span class="line">            <span class="p">{</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>*.模块初始化函数</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">initbint</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">PyObject</span><span class="o">*</span> <span class="n">m</span><span class="p">;</span>
+</span><span class="line">    <span class="n">m</span> <span class="o">=</span> <span class="n">Py_InitModule</span><span class="p">(</span><span class="s">&quot;bint&quot;</span><span class="p">,</span> <span class="n">bintMethods</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &quot;BigNum.h&quot;</span>
+</span><span class="line"><span class="cp">#include &lt;python2.7/Python.h&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;iostream&gt;</span>
+</span><span class="line">
+</span><span class="line"><span class="n">string</span> <span class="nf">add</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num1</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num2</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">ans</span> <span class="o">=</span> <span class="n">num1</span> <span class="o">+</span> <span class="n">num2</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Bint</span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">ans</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">string</span> <span class="nf">multiple</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num1</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num2</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">ans</span> <span class="o">=</span> <span class="n">num1</span> <span class="o">*</span> <span class="n">num2</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Bint</span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">ans</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_add</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_mul</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">multiple</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="k">static</span> <span class="n">PyMethodDef</span> <span class="n">bintMethods</span><span class="p">[]</span> <span class="o">=</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="p">{</span><span class="s">&quot;add&quot;</span><span class="p">,</span> <span class="n">wrap_add</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For add&quot;</span><span class="p">},</span>
+</span><span class="line">    <span class="p">{</span><span class="s">&quot;mul&quot;</span><span class="p">,</span> <span class="n">wrap_mul</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For mul&quot;</span><span class="p">},</span>
+</span><span class="line">    <span class="p">{</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">}</span>
+</span><span class="line"><span class="p">};</span>
+</span><span class="line">
+</span><span class="line"><span class="k">extern</span> <span class="s">&quot;C&quot;</span>              <span class="c1">//不加会导致找不到initbint</span>
+</span><span class="line"><span class="kt">void</span> <span class="n">initbint</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">PyObject</span><span class="o">*</span> <span class="n">m</span><span class="p">;</span>
+</span><span class="line">    <span class="n">m</span> <span class="o">=</span> <span class="n">Py_InitModule</span><span class="p">(</span><span class="s">&quot;bint&quot;</span><span class="p">,</span> <span class="n">bintMethods</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译成动态链接库</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="nl">all:</span>
+</span><span class="line">    <span class="n">g</span><span class="o">++</span> <span class="o">-</span><span class="n">fPIC</span> <span class="o">-</span><span class="n">shared</span> <span class="n">BigNum</span><span class="p">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">Bint</span><span class="p">.</span><span class="n">so</span>
+</span><span class="line"><span class="nl">clean:</span>
+</span><span class="line">    <span class="n">rm</span> <span class="o">-</span><span class="n">rf</span> <span class="n">bint</span><span class="p">.</span><span class="n">so</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">bint</span>
+</span><span class="line"><span class="n">bint</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="mi">4000000</span><span class="p">,</span><span class="mi">5000000</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>GitHub上有<a href="http://innerbrilliant.sinaapp.com/?p=515">源码</a></p>
+
+<h3 id="cpython">C++调用Python</h3>
+
+<p>python的开发效率之高是毋庸置疑的，C++/C的语言性能之快也是让人羡慕的。这一次，鱼和熊掌是可以兼得的 ：），混合编程，使得我们可以取之所长，游走在C与python之间。很多游戏开发中使用python来实现战斗脚本。
+* 初始化调用
+Py_Initialize();</p>
+
+<ul>
+  <li>
+    <p>PyObject* PyImport_ImportModule (char *name)
+一般都是通过(pmod = PyImport_ImportModule (“zhengji.app_context”)先来
+加载一个模块（py脚本),得到一个PyObject *pmod对象,失败返回NULL类型</p>
+  </li>
+  <li>
+    <p>获取某个方法或者类，PyObject * o是pmod
+PyObject* PyObject_GetAttrString (PyObject *o, char *attr_name)</p>
+  </li>
+</ul>
+
+<p><em>调用该方法 callable_object是第二步返回的指针
+PyObject</em> PyObject_CallFunction (PyObject *callable_object, char *format, …)</p>
+
+<ul>
+  <li>
+    <p>将PyObject* 返回char*
+char* PyString_AsString (PyObject *string)</p>
+  </li>
+  <li>
+    <p>结束初始化
+Py_Finalize();</p>
+  </li>
+</ul>
+
+<p>下面是script.py的内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/python</span>
+</span><span class="line"><span class="c"># Filename: script.py</span>
+</span><span class="line"><span class="k">class</span> <span class="nc">Student</span><span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">SetName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">PrintName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&quot;Hello World</span><span class="se">\n</span><span class="s">&quot;</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">world</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&quot;name&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="cscriptpy">C++调用Script.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &lt;python2.7/Python.h&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;iostream&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;string&gt;</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">int</span> <span class="nf">main</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//使用python之前，要调用Py_Initialize();这个函数进行初始化</span>
+</span><span class="line">    <span class="n">Py_Initialize</span><span class="p">();</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">PyRun_SimpleString</span><span class="p">(</span><span class="s">&quot;import sys&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyRun_SimpleString</span><span class="p">(</span><span class="s">&quot;sys.path.append(&#39;./&#39;)&quot;</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pModule</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pFunc</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pClass</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pInstance</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//这里是要调用的文件名</span>
+</span><span class="line">    <span class="n">pModule</span> <span class="o">=</span> <span class="n">PyImport_ImportModule</span><span class="p">(</span><span class="s">&quot;script&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//这里是要调用的函数名</span>
+</span><span class="line">    <span class="n">pFunc</span><span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;hello&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//调用函数</span>
+</span><span class="line">    <span class="n">PyEval_CallObject</span><span class="p">(</span><span class="n">pFunc</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">pFunc</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">pFunc</span> <span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;world&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyObject_CallFunction</span><span class="p">(</span><span class="n">pFunc</span><span class="p">,</span> <span class="s">&quot;s&quot;</span><span class="p">,</span> <span class="s">&quot;zhengji&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">pFunc</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//测试调用python的类</span>
+</span><span class="line">    <span class="n">pClass</span> <span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;Student&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pClass</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t find Student class.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">pInstance</span> <span class="o">=</span> <span class="n">PyInstance_New</span><span class="p">(</span><span class="n">pClass</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pInstance</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t create Student instance.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">PyObject_CallMethod</span><span class="p">(</span><span class="n">pInstance</span><span class="p">,</span> <span class="s">&quot;SetName&quot;</span><span class="p">,</span> <span class="s">&quot;s&quot;</span><span class="p">,</span><span class="s">&quot;my family&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyObject_CallMethod</span><span class="p">(</span><span class="n">pInstance</span><span class="p">,</span> <span class="s">&quot;PrintName&quot;</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//调用Py_Finalize，这个根Py_Initialize相对应的。</span>
+</span><span class="line">    <span class="n">Py_Finalize</span><span class="p">();</span>
+</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译C++代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">g</span><span class="o">++</span> <span class="n">zj</span><span class="p">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">zj</span> <span class="o">-</span><span class="n">lpython2</span><span class="mf">.7</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>输出结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zj</span><span class="err">@</span><span class="n">hp</span><span class="o">:~/</span><span class="n">tmp</span><span class="o">/</span><span class="n">CcalPy</span><span class="err">$</span> <span class="p">.</span><span class="o">/</span><span class="n">zj</span>
+</span><span class="line"><span class="n">Hello</span> <span class="n">World</span>
+</span><span class="line"><span class="n">name</span>
+</span><span class="line"><span class="n">my</span> <span class="n">family</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -924,366 +1418,6 @@ Happy Hacking</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/29/gtalkji-qi-ren/">Gtalk机器人</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-12-29T13:32:00+08:00" pubdate data-updated="true">Dec 29<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/12/29/gtalkji-qi-ren/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="section">缘起：</h4>
-<p>最近工作需要即时发送报警信息到gtalk，工作中使用gtalk作为通讯工具，所以催生了此项目开发 </p>
-
-<h4 id="section-1">所用的工具:</h4>
-<p>python-xmpp库，tornado(httpserver 框架),其实也可以自己写</p>
-
-<h4 id="xmpp">什么是xmpp</h4>
-<p>XMPP（可扩展消息处理现场协议）是基于可扩展标记语言（XML）的协议，它用于即时消息（IM）以及在线现场探测。它在促进服务器之间的准即时操作。这个协议可能最终允许因特网用户向因特网上的其他任何人发送即时消息，即使其操作系统和浏览器不同XMPP的前身是Jabber，一个开源形式组织产生的网络即时通信协议</p>
-
-<h4 id="section-2">关键代码</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#robot 开始发送消息</span>
-</span><span class="line"><span class="k">def</span> <span class="nf">chat</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
-</span><span class="line">    <span class="n">jid</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">JID</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-</span><span class="line">    <span class="n">connection</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">server</span><span class="p">,</span><span class="n">debug</span><span class="o">=</span><span class="p">[])</span>
-</span><span class="line">    <span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
-</span><span class="line">    <span class="n">result</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">auth</span><span class="p">(</span><span class="n">jid</span><span class="o">.</span><span class="n">getNode</span><span class="p">(),</span> <span class="n">password</span><span class="p">,</span><span class="s">&quot;LFY-client&quot;</span><span class="p">)</span>
-</span><span class="line">        <span class="n">connection</span><span class="o">.</span><span class="n">sendInitPresence</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line">    <span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;contactlist&quot;</span><span class="p">,</span><span class="s">&quot;r&quot;</span><span class="p">)</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
-</span><span class="line">                <span class="n">to</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span class="line">                        <span class="n">message</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">Message</span><span class="p">(</span><span class="n">to</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
-</span><span class="line">        <span class="n">message</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;chat&#39;</span><span class="p">)</span>
-</span><span class="line">                <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-</span><span class="line">    <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;please ignore me ! i am just test&quot;</span>
-</span><span class="line">        <span class="n">chat</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就可以自动发信息给联系人了，contactlist里面为通讯录名单，在项目中把上述代码实现为http接口，让监控端调用。由于只是简单的应用，我甚至用文本替代数据库，不过这也可以试一试面向对象的编程思想.</p>
-
-<p>代码<a href="https://github.com/zheng-ji/gtalk-robot">链接</a>
-Happy Hacking!</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/27/thread-pool-in-python/">Thread Pool in Python</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-12-27T13:40:00+08:00" pubdate data-updated="true">Dec 27<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/12/27/thread-pool-in-python/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="python">python的创建多线程的方法</h4>
-<p>使用线程有两种模式：
-+ 一种是创建线程要执行的函数，把这个函数传递进Thread对象里，让它来执行；
-+ 一种是直接从Thread继承，创建一个新的class，把线程执行的代码放到这个新的 class里。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">string</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">time</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">thread_main</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
-</span><span class="line">        <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
-</span><span class="line">            <span class="c"># 获得线程名</span>
-</span><span class="line">            <span class="n">threadname</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">currentThread</span><span class="p">()</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">)):</span>
-</span><span class="line">                <span class="c"># 取得锁</span>
-</span><span class="line">                <span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
-</span><span class="line">        <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span class="line">                <span class="c"># 释放锁</span>
-</span><span class="line">                <span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
-</span><span class="line">        <span class="k">print</span> <span class="n">threadname</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">count</span>
-</span><span class="line">                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
-</span><span class="line">    <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
-</span><span class="line">    <span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span class="line">
-</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span class="line">    <span class="c"># 创建一个锁</span>
-</span><span class="line">    <span class="n">mutex</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
-</span><span class="line">    <span class="c"># 先创建线程对象</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
-</span><span class="line">        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">thread_main</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,)))</span>
-</span><span class="line">    <span class="c"># 启动所有线程</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
-</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span class="line">    <span class="c"># 主线程中等待所有子线程退出</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
-</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="n">num</span> <span class="o">=</span> <span class="mi">4</span>
-</span><span class="line">    <span class="c"># 创建4个线程</span>
-</span><span class="line">    <span class="n">main</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>方法二</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">threading</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">time</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">Test</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
-</span><span class="line">        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">_run_num</span> <span class="o">=</span> <span class="n">num</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
-</span><span class="line">        <span class="n">threadname</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">currentThread</span><span class="p">()</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_num</span><span class="p">)):</span>
-</span><span class="line">        <span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
-</span><span class="line">        <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span class="line">        <span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
-</span><span class="line">        <span class="k">print</span> <span class="n">threadname</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">count</span>
-</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
-</span><span class="line">    <span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span class="line">    <span class="n">num</span> <span class="o">=</span> <span class="mi">4</span>
-</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span class="line">    <span class="c"># 创建锁</span>
-</span><span class="line">    <span class="n">mutex</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
-</span><span class="line">    <span class="c"># 创建线程对象</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
-</span><span class="line">        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Test</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
-</span><span class="line">    <span class="c"># 启动线程</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
-</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span class="line">    <span class="c"># 等待子线程结束</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
-</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>#### 队列同步
-Python的Queue模块中提供了同步的、线程安全的队列类，包括FIFO（先入先出)队列Queue，LIFO（后入先出）队列LifoQueue，和优先级队列PriorityQueue。这些队列都实现了锁原语，能够在多线程中直接使用。可以使用队列来实现线程间的同步</p>
-
-<h4 id="section">线程池原理：</h4>
-<p>我们把任务放进队列中去，然后开N个线程，每个线程都去队列中取一个任务，执行完了之后告诉系统说我执行完了，然后接着去队列中取下一个任务，直至队列中所有任务取空，退出线程.</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">time</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">threading</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">Queue</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">Worker</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">queue</span><span class="p">):</span>
-</span><span class="line">        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">queue</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="c"># 著名的死循环，保证接着跑下一个任务</span>
-</span><span class="line">        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-</span><span class="line">        <span class="c"># 队列为空则退出线程</span>
-</span><span class="line">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
-</span><span class="line">            <span class="k">break</span>
-</span><span class="line">        <span class="c"># 获取一个项目</span>
-</span><span class="line">        <span class="n">foo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</span><span class="line">        <span class="c"># 延时1S模拟你要做的事情</span>
-</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">getName</span><span class="p">(),</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">foo</span>
-</span><span class="line">        <span class="c"># 告诉系统说任务完成</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="n">queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="c"># 加入100个任务队列</span>
-</span><span class="line"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
-</span><span class="line">    <span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="c"># 开10个线程</span>
-</span><span class="line"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-</span><span class="line">    <span class="n">threadName</span> <span class="o">=</span> <span class="s">&#39;Thread&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-</span><span class="line">    <span class="n">Worker</span><span class="p">(</span><span class="n">threadName</span><span class="p">,</span> <span class="n">queue</span><span class="p">)</span>
-</span><span class="line"><span class="c"># 所有线程执行完毕后关闭</span>
-</span><span class="line"><span class="n">queue</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1307,6 +1441,14 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/">Ansible自动化脚本集</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
       </li>
     
@@ -1328,14 +1470,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
     
       <li class="post">
         <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/25/tired/">慢</a>
       </li>
     
   </ul>

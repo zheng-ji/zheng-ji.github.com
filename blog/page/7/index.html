@@ -9,7 +9,10 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="一个月匆匆过去了，还没来得及叹口气，又被生活推着向前走，耐不住很多思绪与感悟。抽空看看我冷清的博客，恍然间我已经4个月没上来过了，便有了个理由写篇东西算是为博客增点暖气。 这个月经常想起kant，也就是知乎上那位风云人物，这个和我在腾讯大楼里认识的人。不知为何会记起这位大神，但有点能肯定的是， &hellip;">
+  <meta name="description" content="缘起：
+最近工作需要即时发送报警信息到gtalk，工作中使用gtalk作为通讯工具，所以催生了此项目开发 所用的工具:
+python-xmpp库，tornado(httpserver 框架),其实也可以自己写 什么是xmpp
+XMPP（可扩展消息处理现场协议）是基于可扩展标记语言（XML）的协议， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +70,366 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/29/gtalkji-qi-ren/">Gtalk机器人</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-29T13:32:00+08:00" pubdate data-updated="true">Dec 29<span>th</span>, 2012</time>
+        
+        
+          | <a href="/blog/2012/12/29/gtalkji-qi-ren/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="section">缘起：</h4>
+<p>最近工作需要即时发送报警信息到gtalk，工作中使用gtalk作为通讯工具，所以催生了此项目开发 </p>
+
+<h4 id="section-1">所用的工具:</h4>
+<p>python-xmpp库，tornado(httpserver 框架),其实也可以自己写</p>
+
+<h4 id="xmpp">什么是xmpp</h4>
+<p>XMPP（可扩展消息处理现场协议）是基于可扩展标记语言（XML）的协议，它用于即时消息（IM）以及在线现场探测。它在促进服务器之间的准即时操作。这个协议可能最终允许因特网用户向因特网上的其他任何人发送即时消息，即使其操作系统和浏览器不同XMPP的前身是Jabber，一个开源形式组织产生的网络即时通信协议</p>
+
+<h4 id="section-2">关键代码</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#robot 开始发送消息</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">chat</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+</span><span class="line">    <span class="n">jid</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">JID</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+</span><span class="line">    <span class="n">connection</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">server</span><span class="p">,</span><span class="n">debug</span><span class="o">=</span><span class="p">[])</span>
+</span><span class="line">    <span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+</span><span class="line">    <span class="n">result</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">auth</span><span class="p">(</span><span class="n">jid</span><span class="o">.</span><span class="n">getNode</span><span class="p">(),</span> <span class="n">password</span><span class="p">,</span><span class="s">&quot;LFY-client&quot;</span><span class="p">)</span>
+</span><span class="line">        <span class="n">connection</span><span class="o">.</span><span class="n">sendInitPresence</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;contactlist&quot;</span><span class="p">,</span><span class="s">&quot;r&quot;</span><span class="p">)</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
+</span><span class="line">                <span class="n">to</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span class="line">                        <span class="n">message</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">Message</span><span class="p">(</span><span class="n">to</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</span><span class="line">        <span class="n">message</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;chat&#39;</span><span class="p">)</span>
+</span><span class="line">                <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+</span><span class="line">    <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;please ignore me ! i am just test&quot;</span>
+</span><span class="line">        <span class="n">chat</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就可以自动发信息给联系人了，contactlist里面为通讯录名单，在项目中把上述代码实现为http接口，让监控端调用。由于只是简单的应用，我甚至用文本替代数据库，不过这也可以试一试面向对象的编程思想.</p>
+
+<p>代码<a href="https://github.com/zheng-ji/gtalk-robot">链接</a>
+Happy Hacking!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/12/27/thread-pool-in-python/">Thread Pool in Python</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-27T13:40:00+08:00" pubdate data-updated="true">Dec 27<span>th</span>, 2012</time>
+        
+        
+          | <a href="/blog/2012/12/27/thread-pool-in-python/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="python">python的创建多线程的方法</h4>
+<p>使用线程有两种模式：
++ 一种是创建线程要执行的函数，把这个函数传递进Thread对象里，让它来执行；
++ 一种是直接从Thread继承，创建一个新的class，把线程执行的代码放到这个新的 class里。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">string</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">time</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">thread_main</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+</span><span class="line">        <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
+</span><span class="line">            <span class="c"># 获得线程名</span>
+</span><span class="line">            <span class="n">threadname</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">currentThread</span><span class="p">()</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">)):</span>
+</span><span class="line">                <span class="c"># 取得锁</span>
+</span><span class="line">                <span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+</span><span class="line">        <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class="line">                <span class="c"># 释放锁</span>
+</span><span class="line">                <span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">threadname</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">count</span>
+</span><span class="line">                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+</span><span class="line">    <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
+</span><span class="line">    <span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span class="line">    <span class="c"># 创建一个锁</span>
+</span><span class="line">    <span class="n">mutex</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+</span><span class="line">    <span class="c"># 先创建线程对象</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
+</span><span class="line">        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">thread_main</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,)))</span>
+</span><span class="line">    <span class="c"># 启动所有线程</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span class="line">    <span class="c"># 主线程中等待所有子线程退出</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">num</span> <span class="o">=</span> <span class="mi">4</span>
+</span><span class="line">    <span class="c"># 创建4个线程</span>
+</span><span class="line">    <span class="n">main</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>方法二</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">threading</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">Test</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
+</span><span class="line">        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">_run_num</span> <span class="o">=</span> <span class="n">num</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
+</span><span class="line">        <span class="n">threadname</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">currentThread</span><span class="p">()</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_num</span><span class="p">)):</span>
+</span><span class="line">        <span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+</span><span class="line">        <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class="line">        <span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">threadname</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">count</span>
+</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="k">global</span> <span class="n">count</span><span class="p">,</span> <span class="n">mutex</span>
+</span><span class="line">    <span class="n">threads</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="line">    <span class="n">num</span> <span class="o">=</span> <span class="mi">4</span>
+</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span class="line">    <span class="c"># 创建锁</span>
+</span><span class="line">    <span class="n">mutex</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+</span><span class="line">    <span class="c"># 创建线程对象</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>
+</span><span class="line">        <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Test</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+</span><span class="line">    <span class="c"># 启动线程</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span class="line">    <span class="c"># 等待子线程结束</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+</span><span class="line">        <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>#### 队列同步
+Python的Queue模块中提供了同步的、线程安全的队列类，包括FIFO（先入先出)队列Queue，LIFO（后入先出）队列LifoQueue，和优先级队列PriorityQueue。这些队列都实现了锁原语，能够在多线程中直接使用。可以使用队列来实现线程间的同步</p>
+
+<h4 id="section">线程池原理：</h4>
+<p>我们把任务放进队列中去，然后开N个线程，每个线程都去队列中取一个任务，执行完了之后告诉系统说我执行完了，然后接着去队列中取下一个任务，直至队列中所有任务取空，退出线程.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">threading</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">Queue</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">Worker</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">queue</span><span class="p">):</span>
+</span><span class="line">        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">queue</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="c"># 著名的死循环，保证接着跑下一个任务</span>
+</span><span class="line">        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+</span><span class="line">        <span class="c"># 队列为空则退出线程</span>
+</span><span class="line">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+</span><span class="line">            <span class="k">break</span>
+</span><span class="line">        <span class="c"># 获取一个项目</span>
+</span><span class="line">        <span class="n">foo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</span><span class="line">        <span class="c"># 延时1S模拟你要做的事情</span>
+</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">getName</span><span class="p">(),</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">foo</span>
+</span><span class="line">        <span class="c"># 告诉系统说任务完成</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="n">queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="c"># 加入100个任务队列</span>
+</span><span class="line"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+</span><span class="line">    <span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="c"># 开10个线程</span>
+</span><span class="line"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+</span><span class="line">    <span class="n">threadName</span> <span class="o">=</span> <span class="s">&#39;Thread&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</span><span class="line">    <span class="n">Worker</span><span class="p">(</span><span class="n">threadName</span><span class="p">,</span> <span class="n">queue</span><span class="p">)</span>
+</span><span class="line"><span class="c"># 所有线程执行完毕后关闭</span>
+</span><span class="line"><span class="n">queue</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -903,6 +1266,14 @@ Socket编程的服务器模型类型:</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/">Ansible自动化脚本集</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
       </li>
     
@@ -924,14 +1295,6 @@ Socket编程的服务器模型类型:</p>
     
       <li class="post">
         <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/25/tired/">慢</a>
       </li>
     
   </ul>

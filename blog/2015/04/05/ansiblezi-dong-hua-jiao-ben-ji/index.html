@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>推倒自己 - 织网</title>
+  <title>Ansible自动化脚本集 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="flask life">
+  <meta name="description" content="自动化运维">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/03/09/tui-dao-zi-ji">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">推倒自己</h1>
+      <h1 class="entry-title">Ansible自动化脚本集</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2015-03-09T23:45:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2015</time>
+<time datetime="2015-04-05T20:22:00+08:00" pubdate data-updated="true">Apr 5<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,31 +96,70 @@
   </header>
 
 
-<div class="entry-content"><p>知乎上面有一个有趣而且严肃的<a href="http://www.zhihu.com/question/24665029/answer/28567915?from=singlemessage&amp;isappinstalled=0">问题</a>, 再次引起我对代码质量的思考。</p>
+<div class="entry-content"><p>管理众多服务器，如果没有自动化的手段，会被累死</p>
 
-<p>如知乎所言，代码质量低下如：</p>
+<p>Ansilbe 曾经在 <a href="http://wiki.zheng-ji.info/Sys/ansible.html">WIKI</a> 里有记载，在一定程度上解放了我.</p>
+
+<p>我想记录下自己平时写的一些 关于它的<code>playbook</code>,因此这个文章将会持续更新</p>
 
 <ul>
-  <li>文件关系混乱</li>
-  <li>注释过期、不明确或者没有</li>
-  <li>文档过期、不明确或者没有</li>
-  <li>架构乱设计</li>
-  <li>过度设计</li>
-  <li>不检查用户输入的错误情况</li>
-  <li>不检查API或者函数返回的errorcode或者exception</li>
-  <li>没有单元测试等自动化测试过程</li>
-  <li>编译起来很难</li>
-  <li>到处复制代码，公用的部分不整理成内部库</li>
+  <li>批量修改密码　<code>change-password.yaml</code></li>
 </ul>
 
-<p>垃圾代码存在的客观因素有很多, 包括时间压力，业务留坑，绕开技术难点等。回头发现自己生产出坏代码的时候，除了羞愧，我是带有深深的污点强迫症。就好比一个工匠毕其一生修炼雕塑，却留下令自己鄙视的雕纹, 说道关乎尊严或许也不为过的。</p>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">---
+</span><span class="line">- hosts: my-linode-host
+</span><span class="line">  sudo: yes
+</span><span class="line">  user: zhengji
+</span><span class="line">  tasks:
+</span><span class="line">    - name: update password
+</span><span class="line">    user: name=guest password=xxxxx</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>于是我愿意，且习惯性推倒自己的过去，希望用每一个顿悟的今天取代往日无知的自我。</p>
+<p>这里的密码是用md5sum 生成的哈希串，只有这样才能让<code>Ansible</code>识别.</p>
 
-<p>春节的时候学习了 flask, 发现以前写过的一些 Web 项目实现不够优雅，在 flask 对比实现下更是丑陋, 同样的功能，如果换一种方法, 可以感受到简洁，编码组织的顺畅， 更好地部署方式。 遂用了2个晚上推倒了以前写过的一个短地址服务。加上了一些提升用户体验的前端代码, 我想这样或许能给使用这个系统的人带来工作效率的提高吧。</p>
+<p>执行</p>
 
-<p>那晚回去的路上, 我是开心的，好比闻到洗好晒干的被子发出的芬芳。我想我应该，也会一直记住这种感觉，并践行着。</p>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ansible-playbo change-password.yaml -K</span></code></pre></td></tr></table></div></figure></notextile></div>
 
+<hr />
+
+<ul>
+  <li>批量重启服务</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: my-linode-host
+</span><span class="line">  sudo: yes
+</span><span class="line">  tasks:
+</span><span class="line">    - name:  supervisorct restart fxserver
+</span><span class="line">    shell: supervisorctl restart fxserver
+</span><span class="line">    notify:
+</span><span class="line">        - Echo hello
+</span><span class="line">    #触发调度
+</span><span class="line">    handlers:
+</span><span class="line">        - name: Echo hello
+</span><span class="line">        shell: uptime</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p>待更新</p>
 </div>
 
 
@@ -143,12 +182,12 @@
   
 
 
-<time datetime="2015-03-09T23:45:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2015</time>
+<time datetime="2015-04-05T20:22:00+08:00" pubdate data-updated="true">Apr 5<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/life/'>Life</a>
+    <a class='category' href='/blog/categories/server/'>Server</a>
   
 </span>
 
@@ -164,10 +203,10 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2015/02/08/trie-suggestion/" title="Previous Post: 实现一个智能提示框功能">&laquo; 实现一个智能提示框功能</a>
+        <a class="basic-alignment left" href="/blog/2015/03/09/tui-dao-zi-ji/" title="Previous Post: 推倒自己">&laquo; 推倒自己</a>
       
       
-        <a class="basic-alignment right" href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/" title="Next Post: Ansible自动化脚本集">Ansible自动化脚本集 &raquo;</a>
+        <a class="basic-alignment right" href="/blog/2015/04/05/yong-bao-docker/" title="Next Post: 为服务端程序构建docker">为服务端程序构建docker &raquo;</a>
       
     </p>
   </footer>
@@ -177,7 +216,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="推倒自己"></div>
+<div class="ds-thread" data-title="Ansible自动化脚本集"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

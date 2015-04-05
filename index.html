@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="知乎上面有一个有趣而且严肃的问题, 再次引起我对代码质量的思考。 如知乎所言，代码质量低下如： 文件关系混乱 注释过期、不明确或者没有 文档过期、不明确或者没有 架构乱设计 过度设计 不检查用户输入的错误情况 不检查API或者函数返回的errorcode或者exception &hellip;">
+  <meta name="description" content="Docker 的优点自从问世就一直被工业界热论。 平时工作中，所部署的大多数Python项目都会用上 virtualenv, 沙箱的隔离带来的好处自然不言而喻。我也希望静态编译的服务，比如 Golang C++ 的项目
+同样能使用上独立的沙箱环境。得益于Docker，我们仍然可以做到。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +68,294 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-04-05T20:24:00+08:00" pubdate data-updated="true">Apr 5<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/04/05/yong-bao-docker/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Docker 的优点自从问世就一直被工业界热论。</p>
+
+<p>平时工作中，所部署的大多数<code>Python</code>项目都会用上 <a href="http://wiki.zheng-ji.info/Python/virtualenv-py.html">virtualenv</a>, 
+沙箱的隔离带来的好处自然不言而喻。我也希望静态编译的服务，比如 <code>Golang</code> <code>C++</code> 的项目
+同样能使用上独立的沙箱环境。得益于<code>Docker</code>，我们仍然可以做到。</p>
+
+<p>这个过程没有想象中的简单，需要经过一番折腾，我用最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础.</p>
+
+<h3 id="docker-">一览该 Docker 项目</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~/workspace/gocode/src/kafconsumer/docker$ tree
+</span><span class="line">.
+</span><span class="line">├── Dockerfile
+</span><span class="line">├── kafConsumer
+</span><span class="line">│   ├── consumer
+</span><span class="line">│   ├── etc
+</span><span class="line">│   │   ├── config.yml
+</span><span class="line">│   │   └── logger.xml
+</span><span class="line">│   └── script
+</span><span class="line">│       └── start.sh
+</span><span class="line">└── kafConsumer.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以上的截图，是一个完整的 <code>Docker</code> 项目，包含了：</p>
+
+<ul>
+  <li><code>Dockerfile</code>,</li>
+  <li><code>kafCounsumer</code>(服务端程序，里面附带的启动脚本，配置程序，以及二进制文件)，</li>
+  <li>还有它被压缩而成的 <code>kafConsumer.tar.gz</code></li>
+</ul>
+
+<hr />
+
+<h3 id="dockerfile-">Dockerfile 的内容</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">FROM ubuntu:14.04                                                         
+</span><span class="line">MAINTAINER zheng-ji &lt;zheng-ji.info&gt;                                     
+</span><span class="line">RUN echo Asia/Shanghai &gt; /etc/timezone                   
+</span><span class="line">RUN sed -i "s/archive\.ubuntu/mirrors.163/" /etc/apt/sources.list          
+</span><span class="line">RUN apt-get update                                                         
+</span><span class="line">COPY kafConsumer.tar.gz /                                                  
+</span><span class="line">RUN tar xvf kafConsumer.tar.gz                                         
+</span><span class="line">VOLUME /data                   
+</span><span class="line">WORKDIR /kafConsumer                                                   
+</span><span class="line">ENTRYPOINT ["./script/start.sh"]</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p><code>Dockerfile</code> 可以理解为<code>makefile</code> 之类的文件，Docker 可以依照文件中的内容，构建镜像.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker -t build Server/KafConsumer .</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就生成了<code>Tag</code> 为 <code>Server/KafConsumer</code> 的镜像，待会儿我们会使用它</p>
+
+<p>以上 <code>Dockerfile</code> 的具体内容的意义是:</p>
+
+<ul>
+  <li>第一行：拉取ubuntu 14:04的镜像源</li>
+  <li>第二行：维护者</li>
+  <li>第三行：调整时区</li>
+  <li>第四行：更新源地址</li>
+  <li>第五行：更新源</li>
+  <li>第六行：复制项目下的压缩包到虚拟机根目录</li>
+  <li>第七行：解压</li>
+  <li>第八行：项目中使用/data数据卷</li>
+  <li>第九行：进入工作目录</li>
+  <li>第十行：Docker的入口执行文件是start.sh</li>
+</ul>
+
+<hr />
+
+<h3 id="section">入口文件的内容</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#!/bin/bash
+</span><span class="line">ulimit -a
+</span><span class="line">if [ ! -d /data/ad ];  then
+</span><span class="line">    mkdir /data/ad
+</span><span class="line">fi
+</span><span class="line">exec ./consumer -c=etc/config.yml</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash,
+使用exec 执行程序</p>
+
+<hr />
+
+<h3 id="section-1">启动镜像</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker run -i -t  -v /path/to/data:/data Server/kafConsumer</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>这样就执行了，-v 可以映射你的本地文件到虚拟机的某个数据卷，这样我们就能从外面看到程序产生的文件.</p>
+
+<h3 id="section-2">如果你想关闭或者重启该服务的怎么办</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps -a
+</span><span class="line">
+</span><span class="line">找到你的 Docker 容器
+</span><span class="line">
+</span><span class="line">CONTAINER ID    IMAGE           COMMAND                CREATED        STATUS        PORTS    NAMES
+</span><span class="line">5b39d0d5cb85    Server/kafkaconsumer:latest   "./script/start.sh"    3 hours ago    tender_bohr </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>启动或者关闭</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker start tender_bohr
+</span><span class="line">sudo docker stop tender_bohr</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<h3 id="daocloud--">Daocloud  加速</h3>
+
+<p>功夫墙的原因，国外很多镜像被墙，因此构建镜像很慢，使用 Daocloud 服务可以加速,注册后就有该服务了</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cat /etc/default/docker
+</span><span class="line">DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://xxxxxx.m.daocloud.io"</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/">Ansible自动化脚本集</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-04-05T20:22:00+08:00" pubdate data-updated="true">Apr 5<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>管理众多服务器，如果没有自动化的手段，会被累死</p>
+
+<p>Ansilbe 曾经在 <a href="http://wiki.zheng-ji.info/Sys/ansible.html">WIKI</a> 里有记载，在一定程度上解放了我.</p>
+
+<p>我想记录下自己平时写的一些 关于它的<code>playbook</code>,因此这个文章将会持续更新</p>
+
+<ul>
+  <li>批量修改密码　<code>change-password.yaml</code></li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">---
+</span><span class="line">- hosts: my-linode-host
+</span><span class="line">  sudo: yes
+</span><span class="line">  user: zhengji
+</span><span class="line">  tasks:
+</span><span class="line">    - name: update password
+</span><span class="line">    user: name=guest password=xxxxx</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这里的密码是用md5sum 生成的哈希串，只有这样才能让<code>Ansible</code>识别.</p>
+
+<p>执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ansible-playbo change-password.yaml -K</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<ul>
+  <li>批量重启服务</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: my-linode-host
+</span><span class="line">  sudo: yes
+</span><span class="line">  tasks:
+</span><span class="line">    - name:  supervisorct restart fxserver
+</span><span class="line">    shell: supervisorctl restart fxserver
+</span><span class="line">    notify:
+</span><span class="line">        - Echo hello
+</span><span class="line">    #触发调度
+</span><span class="line">    handlers:
+</span><span class="line">        - name: Echo hello
+</span><span class="line">        shell: uptime</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p>待更新</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -925,195 +1214,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
-
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
-
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
-</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
-</span><span class="line">pm = static # 使用静态进程管理
-</span><span class="line">pm.max_children = 128
-</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
-
-<ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
-</span><span class="line">shell&gt; service irqbalance start
-</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>为nginx 绑定 cpu</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">worker_processes  8;
-</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>连接数调整，</li>
-</ul>
-
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
-</span><span class="line">fs.file-max = 6553600
-</span><span class="line">
-</span><span class="line">vim /etc/security/limits.conf
-</span><span class="line">* soft nofile 655360
-</span><span class="line">* hard nofile 655360
-</span><span class="line">
-</span><span class="line">vim /etc/nginx/nginx.conf
-</span><span class="line">
-</span><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">events {
-</span><span class="line">    worker_connections 300000;
-</span><span class="line">    use epoll;
-</span><span class="line">}
-</span><span class="line">http {
-</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">iptable做NAT转发</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-29T22:38:00+08:00" pubdate data-updated="true">Oct 29<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>简单简述下我遇到的问题:</p>
-
-<p>现在局域网有2台机器, 其中一台机器(下文我们称之为ServerA)可以访问外网,有独立IP,而另外一台机器(ServerB)访问不了外网, 需要想办法让 ServerB 也能上网。</p>
-
-<ul>
-  <li>ServerA 操作</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf
-</span><span class="line">net.ipv4.ip_forward = 1
-</span><span class="line">iptables -t nat -A POSTROUTING -s 10.4.0.0/16 -j MASQUERADE</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>ServerB</p>
-
-<p>编辑 /etc/network/interface
-主要是修改gateway 参数，指向 ServerA 的 IP</p>
-
-<p><code>
-sudo ifdown eth0; sudo ifup eth0</code> 
-ServerB 就可以连接外网了。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1133,6 +1233,14 @@ ServerB 就可以连接外网了。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/">Ansible自动化脚本集</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
@@ -1156,14 +1264,6 @@ ServerB 就可以连接外网了。</p>
     
       <li class="post">
         <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/11/25/tired/">慢</a>
       </li>
     
   </ul>
