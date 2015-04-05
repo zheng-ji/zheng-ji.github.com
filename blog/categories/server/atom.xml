@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Server | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/server/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-04-05T20:31:14+08:00</updated>
+  <updated>2015-04-05T20:38:56+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -21,10 +21,10 @@
     <content type="html"><![CDATA[<p>Docker 的优点自从问世就一直被工业界热论。</p>
 
 <p>平时工作中，所部署的大多数<code>Python</code>项目都会用上 <a href="http://wiki.zheng-ji.info/Python/virtualenv-py.html">virtualenv</a>, 
-沙箱的隔离带来的好处自然不言而喻。我也希望静态编译的服务，比如 <code>Golang</code> <code>C++</code> 的项目
-同样能使用上独立的沙箱环境。得益于<code>Docker</code>，我们仍然可以做到。</p>
+沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 <code>Golang</code> <code>C++</code> 的项目
+同样能使用上沙箱环境。得益于<code>Docker</code>，我们仍然可以做到。</p>
 
-<p>这个过程没有想象中的简单，需要经过一番折腾，我用最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础.</p>
+<p>这个过程没有想象中的简单，需要一番折腾，我以最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础. 或许这不是最好的方法。</p>
 
 <h3 id="docker-">一览该 Docker 项目</h3>
 
@@ -103,8 +103,7 @@ fi
 exec ./consumer -c=etc/config.yml
 </code></p>
 
-<p>这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash,
-使用exec 执行程序</p>
+<p>这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash, 使用exec 执行程序</p>
 
 <hr />
 
@@ -151,11 +150,11 @@ DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://xxxxxx.m.daocloud.io"
     <link href="http://zheng-ji.github.com/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/"/>
     <updated>2015-04-05T20:22:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji</id>
-    <content type="html"><![CDATA[<p>管理众多服务器，如果没有自动化的手段，会被累死</p>
+    <content type="html"><![CDATA[<p>管理众多服务器，如果没有自动化的手段，会被累死。</p>
 
 <p>Ansilbe 曾经在 <a href="http://wiki.zheng-ji.info/Sys/ansible.html">WIKI</a> 里有记载，在一定程度上解放了我.</p>
 
-<p>我想记录下自己平时写的一些 关于它的<code>playbook</code>,因此这个文章将会持续更新</p>
+<p>我想记录下平时写的一些<code>Ansible playbook</code>,因此这个文章将会持续更新。</p>
 
 <ul>
   <li>批量修改密码　<code>change-password.yaml</code></li>
@@ -180,7 +179,7 @@ tasks:
 <p>执行</p>
 
 <p><code>
-ansible-playbo change-password.yaml -K
+ansible-playbook change-password.yaml -K
 </code></p>
 
 <hr />
