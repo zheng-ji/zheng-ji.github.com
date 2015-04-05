@@ -8,11 +8,11 @@ description: 自动化运维
 ---
 
 
-管理众多服务器，如果没有自动化的手段，会被累死
+管理众多服务器，如果没有自动化的手段，会被累死。
 
 Ansilbe 曾经在 [WIKI](http://wiki.zheng-ji.info/Sys/ansible.html) 里有记载，在一定程度上解放了我.
 
-我想记录下自己平时写的一些 关于它的`playbook`,因此这个文章将会持续更新
+我想记录下平时写的一些`Ansible playbook`,因此这个文章将会持续更新。
 
 
 * 批量修改密码　`change-password.yaml`
@@ -32,7 +32,7 @@ Ansilbe 曾经在 [WIKI](http://wiki.zheng-ji.info/Sys/ansible.html) 里有记�
 执行
 
 ```
-ansible-playbo change-password.yaml -K
+ansible-playbook change-password.yaml -K
 ```
 
 ---

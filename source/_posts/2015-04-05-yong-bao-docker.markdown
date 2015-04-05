@@ -10,11 +10,11 @@ description: Docker, 自动化运维
 Docker 的优点自从问世就一直被工业界热论。
 
 平时工作中，所部署的大多数`Python`项目都会用上 [virtualenv](http://wiki.zheng-ji.info/Python/virtualenv-py.html), 
-沙箱的隔离带来的好处自然不言而喻。我也希望静态编译的服务，比如 `Golang` `C++` 的项目
-同样能使用上独立的沙箱环境。得益于`Docker`，我们仍然可以做到。
+沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 `Golang` `C++` 的项目
+同样能使用上沙箱环境。得益于`Docker`，我们仍然可以做到。
 
 
-这个过程没有想象中的简单，需要经过一番折腾，我用最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础.
+这个过程没有想象中的简单，需要一番折腾，我以最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础. 或许这不是最好的方法。
 
 
 ### 一览该 Docker 项目
@@ -93,8 +93,7 @@ fi
 exec ./consumer -c=etc/config.yml
 ```
 
-这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash,
-使用exec 执行程序
+这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash, 使用exec 执行程序
 
 
 ---
