@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。 php-fpm 参数配置 关于 php-fpm 的配置,Ubuntu系统中 /etc/php5/fpm/pool.d目录下, Centos是 &hellip;">
+  <meta name="description" content="这三个月以来,有30天是凌晨才离开公司的.甚至有好几天都通宵没有睡过,累。 貌似熟悉了凌晨的路灯,和冷冽的寒风。 技术的东西,整理在 EvertNote 里，但想写一些非技术的冲动似乎更强。 生活有很长的路要走, 几乎每天都在发现不足之处,只能让内心更强大, 去接受,去改变, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,55 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/25/tired/">慢</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-25T22:20:00+08:00" pubdate data-updated="true">Nov 25<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/11/25/tired/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这三个月以来,有30天是凌晨才离开公司的.甚至有好几天都通宵没有睡过,累。</p>
+
+<p>貌似熟悉了凌晨的路灯,和冷冽的寒风。</p>
+
+<p>技术的东西,整理在 EvertNote 里，但想写一些非技术的冲动似乎更强。</p>
+
+<p>生活有很长的路要走, 几乎每天都在发现不足之处,只能让内心更强大, 去接受,去改变, 淡定去拥抱无时不刻的变化, 怀着信念与希望继续走着。</p>
+
+<p>感谢 Everet 一直以来给我的信念, 我们也都在《感谢你让我上场》获得共鸣。我也坚信这位青年会是我们这届的骄傲。</p>
+
+<p>我想让生活慢下来，做一些重要不紧急的事。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -979,74 +1028,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/12/goan-zhuang-protobuf/">Go安装protobuf</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-07-12T17:39:00+08:00" pubdate data-updated="true">Jul 12<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/07/12/goan-zhuang-protobuf/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
-优点简而言之是：</p>
-
-<ul>
-  <li>二进制，速度快，便于拓展；</li>
-  <li>自动生成代码接口，支持多语言</li>
-</ul>
-
-<p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
-
-<p>关于 <code>protobuf</code> 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西</p>
-
-<p>安装, 比较蛋疼,折腾一小段时间。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}
-</span><span class="line">
-</span><span class="line">go install code.google.com/p/goprotobuf/proto
-</span><span class="line">
-</span><span class="line">sudo apt-get install protobuf-compiler</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使用的时, 是在项目内部新建一个proto.文件, 然后执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">protoc --go_out=. xxx.proto</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1068,6 +1049,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
@@ -1095,10 +1080,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
       </li>
     
   </ul>

@@ -291,16 +291,22 @@
         <lastmod>2015-04-06T18:59:25+08:00</lastmod>
     </url>
     <url>
+        <loc>
+            http://zheng-ji.github.com/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/
+        </loc>
+        <lastmod>2015-05-10T20:13:30+08:00</lastmod>
+    </url>
+    <url>
         <loc>http://zheng-ji.github.com/about/</loc>
         <lastmod>2015-02-06T00:18:07+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/archives/</loc>
-        <lastmod>2015-04-06T18:59:25+08:00</lastmod>
+        <lastmod>2015-05-10T20:13:30+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/</loc>
-        <lastmod>2015-04-06T18:59:25+08:00</lastmod>
+        <lastmod>2015-05-10T20:13:30+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/robots.txt</loc>

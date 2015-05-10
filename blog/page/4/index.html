@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="读到ReWork这本久负盛名的书了。摘录了鄙人认为深刻的话语。 很多话有道理，但是我们见到的只有很少人真的会去做，至少是去刻意克服惰性和思维方式. 该书是由37signal 这个创造了很多精品的公司著作的。有很强的现实指导意义，以下摘自《rework》 谈到现实 撕开这个“现实世界”的遮羞布后， &hellip;">
+  <meta name="description" content="几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意 跳表简介 数据结构 应用场景 跳表简介 Skip List是 一种随机化的数据结构， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,330 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/01/tiao-biao-skiplist/">跳表skiplist</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-01T10:21:00+08:00" pubdate data-updated="true">Feb 1<span>st</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/02/01/tiao-biao-skiplist/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意</p>
+
+<ul>
+  <li><a href="#第一节">跳表简介</a></li>
+  <li><a href="#第二节">数据结构</a></li>
+  <li><a href="#第三节">应用场景</a></li>
+</ul>
+
+<h3 id="第一节">跳表简介</h3>
+
+<p><img src="/images/2014/01/skiplist.png" /></p>
+
+<p><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">Skip List</a>是</p>
+
+<ul>
+  <li>一种随机化的数据结构，基于并联的链表，</li>
+  <li>其效率可比拟于二叉查找树（对于大多数操作需要O(log n)平均时间）。</li>
+  <li>以空间换时间，对有序的链表随机化增加上附加的前进链接</li>
+  <li>由多层链表组成，每一层有序的链表，第一层包含所有的元素；</li>
+</ul>
+
+<h3 id="第二节">数据结构</h3>
+
+<ul>
+  <li>skiplist节点</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">struct</span> <span class="n">node</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">key</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">value</span><span class="p">;</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">next</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>其中nodec * next[1] 是该节点的前向指针</p>
+
+<ul>
+  <li>skiplist数据结构</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">struct</span> <span class="n">skiplist</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">level</span><span class="p">;</span> <span class="c1">//最大的层</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">header</span><span class="p">;</span><span class="err">链表头</span>
+</span><span class="line"><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>通常一个数据结构我们定义为表头信息和最大的层数</p>
+
+<ul>
+  <li>初始化</li>
+</ul>
+
+<p>列表的初始化需要初始化头部，并使头部每层都指向末尾（NULL）。MAX_LEVEL是我们定义的常量</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">node</span> <span class="o">*</span><span class="nf">createNode</span><span class="p">(</span><span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">key</span><span class="p">,</span> <span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">ns</span> <span class="o">=</span> <span class="p">(</span><span class="n">node</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="o">+</span> <span class="n">level</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">node</span><span class="o">*</span><span class="p">));</span>
+</span><span class="line">    <span class="n">ns</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">;</span>
+</span><span class="line">    <span class="n">ns</span><span class="o">-&gt;</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">ns</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">skiplist</span><span class="o">*</span> <span class="nf">createSkiplist</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span> <span class="o">=</span> <span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">skiplist</span><span class="p">));</span>
+</span><span class="line">    <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span> <span class="o">=</span> <span class="n">createNode</span><span class="p">(</span><span class="n">MAX_LEVEL</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">MAX_LEVEL</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">sl</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>插入</li>
+</ul>
+
+<p>插入元素的时候元素所占有的层数完全是随机的，通过随机算法产生 需要三个步骤:
+1. 第一步需要查找到在每层待插入位置，
+2. 然后需要随机产生一个层数，
+3. 最后就是从高层至下插入.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">bool</span> <span class="nf">insert</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span><span class="p">,</span><span class="kt">int</span> <span class="n">key</span><span class="p">,</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">update</span><span class="p">[</span><span class="n">MAX_LEVEL</span><span class="p">];</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">while</span><span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span><span class="o">&lt;</span><span class="n">key</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">p</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class="line">    <span class="c1">//产生一个随机层数K,新建一个待插入节点q, 层层插入</span>
+</span><span class="line">    <span class="n">k</span> <span class="o">=</span> <span class="n">randomLevel</span><span class="p">();</span>
+</span><span class="line">    <span class="c1">//更新跳表的level</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">k</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+</span><span class="line">            <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span> <span class="o">=</span> <span class="n">k</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">q</span> <span class="o">=</span> <span class="n">createNode</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//逐层更新节点的指针，和普通列表插入一样</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">k</span><span class="p">;</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class="line">    <span class="p">{</span>
+</span><span class="line">        <span class="n">q</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>删除节点</li>
+</ul>
+
+<p>与插入类似的是，为了实现层层操作，用一个update数组维护每层需要的节点，如果删掉最大层则需要更新跳表的level。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">bool</span> <span class="nf">deleteSL</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span><span class="p">,</span><span class="kt">int</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">update</span><span class="p">[</span><span class="n">MAX_LEVEL</span><span class="p">];</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="c1">//从最高层开始搜</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">){</span>
+</span><span class="line">        <span class="k">while</span><span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span><span class="o">&lt;</span><span class="n">key</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="c1">//逐层删除，和普通列表删除一样</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">q</span><span class="p">){</span>
+</span><span class="line">                <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">free</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+</span><span class="line">        <span class="c1">//如果删除的是最大层的节点，那么需要重新维护跳表的</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">){</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="nb">NULL</span><span class="p">){</span>
+</span><span class="line">                <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="o">--</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">else</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查找</li>
+</ul>
+
+<p>从最高层查找起， 跳跃查找</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">int</span> <span class="nf">search</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span> <span class="n">sl</span><span class="p">,</span> <span class="kt">int</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">while</span> <span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">&lt;=</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="k">if</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">                <span class="k">return</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">应用场景</h3>
+<p>如前面说道的，老夫在leveldb的memtable.c看到这一实现的， Redis也是用到了这样的设计，看来KV的设计对skiplist有偏好，leveldb需要内存中存储的是有序的key-val键值对, 作为一个内存数据库，快速是很重要的，特别是数据量大的时候。牺牲了部分空间(冗余的指针)换取时间,达到O(logn)的效果</p>
+
+<h3>引用资料</h3>
+<ul>
+  <li><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">wikipedia</a> </li>
+  <li><a href="http://dsqiu.iteye.com/blog/1705530">skiplist讲解</a></li>
+  <li><a href="https://github.com/zheng-ji/ToyCollection/skiplist">source code</a></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1546,296 +1870,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/21/leveldbde-rpcserver/">leveldb的RPCServer</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-09-21T11:33:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/09/21/leveldbde-rpcserver/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>leveldb作为一个高性能的存储引擎，并不提供Server以及网络的功能，但我坚信一定会有，因为这个世界有很多人会被其性能所吸引，总有人忍不住会写一个壳包装下，万能的github让我不用重复造轮子。<a href="https://github.com/srinikom/leveldb-server">这个</a> ,还有<a href="https://github.com/quiver/leveldb-rpc/">这个</a></p>
-
-<p>XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 python 的<a href="http://zheng-ji.info//blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/">leveldb binding</a> </p>
-
-<h4 id="serverpy">server.py</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-<span class="line-number">37</span>
-<span class="line-number">38</span>
-<span class="line-number">39</span>
-<span class="line-number">40</span>
-<span class="line-number">41</span>
-<span class="line-number">42</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="sd">&#39;&#39;&#39;XML-RPC server for leveldb</span>
-</span><span class="line"><span class="sd">&#39;&#39;&#39;</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">argparse</span>
-</span><span class="line"><span class="kn">from</span> <span class="nn">SimpleXMLRPCServer</span> <span class="kn">import</span> <span class="n">SimpleXMLRPCServer</span><span class="p">,</span> <span class="n">SimpleXMLRPCRequestHandler</span>
-</span><span class="line">
-</span><span class="line"><span class="kn">import</span> <span class="nn">leveldb</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">RequestHandler</span><span class="p">(</span><span class="n">SimpleXMLRPCRequestHandler</span><span class="p">):</span>
-</span><span class="line">    <span class="n">rpc_paths</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;/RPC2&#39;</span><span class="p">,)</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">LevelDBMethod</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datadir</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">leveldb</span><span class="o">.</span><span class="n">LevelDB</span><span class="p">(</span><span class="n">datadir</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-</span><span class="line">        <span class="k">try</span><span class="p">:</span>
-</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span><span class="line">        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
-</span><span class="line">        <span class="k">return</span> <span class="s">&#39;&#39;</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-</span><span class="line">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
-</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--datadir&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;data&#39;</span><span class="p">)</span>
-</span><span class="line">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line">    <span class="c"># Create server</span>
-</span><span class="line">    <span class="n">server</span> <span class="o">=</span> <span class="n">SimpleXMLRPCServer</span><span class="p">((</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
-</span><span class="line">                <span class="n">requestHandler</span><span class="o">=</span><span class="n">RequestHandler</span><span class="p">,</span>
-</span><span class="line">                <span class="n">allow_none</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
-</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">LevelDBMethod</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">))</span>
-</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="n">main</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="clientpy">client.py</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-<span class="line-number">37</span>
-<span class="line-number">38</span>
-<span class="line-number">39</span>
-<span class="line-number">40</span>
-<span class="line-number">41</span>
-<span class="line-number">42</span>
-<span class="line-number">43</span>
-<span class="line-number">44</span>
-<span class="line-number">45</span>
-<span class="line-number">46</span>
-<span class="line-number">47</span>
-<span class="line-number">48</span>
-<span class="line-number">49</span>
-<span class="line-number">50</span>
-<span class="line-number">51</span>
-<span class="line-number">52</span>
-<span class="line-number">53</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="sd">&#39;&#39;&#39;XML-RPC client for leveldb</span>
-</span><span class="line"><span class="sd">&#39;&#39;&#39;</span>
-</span><span class="line">
-</span><span class="line"><span class="kn">import</span> <span class="nn">argparse</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">cmd</span>
-</span><span class="line"><span class="kn">from</span> <span class="nn">xmlrpclib</span> <span class="kn">import</span> <span class="n">ServerProxy</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">Cmd</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="p">):</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-</span><span class="line">        <span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">prompt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&gt; &#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span><span class="s">&#39;http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">do_put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
-</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;put&#39; command&quot;</span>
-</span><span class="line">            <span class="k">return</span>
-</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span>
-</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">do_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
-</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;get&#39; command&quot;</span>
-</span><span class="line">            <span class="k">return</span>
-</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">args</span>
-</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
-</span><span class="line">            <span class="k">print</span> <span class="n">result</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">do_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
-</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;delete&#39; command&quot;</span>
-</span><span class="line">            <span class="k">return</span>
-</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">args</span>
-</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">do_EOF</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
-</span><span class="line">        <span class="k">return</span> <span class="bp">True</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-</span><span class="line">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">)</span>
-</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
-</span><span class="line">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line">    <span class="n">cmd</span> <span class="o">=</span> <span class="n">Cmd</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
-</span><span class="line">    <span class="n">cmd</span><span class="o">.</span><span class="n">cmdloop</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="n">main</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="server">Server代码:</h4>
-<ul>
-  <li>SimpleXMLRpcServer拓展,自定义业务逻辑类 LevelDBMethod,以及RPC运行路径别名,注册业务代码</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"> <span class="c"># Create server</span>
-</span><span class="line"><span class="n">server</span> <span class="o">=</span> <span class="n">SimpleXMLRPCServer</span><span class="p">((</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
-</span><span class="line">        <span class="n">requestHandler</span><span class="o">=</span><span class="n">RequestHandler</span><span class="p">,</span>
-</span><span class="line">        <span class="n">allow_none</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
-</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">LevelDBMethod</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">))</span>
-</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>argsparse解析命令行参数 </li>
-  <li>包装leveldb ,公开RPC函数调用</li>
-</ul>
-
-<h4 id="client">Client代码:</h4>
-<ul>
-  <li>调用xmprpclib 的ServerProxy，完成网络RPC调用</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span><span class="s">&#39;http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>cmd模块，自定义命令行提示工具,调用cmdloop() 实现循环调用,继承cmd.Cmd类时，函数名为do_动作名</li>
-  <li>argsparse解析命令行参数 </li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-</span><span class="line"><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">)</span>
-</span><span class="line"><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
-</span><span class="line"><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1857,6 +1891,10 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
@@ -1884,10 +1922,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
     
       <li class="post">
         <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
       </li>
     
   </ul>

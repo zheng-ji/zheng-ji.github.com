@@ -9,8 +9,28 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Docker 的优点自从问世就一直被工业界热论。 平时工作中，所部署的大多数Python项目都会用上 virtualenv, 沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 Golang C++ 的项目
-同样能使用上沙箱环境。得益于Docker，我们仍然可以做到。 &hellip;">
+  <meta name="description" content="现象
+周日早晨收到 ganglia 报警, 内容是： 1
+MySQL_Slave_SQL is 0.00
+意味着从库同步有问题了。这时候进入从库看看状态 1
+show slave status\G; 看到 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +88,124 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay Log Corrupt 恢复</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-05-10T20:02:00+08:00" pubdate data-updated="true">May 10<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="section">现象</h3>
+<p>周日早晨收到 <code>ganglia</code> 报警, 内容是：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">MySQL_Slave_SQL is 0.00</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>意味着从库同步有问题了。这时候进入从库看看状态</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show slave status\G;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>看到</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">Slave_IO_State: Waiting for master to send event
+</span><span class="line">   Master_Host: xxx.xxx.xxx
+</span><span class="line">   Master_User: replication
+</span><span class="line">   Master_Port: 3306
+</span><span class="line">   Connect_Retry: 60
+</span><span class="line">   Master_Log_File: mysql-bin.000028
+</span><span class="line">   ad_Master_Log_Pos: 982714864
+</span><span class="line">   Relay_Log_File: relay-bin.000143
+</span><span class="line">   Relay_Master_Log_File: mysql-bin.000028
+</span><span class="line">   Slave_IO_Running: Yes
+</span><span class="line">   Slave_SQL_Running: No
+</span><span class="line">   Replicate_Do_DB:
+</span><span class="line"> Replicate_Ignore_DB:
+</span><span class="line"> Replicate_Do_Table:
+</span><span class="line"> Replicate_Ignore_Table:
+</span><span class="line"> Replicate_Wild_Do_Table:
+</span><span class="line"> Replicate_Wild_Ignore_Table:
+</span><span class="line"> Last_Errno: 1594
+</span><span class="line"> Last_Error: Relay log read failure: Could not parse relay log event entry. The possible reasons are: the master's binary log is corrupted (you can check this by running 'mysqlbinlog' on the binary log), the slave's relay log is corrupted (you can check this by running 'mysqlbinlog' on the relay log), a network problem, or a bug in the master's or slave's MySQL code. If you want to check the master's binary log or slave's relay log, you will be able to know their names by issuing 'SHOW SLAVE STATUS' on this slave.
+</span><span class="line"> Skip_Counter: 3
+</span><span class="line"> Exec_Master_Log_Pos: 974999870
+</span><span class="line"> Relay_Log_Space: 399910514
+</span><span class="line"> Until_Condition: None</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>是因为从库的 relay log 损坏导致的从库停止执行同步, 后面从 MySQL 的错误日志发现是由几个没经过优化的大查询导致从库内存使用较大，mysqld_safe 被迫重启了。</p>
+
+<h3 id="section-1">解决方法</h3>
+
+<p>找到：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">Relay_Master_Log_File: mysql-bin.000028
+</span><span class="line">Exec_Master_Log_Pos: 974999870</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql&gt; stop slave ;
+</span><span class="line">mysql&gt; change master to master_log_file='mysql-bin.000028',master_log_pos=974999870;
+</span><span class="line">mysql&gt; start slave;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就重新追上了。以后还是要提高周围同事使用 MySQL 的优化意识啊。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1167,55 +1305,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/25/tired/">慢</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-11-25T22:20:00+08:00" pubdate data-updated="true">Nov 25<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/11/25/tired/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>这三个月以来,有30天是凌晨才离开公司的.甚至有好几天都通宵没有睡过,累。</p>
-
-<p>貌似熟悉了凌晨的路灯,和冷冽的寒风。</p>
-
-<p>技术的东西,整理在 EvertNote 里，但想写一些非技术的冲动似乎更强。</p>
-
-<p>生活有很长的路要走, 几乎每天都在发现不足之处,只能让内心更强大, 去接受,去改变, 淡定去拥抱无时不刻的变化, 怀着信念与希望继续走着。</p>
-
-<p>感谢 Everet 一直以来给我的信念, 我们也都在《感谢你让我上场》获得共鸣。我也坚信这位青年会是我们这届的骄傲。</p>
-
-<p>我想让生活慢下来，做一些重要不紧急的事。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1235,6 +1324,10 @@ Kibana 是一个与之配套的 web 界面。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
@@ -1262,10 +1355,6 @@ Kibana 是一个与之配套的 web 界面。</p>
     
       <li class="post">
         <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
       </li>
     
   </ul>

@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="leveldb是一个google实现的非常高效的kv数据库，能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，主要归功于它的良好的设计。特别是LSM算法。 LevelDB 是单进程的服务，性能非常之高，在一台4个Q6600的CPU机器上，每秒钟写数据超过40w， &hellip;">
+  <meta name="description" content="leveldb作为一个高性能的存储引擎，并不提供Server以及网络的功能，但我坚信一定会有，因为这个世界有很多人会被其性能所吸引，总有人忍不住会写一个壳包装下，万能的github让我不用重复造轮子。这个 ,还有这个 XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,296 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/21/leveldbde-rpcserver/">leveldb的RPCServer</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-21T11:33:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/21/leveldbde-rpcserver/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>leveldb作为一个高性能的存储引擎，并不提供Server以及网络的功能，但我坚信一定会有，因为这个世界有很多人会被其性能所吸引，总有人忍不住会写一个壳包装下，万能的github让我不用重复造轮子。<a href="https://github.com/srinikom/leveldb-server">这个</a> ,还有<a href="https://github.com/quiver/leveldb-rpc/">这个</a></p>
+
+<p>XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 python 的<a href="http://zheng-ji.info//blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/">leveldb binding</a> </p>
+
+<h4 id="serverpy">server.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="sd">&#39;&#39;&#39;XML-RPC server for leveldb</span>
+</span><span class="line"><span class="sd">&#39;&#39;&#39;</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">argparse</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">SimpleXMLRPCServer</span> <span class="kn">import</span> <span class="n">SimpleXMLRPCServer</span><span class="p">,</span> <span class="n">SimpleXMLRPCRequestHandler</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">import</span> <span class="nn">leveldb</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">RequestHandler</span><span class="p">(</span><span class="n">SimpleXMLRPCRequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="n">rpc_paths</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;/RPC2&#39;</span><span class="p">,)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">LevelDBMethod</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datadir</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">db</span> <span class="o">=</span> <span class="n">leveldb</span><span class="o">.</span><span class="n">LevelDB</span><span class="p">(</span><span class="n">datadir</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+</span><span class="line">        <span class="k">try</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="s">&#39;&#39;</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span><span class="line">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--datadir&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;data&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="c"># Create server</span>
+</span><span class="line">    <span class="n">server</span> <span class="o">=</span> <span class="n">SimpleXMLRPCServer</span><span class="p">((</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+</span><span class="line">                <span class="n">requestHandler</span><span class="o">=</span><span class="n">RequestHandler</span><span class="p">,</span>
+</span><span class="line">                <span class="n">allow_none</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
+</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">LevelDBMethod</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">))</span>
+</span><span class="line">    <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">main</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="clientpy">client.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="sd">&#39;&#39;&#39;XML-RPC client for leveldb</span>
+</span><span class="line"><span class="sd">&#39;&#39;&#39;</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">import</span> <span class="nn">argparse</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">cmd</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">xmlrpclib</span> <span class="kn">import</span> <span class="n">ServerProxy</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">Cmd</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+</span><span class="line">        <span class="n">cmd</span><span class="o">.</span><span class="n">Cmd</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">prompt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&gt; &#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span><span class="s">&#39;http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;put&#39; command&quot;</span>
+</span><span class="line">            <span class="k">return</span>
+</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">args</span>
+</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;get&#39; command&quot;</span>
+</span><span class="line">            <span class="k">return</span>
+</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">args</span>
+</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="n">result</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="n">args</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;(error) ERR wrong number of arguments for &#39;delete&#39; command&quot;</span>
+</span><span class="line">            <span class="k">return</span>
+</span><span class="line">        <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">args</span>
+</span><span class="line">        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">do_EOF</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">True</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span><span class="line">    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+</span><span class="line">    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">cmd</span> <span class="o">=</span> <span class="n">Cmd</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+</span><span class="line">    <span class="n">cmd</span><span class="o">.</span><span class="n">cmdloop</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">main</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="server">Server代码:</h4>
+<ul>
+  <li>SimpleXMLRpcServer拓展,自定义业务逻辑类 LevelDBMethod,以及RPC运行路径别名,注册业务代码</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"> <span class="c"># Create server</span>
+</span><span class="line"><span class="n">server</span> <span class="o">=</span> <span class="n">SimpleXMLRPCServer</span><span class="p">((</span><span class="s">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+</span><span class="line">        <span class="n">requestHandler</span><span class="o">=</span><span class="n">RequestHandler</span><span class="p">,</span>
+</span><span class="line">        <span class="n">allow_none</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
+</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">LevelDBMethod</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">datadir</span><span class="p">))</span>
+</span><span class="line"><span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>argsparse解析命令行参数 </li>
+  <li>包装leveldb ,公开RPC函数调用</li>
+</ul>
+
+<h4 id="client">Client代码:</h4>
+<ul>
+  <li>调用xmprpclib 的ServerProxy，完成网络RPC调用</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span><span class="s">&#39;http://</span><span class="si">%s</span><span class="s">:</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>cmd模块，自定义命令行提示工具,调用cmdloop() 实现循环调用,继承cmd.Cmd类时，函数名为do_动作名</li>
+  <li>argsparse解析命令行参数 </li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+</span><span class="line"><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+</span><span class="line"><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1537,83 +1827,6 @@ QWry.dat文件在结构上分为3块：
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/">Unix Domain Socket – IPC通信机制</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-17T23:52:00+08:00" pubdate data-updated="true">Jun 17<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="unix-domain-socket">什么是Unix Domain Socket</h4>
-<p>基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率：</p>
-
-<ul>
-  <li>不需要经过网络协议栈</li>
-  <li>不需要打包拆包、计算校验和、维护序号和应答等</li>
-</ul>
-
-<p>只是将应用层数据从一个进程拷贝到另一个进程。这是因为，IPC机制本质上是可靠的通讯，而网络协议是为不可靠的通讯设计的。UNIX Domain Socket也提供面向流和面向数据包两种API接口，类似于TCP和UDP，但是面向消息的UNIX Domain Socket也是可靠的，消息既不会丢失也不会顺序错乱。</p>
-
-<h4 id="section">应用</h4>
-
-<p>UNIX Domain Socket是全双工的，API接口语义丰富，相比其它IPC机制有明显的优越性，目前已成为使用最广泛的IPC机制，比如X Window服务器和GUI程序之间就是通过UNIX Domain Socket通讯的。</p>
-
-<p>Nginx通过unix:/socket与fastcgi连接，提升性能,比tcp socket要高效
-+ 在nginx.conf中修改配置为：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">fastcgi_pass unix:/tmp/php-cgi.sock;
-</span><span class="line">#fastcgi_pass 127.0.0.1:9000;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>在php-fpm.conf中修改配置为：</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">/tmp/php-cgi.sock</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>通信过程</p>
-
-<p><img src="/images/2013/08/ipc_unix_socket-300x300.png" /></p>
-
-<p>用Unix domain socket写的Demo</p>
-
-<p>使用UNIX Domain Socket的过程和网络socket十分相似，也要先调用socket()创建一个socket文件描述符，address family指定为AF_UNIX，type可以选择SOCK_DGRAM或SOCK_STREAM，protocol参数仍然指定为0即可。通常是指定/tmp/目录下的一个文件作为通信路径</p>
-
-<p>源码demo<a href="https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock">链接</a></p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -1635,6 +1848,10 @@ QWry.dat文件在结构上分为3块：
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
@@ -1662,10 +1879,6 @@ QWry.dat文件在结构上分为3块：
     
       <li class="post">
         <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/12/13/nginxcuo-wu-ma/">nginx错误码</a>
       </li>
     
   </ul>

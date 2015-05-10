@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-04-06T18:59:57+08:00</updated>
+  <updated>2015-05-10T20:14:25+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,94 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[MySQL Slave Relay log Corrupt 恢复]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/"/>
+    <updated>2015-05-10T20:02:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu</id>
+    <content type="html"><![CDATA[<h3 id="section">现象</h3>
+<p>周日早晨收到 <code>ganglia</code> 报警, 内容是：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">MySQL_Slave_SQL is 0.00</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>意味着从库同步有问题了。这时候进入从库看看状态</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show slave status\G;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>看到</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">Slave_IO_State: Waiting for master to send event
+</span><span class="line">   Master_Host: xxx.xxx.xxx
+</span><span class="line">   Master_User: replication
+</span><span class="line">   Master_Port: 3306
+</span><span class="line">   Connect_Retry: 60
+</span><span class="line">   Master_Log_File: mysql-bin.000028
+</span><span class="line">   ad_Master_Log_Pos: 982714864
+</span><span class="line">   Relay_Log_File: relay-bin.000143
+</span><span class="line">   Relay_Master_Log_File: mysql-bin.000028
+</span><span class="line">   Slave_IO_Running: Yes
+</span><span class="line">   Slave_SQL_Running: No
+</span><span class="line">   Replicate_Do_DB:
+</span><span class="line"> Replicate_Ignore_DB:
+</span><span class="line"> Replicate_Do_Table:
+</span><span class="line"> Replicate_Ignore_Table:
+</span><span class="line"> Replicate_Wild_Do_Table:
+</span><span class="line"> Replicate_Wild_Ignore_Table:
+</span><span class="line"> Last_Errno: 1594
+</span><span class="line"> Last_Error: Relay log read failure: Could not parse relay log event entry. The possible reasons are: the master's binary log is corrupted (you can check this by running 'mysqlbinlog' on the binary log), the slave's relay log is corrupted (you can check this by running 'mysqlbinlog' on the relay log), a network problem, or a bug in the master's or slave's MySQL code. If you want to check the master's binary log or slave's relay log, you will be able to know their names by issuing 'SHOW SLAVE STATUS' on this slave.
+</span><span class="line"> Skip_Counter: 3
+</span><span class="line"> Exec_Master_Log_Pos: 974999870
+</span><span class="line"> Relay_Log_Space: 399910514
+</span><span class="line"> Until_Condition: None</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>是因为从库的 relay log 损坏导致的从库停止执行同步, 后面从 MySQL 的错误日志发现是由几个没经过优化的大查询导致从库内存使用较大，mysqld_safe 被迫重启了。</p>
+
+<h3 id="section-1">解决方法</h3>
+
+<p>找到：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">Relay_Master_Log_File: mysql-bin.000028
+</span><span class="line">Exec_Master_Log_Pos: 974999870</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql&gt; stop slave ;
+</span><span class="line">mysql&gt; change master to master_log_file='mysql-bin.000028',master_log_pos=974999870;
+</span><span class="line">mysql&gt; start slave;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就重新追上了。以后还是要提高周围同事使用 MySQL 的优化意识啊。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[为服务端程序构建docker]]></title>
@@ -1497,44 +1585,6 @@ mysql&gt; SHOW SLAVE STATUS \G
   <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
   <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
 </ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[go安装protobuf]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf/"/>
-    <updated>2014-07-12T17:39:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf</id>
-    <content type="html"><![CDATA[<p>protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
-优点简而言之是：</p>
-
-<ul>
-  <li>二进制，速度快，便于拓展；</li>
-  <li>自动生成代码接口，支持多语言</li>
-</ul>
-
-<p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
-
-<p>关于 <code>protobuf</code> 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西</p>
-
-<p>安装, 比较蛋疼,折腾一小段时间。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}
-</span><span class="line">
-</span><span class="line">go install code.google.com/p/goprotobuf/proto
-</span><span class="line">
-</span><span class="line">sudo apt-get install protobuf-compiler</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使用的时, 是在项目内部新建一个proto.文件, 然后执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">protoc --go_out=. xxx.proto</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 ]]></content>
   </entry>
