@@ -4,7 +4,7 @@ title: "MySQL Slave Relay log Corrupt 恢复"
 date: 2015-05-10 20:02
 comments: true
 categories: DataBase
-description: mysl slave relay log
+description: mys1l slave relay log
 ---
 
 ### 现象 ### 
