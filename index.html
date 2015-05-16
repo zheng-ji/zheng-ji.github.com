@@ -9,28 +9,13 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="现象
-周日早晨收到 ganglia 报警, 内容是： 1
-MySQL_Slave_SQL is 0.00
-意味着从库同步有问题了。这时候进入从库看看状态 1
-show slave status\G; 看到 1
+  <meta name="description" content="我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 IP：1.2.3.4 的机器上部署Postfix服务，让它可以发邮件 安装 1
+sudo apt-get install postfix 配置 编辑 /etc/postfix/main.cnf 1
 2
 3
 4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18 &hellip;">
+5 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -88,6 +73,118 @@ show slave status\G; 看到 1
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-05-17T00:25:00+08:00" pubdate data-updated="true">May 17<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/05/17/da-jian-postfix/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
+
+<h3 id="section">安装</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install postfix</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">配置</h3>
+
+<p>编辑 <code>/etc/postfix/main.cnf</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+</span><span class="line">biff = no
+</span><span class="line">append_dot_mydomain = no
+</span><span class="line">readme_directory = no
+</span><span class="line">smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+</span><span class="line">smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+</span><span class="line">smtpd_use_tls=yes
+</span><span class="line">smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+</span><span class="line">smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+</span><span class="line">myhostname = mail.zheng-ji.info 邮箱服务器域名
+</span><span class="line">alias_maps = hash:/etc/aliases
+</span><span class="line">alias_database = hash:/etc/aliases
+</span><span class="line">myorigin = $myhostname
+</span><span class="line">mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
+</span><span class="line">mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
+</span><span class="line">relay_domains = $mydestination
+</span><span class="line">inet_interfaces = all
+</span><span class="line">inet_protocols = all</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-2">授权</h3>
+
+<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">A 记录指向 1.2.3.4
+</span><span class="line">MX 记录也指向 1.2.3.4
+</span><span class="line">TXT 记录 v=spf1 ip4:1.2.3.4 ~all</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以上操作是防止被认为垃圾邮件。</p>
+
+<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
+编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">5.6.7.8  OK</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>重启并授权生效</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service postfix restart
+</span><span class="line">postmap access</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1237,74 +1334,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/29/yong-dao-de-tcpdump/">用到的Tcpdump</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-11-29T14:15:00+08:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/11/29/yong-dao-de-tcpdump/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
-简单说下我常用的 TcpDump的方法</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">-i 指定网卡
-</span><span class="line">-Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
-</span><span class="line">-s 0 表示整包抓取
-</span><span class="line">-c 1024 表示包得大小</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
-这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
-
-<p>Tcpdump 中的 flag 有必要提下：</p>
-
-<ul>
-  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
-  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
-  <li>SYNC 表示主动连接到对方，建立连接</li>
-  <li>FIN 表示传送结束，发送方等待对方响应</li>
-</ul>
-
-<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1324,6 +1353,10 @@ Kibana 是一个与之配套的 web 界面。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
@@ -1351,10 +1384,6 @@ Kibana 是一个与之配套的 web 界面。</p>
     
       <li class="post">
         <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
       </li>
     
   </ul>

@@ -5,12 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Mysql的一些配置 - 织网</title>
+  <title>搭建Postfix - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="我想写一篇长期更新的文章，随着知识积累持续更新的文章，而最近遇到的在涉及的Mysql优化，便是一个可以琢磨的点，变量比较多，并且需要在每次采坑才来的深刻。 tmp_table_size
-这个是临时表的大小，与之对应的有 max_heap_size 单位是Byte, tmp_table_size &hellip;">
+  <meta name="description" content="Postfix">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -71,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Mysql的一些配置</h1>
+      <h1 class="entry-title">搭建Postfix</h1>
     
     
       <p class="meta">
@@ -87,7 +86,7 @@
   
 
 
-<time datetime="2014-10-21T23:18:00+08:00" pubdate data-updated="true">Oct 21<span>st</span>, 2014</time>
+<time datetime="2015-05-17T00:25:00+08:00" pubdate data-updated="true">May 17<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -97,45 +96,80 @@
   </header>
 
 
-<div class="entry-content"><p>我想写一篇长期更新的文章，随着知识积累持续更新的文章，而最近遇到的在涉及的Mysql优化，便是一个可以琢磨的点，变量比较多，并且需要在每次采坑才来的深刻。</p>
+<div class="entry-content"><p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
 
-<ul>
-  <li>tmp_table_size
-这个是临时表的大小，与之对应的有 <code>max_heap_size</code> 单位是Byte, <code>tmp_table_size</code> 的大小关乎临时表的大小, 如果设置太小，会导致一些数据直接写入磁盘，比较蛋疼, 看了官方文档，涉及到<code>Dynamic Variable=Yes</code>
-那么这种配置便可以直接在终端用语句设置，并生效，不需要重启机器</li>
-</ul>
+<h3 id="section">安装</h3>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set global tmp_table_size = 512 * 1024 *1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install postfix</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<ul>
-  <li>max_connections
-当<code>show processlist</code> 发现有好多链接的时候，客户端想登陆mysql却失败。可以执行, 看看是不是现有的链接数已经逼近</li>
-</ul>
+<h3 id="section-1">配置</h3>
+
+<p>编辑 <code>/etc/postfix/main.cnf</code></p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show global variable like '%max%'
-</span><span class="line">set global max_connections 1000</span></code></pre></td></tr></table></div></figure></notextile></div>
-<ul>
-  <li>thread_concurrency</li>
-</ul>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+</span><span class="line">biff = no
+</span><span class="line">append_dot_mydomain = no
+</span><span class="line">readme_directory = no
+</span><span class="line">smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+</span><span class="line">smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+</span><span class="line">smtpd_use_tls=yes
+</span><span class="line">smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+</span><span class="line">smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+</span><span class="line">myhostname = mail.zheng-ji.info 邮箱服务器域名
+</span><span class="line">alias_maps = hash:/etc/aliases
+</span><span class="line">alias_database = hash:/etc/aliases
+</span><span class="line">myorigin = $myhostname
+</span><span class="line">mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
+</span><span class="line">mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
+</span><span class="line">relay_domains = $mydestination
+</span><span class="line">inet_interfaces = all
+</span><span class="line">inet_protocols = all</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>同一时间与性的线程设置，如果分配不当，会导致<code>mysql</code>不能充分使用多｀cpu｀, 出现同一时刻只有一个核在工作。
-<code>thread_concurrency</code> 应设为<code>CPU</code> 核数的2倍. 比如有一个双核的CPU, 那么<code>thread_concurrency</code>的应该为4; 2个双核的cpu, <code>thread_concurrency</code>的值应为8.</p>
+<h3 id="section-2">授权</h3>
 
-<ul>
-  <li>max_allowed_packet
-如果需要进行mysqldump这类操作，需要调大</li>
-</ul>
+<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set global max_allowed_packet = 2*1024*1024*10</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">A 记录指向 1.2.3.4
+</span><span class="line">MX 记录也指向 1.2.3.4
+</span><span class="line">TXT 记录 v=spf1 ip4:1.2.3.4 ~all</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<ul>
-  <li>skip_slave_start
-配置文件中建议加上skip-slave-start，以免在不需要时候slave线程自己开始执行了</li>
-</ul>
+<p>以上操作是防止被认为垃圾邮件。</p>
+
+<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
+编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">5.6.7.8  OK</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>重启并授权生效</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service postfix restart
+</span><span class="line">postmap access</span></code></pre></td></tr></table></div></figure></notextile></div>
 </div>
 
 
@@ -158,12 +192,12 @@
   
 
 
-<time datetime="2014-10-21T23:18:00+08:00" pubdate data-updated="true">Oct 21<span>st</span>, 2014</time>
+<time datetime="2015-05-17T00:25:00+08:00" pubdate data-updated="true">May 17<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/database/'>DataBase</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -179,10 +213,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/" title="Previous Post: 内存都去哪儿啦">&laquo; 内存都去哪儿啦</a>
+        <a class="basic-alignment left" href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/" title="Previous Post: MySQL Slave Relay log Corrupt 恢复">&laquo; MySQL Slave Relay log Corrupt 恢复</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/10/23/mysql-unique-index/" title="Next Post: 唯一索引引发的思考">唯一索引引发的思考 &raquo;</a>
       
     </p>
   </footer>
@@ -192,7 +224,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Mysql的一些配置"></div>
+<div class="ds-thread" data-title="搭建Postfix"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

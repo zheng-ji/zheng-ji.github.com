@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-05-10T20:14:25+08:00</updated>
+  <updated>2015-05-17T00:39:55+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,88 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[搭建Postfix]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/"/>
+    <updated>2015-05-17T00:25:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix</id>
+    <content type="html"><![CDATA[<p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
+
+<h3 id="section">安装</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install postfix</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">配置</h3>
+
+<p>编辑 <code>/etc/postfix/main.cnf</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+</span><span class="line">biff = no
+</span><span class="line">append_dot_mydomain = no
+</span><span class="line">readme_directory = no
+</span><span class="line">smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+</span><span class="line">smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+</span><span class="line">smtpd_use_tls=yes
+</span><span class="line">smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+</span><span class="line">smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+</span><span class="line">myhostname = mail.zheng-ji.info 邮箱服务器域名
+</span><span class="line">alias_maps = hash:/etc/aliases
+</span><span class="line">alias_database = hash:/etc/aliases
+</span><span class="line">myorigin = $myhostname
+</span><span class="line">mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
+</span><span class="line">mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
+</span><span class="line">relay_domains = $mydestination
+</span><span class="line">inet_interfaces = all
+</span><span class="line">inet_protocols = all</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-2">授权</h3>
+
+<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">A 记录指向 1.2.3.4
+</span><span class="line">MX 记录也指向 1.2.3.4
+</span><span class="line">TXT 记录 v=spf1 ip4:1.2.3.4 ~all</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以上操作是防止被认为垃圾邮件。</p>
+
+<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
+编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">5.6.7.8  OK</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>重启并授权生效</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service postfix restart
+</span><span class="line">postmap access</span></code></pre></td></tr></table></div></figure></notextile></div>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[MySQL Slave Relay log Corrupt 恢复]]></title>
@@ -1474,117 +1556,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">sudo service rsyslog start</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[折腾docker]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker/"/>
-    <updated>2014-07-16T20:20:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker</id>
-    <content type="html"><![CDATA[<p>早在1年前就听过 <a href="http://docs.docker.com/">docker</a>这个 Golang 社区的明星产品 。</p>
-
-<h3 id="section">简单地介绍</h3>
-
-<p>Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。这大大地提高了程序运行的灵活性和可移植性，极大的降低运维成本。</p>
-
-<h3 id="section-1">组成</h3>
-
-<ul>
-  <li>Docker 服务器守护程序（server daemon），用于管理所有的容器。</li>
-  <li>Docker 命令行客户端，用于控制服务器守护程序。</li>
-  <li>Docker 镜像：查找和浏览 docker 容器镜像。它也访问这里得到：<a href="https://index.docker.io/">链接</a></li>
-</ul>
-
-<h3 id="docker">有了虚拟机为什么还要docker?</h3>
-<p>virtualbox 等虚拟机提供的是完整的操作系统环境, 迁移的时候太大了。它们包含了大量类似硬件驱动、虚拟处理器、网络接口等等并不需要的信息，也需要比较长时间的启动，同时也会消耗大量的内存、CPU 资源。</p>
-
-<p>Docker 相比起来就非常轻量级了。运行起来就和一个常规程序差不多。这个容器不仅仅运行快，创建一个镜像和制作文件系统快照也很快,甚至比vagrant更节约资源</p>
-
-<h3 id="section-2">初体验</h3>
-<p>下载docker 并安装 ubuntu 12.04 这里如果没有指明 <code>ubuntu:12.04</code>, 会将所有ubuntu镜像都下载。由于被墙，速度惨不忍睹.</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo apt-get install docker.io
-</span><span class="line">zj@zheng-ji:~$ sudo docker pull ubuntu:12.04 </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>查看已有的镜像</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker images</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使用 bash 命令进入docker的指定镜像</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这时候我就可以像一个新系统一样把玩了, 比如创建一个目录。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ mkdir /home/zj/test</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 <a href="https://registry.hub.docker.com/u/">这里</a> 注册一个账户，然后再上传，类似在 github  上面一样的操作。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps 
-</span><span class="line">
-</span><span class="line">//因为我已经commit 过一次，所以名字变成我的别名 zhengji/helloworld
-</span><span class="line">zj@zheng-ji:~$ docker ps
-</span><span class="line">CONTAINER ID        IMAGE                       COMMAND             CREATED             STATUS              PORTS                     NAMES
-</span><span class="line">8dad3aa4451f        zhengji/helloworld:latest   bin/bash            27 minutes ago      Up 27 minutes       0.0.0.0:49156-&gt;3000/tcp   high_galileo      </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>可以看到要保存的镜像的 CONTAINER ID</p>
-
-<p>这个时候提交</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker commit 8dad3aa4451f zhengji/helloworld -m "test"
-</span><span class="line">61f9527f368395ee228af07062b3f1a26fa7143ba2721c4f9755ae93d588358e
-</span><span class="line">
-</span><span class="line">zj@zheng-ji:~$ sudo docker push zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>下次pull 下来就可以使用了</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker pull zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<h3 id="section-3">可能遇到的坑</h3>
-
-<ul>
-  <li>需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">DOCKER_OPTS = "-dns 8.8.8.8"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>设置 ufw 端口可转发</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/ufw
-</span><span class="line">DEFAULT_FORWARD_POLICY = "ACCEPT"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-4">参考链接</h3>
-
-<ul>
-  <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
-  <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
-  <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
-</ul>
 
 ]]></content>
   </entry>

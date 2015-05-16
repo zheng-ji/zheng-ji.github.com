@@ -9,8 +9,11 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="什么是Unix Domain Socket
-基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率： &hellip;">
+  <meta name="description" content="纯真IP数据库 参考链接： 这个,这个,还有这个 以上文章写的很好了，我只是把我学习的过程记录下来，做知识积累。 做IP地址查询服务时，一定会听到QQ纯真数据库。当然你需要下载的。名为QQWry.Dat 结构
+QWry.dat文件在结构上分为3块：
++ 文件头
++ 记录区
++ 索引区。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +71,333 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/">纯真IP数据库读取</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-18T19:14:00+08:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>纯真IP数据库</p>
+
+<p>参考链接：</p>
+
+<p><a href="http://lumaqq.linuxsir.org/article/qqwry_format_detail.html">这个</a>,<a href="http://www.pythonclub.org/python-flies/chunzhen-ip-database">这个</a>,还有<a href="http://demon.tw/programming/python-qqwry-dat.html">这个</a></p>
+
+<p>以上文章写的很好了，我只是把我学习的过程记录下来，做知识积累。</p>
+
+<p>做IP地址查询服务时，一定会听到QQ纯真数据库。当然你需要下载的。名为QQWry.Dat</p>
+
+<p>结构
+QWry.dat文件在结构上分为3块：
++ 文件头
++ 记录区
++ 索引区。</p>
+
+<p>一般我们要查找IP时，先在索引区查找记录偏移，然后再到记录区读出信息。由于记录区的记录是不定长的，所以直接在记录区中搜索是不可能的。由于记录数比较多，如果我们遍历索引区也会是有点慢的，一般来说，我们可以用二分查找法搜索索引区，其速度比遍历索引区快若干数量级。
+纯真数据库内容结构</p>
+
+<ul>
+  <li>文件头：4字节开始索引偏移值+4字节结尾索引偏移值</li>
+  <li>记录区： 每条IP记录格式 ==&gt; IP地址[国家信息][地区信息]</li>
+</ul>
+
+<p>对于国家记录，可以有三种表示方式：
+* 字符串形式(IP记录第5字节不等于0×01和0×02的情况)，
+* 重定向模式1(第5字节为0×01),则接下来3字节为国家信息存储地的偏移值
+* 重定向模式(第5字节为0×02),</p>
+
+<p>对于地区记录，可以有两种表示方式： 字符串形式和重定向</p>
+
+<p>最后一条规则：重定向模式1的国家记录后不能跟地区记录</p>
+
+<p>索引区： 每条索引记录格式 ==&gt; 4字节起始IP地址 + 3字节指向IP记录的偏移值
+索引区的IP和它指向的记录区一条记录中的IP构成一个IP范围。查询信息是这个
+范围内IP的信息</p>
+
+<p>代码不是我写的，网上有很多版本。这里纯粹是为了学习。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+<span class="line-number">54</span>
+<span class="line-number">55</span>
+<span class="line-number">56</span>
+<span class="line-number">57</span>
+<span class="line-number">58</span>
+<span class="line-number">59</span>
+<span class="line-number">60</span>
+<span class="line-number">61</span>
+<span class="line-number">62</span>
+<span class="line-number">63</span>
+<span class="line-number">64</span>
+<span class="line-number">65</span>
+<span class="line-number">66</span>
+<span class="line-number">67</span>
+<span class="line-number">68</span>
+<span class="line-number">69</span>
+<span class="line-number">70</span>
+<span class="line-number">71</span>
+<span class="line-number">72</span>
+<span class="line-number">73</span>
+<span class="line-number">74</span>
+<span class="line-number">75</span>
+<span class="line-number">76</span>
+<span class="line-number">77</span>
+<span class="line-number">78</span>
+<span class="line-number">79</span>
+<span class="line-number">80</span>
+<span class="line-number">81</span>
+<span class="line-number">82</span>
+<span class="line-number">83</span>
+<span class="line-number">84</span>
+<span class="line-number">85</span>
+<span class="line-number">86</span>
+<span class="line-number">87</span>
+<span class="line-number">88</span>
+<span class="line-number">89</span>
+<span class="line-number">90</span>
+<span class="line-number">91</span>
+<span class="line-number">92</span>
+<span class="line-number">93</span>
+<span class="line-number">94</span>
+<span class="line-number">95</span>
+<span class="line-number">96</span>
+<span class="line-number">97</span>
+<span class="line-number">98</span>
+<span class="line-number">99</span>
+<span class="line-number">100</span>
+<span class="line-number">101</span>
+<span class="line-number">102</span>
+<span class="line-number">103</span>
+<span class="line-number">104</span>
+<span class="line-number">105</span>
+<span class="line-number">106</span>
+<span class="line-number">107</span>
+<span class="line-number">108</span>
+<span class="line-number">109</span>
+<span class="line-number">110</span>
+<span class="line-number">111</span>
+<span class="line-number">112</span>
+<span class="line-number">113</span>
+<span class="line-number">114</span>
+<span class="line-number">115</span>
+<span class="line-number">116</span>
+<span class="line-number">117</span>
+<span class="line-number">118</span>
+<span class="line-number">119</span>
+<span class="line-number">120</span>
+<span class="line-number">121</span>
+<span class="line-number">122</span>
+<span class="line-number">123</span>
+<span class="line-number">124</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/python</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">from</span> <span class="nn">struct</span> <span class="kn">import</span> <span class="o">*</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">string</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">ip2string</span><span class="p">(</span> <span class="n">ip</span> <span class="p">):</span>
+</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0xff000000</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span>
+</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x00ff0000</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span>
+</span><span class="line">    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x0000ff00</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span>
+</span><span class="line">    <span class="n">d</span> <span class="o">=</span> <span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x000000ff</span>
+</span><span class="line">    <span class="k">return</span> <span class="s">&quot;</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">string2ip</span><span class="p">(</span> <span class="nb">str</span> <span class="p">):</span>
+</span><span class="line">    <span class="n">ss</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="s">&#39;.&#39;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="il">0L</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ss</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ip</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">atoi</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">ip</span><span class="p">;</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">IpLocater</span> <span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span> <span class="bp">self</span><span class="p">,</span> <span class="n">ipdb_file</span> <span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span> <span class="n">ipdb_file</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span> <span class="p">)</span>
+</span><span class="line">        <span class="c"># get index address</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">8</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">last_index</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;II&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_index</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">)</span> <span class="o">/</span> <span class="mi">7</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">getString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
+</span><span class="line">             <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="n">ch</span><span class="p">)</span>
+</span><span class="line">        <span class="k">while</span> <span class="n">byte</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span class="line">            <span class="nb">str</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">+</span> <span class="n">ch</span>
+</span><span class="line">            <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="n">ch</span><span class="p">)</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">str</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">getLong3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;HB&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="k">return</span> <span class="p">(</span><span class="n">b</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">+</span> <span class="n">a</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">getAreaAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x01</span> <span class="ow">or</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">p</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">p</span> <span class="p">)</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="k">else</span><span class="p">:</span>
+</span><span class="line">             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">     <span class="k">def</span> <span class="nf">getAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="p">,</span><span class="n">ip</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+</span><span class="line">        <span class="n">countryAddr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="n">areaAddr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x01</span><span class="p">:</span>
+</span><span class="line">            <span class="n">countryOffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">countryOffset</span> <span class="p">)</span>
+</span><span class="line">            <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">b</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
+</span><span class="line">                <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span> <span class="p">)</span>
+</span><span class="line">                <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">countryOffset</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">)</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">countryOffset</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">()</span>
+</span><span class="line">        <span class="k">elif</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
+</span><span class="line">            <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">8</span> <span class="p">)</span>
+</span><span class="line">        <span class="k">else</span><span class="p">:</span>
+</span><span class="line">            <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">(</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">        <span class="k">return</span> <span class="n">countryAddr</span> <span class="o">+</span> <span class="s">&quot;/&quot;</span> <span class="o">+</span> <span class="n">areaAddr</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first</span> <span class="p">,</span><span class="n">last</span> <span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">last</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="p">:</span>
+</span><span class="line">            <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first</span><span class="p">,</span><span class="n">last</span><span class="p">):</span>
+</span><span class="line">            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">index</span> <span class="o">*</span> <span class="mi">7</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">7</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">of1</span><span class="p">,</span><span class="n">of2</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&quot;IHB&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">)</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAddr</span><span class="p">(</span> <span class="n">of1</span> <span class="o">+</span> <span class="p">(</span><span class="n">of2</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ip</span><span class="p">,</span><span class="n">left</span><span class="p">,</span><span class="n">right</span><span class="p">):</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">right</span><span class="o">-</span><span class="n">left</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span><span class="line">            <span class="k">return</span> <span class="n">left</span>
+</span><span class="line">        <span class="k">else</span><span class="p">:</span>
+</span><span class="line">            <span class="n">middle</span> <span class="o">=</span> <span class="p">(</span> <span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+</span><span class="line">            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">middle</span> <span class="o">*</span> <span class="mi">7</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
+</span><span class="line">            <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">4</span> <span class="p">)</span>
+</span><span class="line">            <span class="p">(</span><span class="n">new_ip</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&quot;I&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">)</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">ip</span> <span class="o">&lt;=</span> <span class="n">new_ip</span> <span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">middle</span> <span class="p">)</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span> <span class="n">middle</span><span class="p">,</span> <span class="n">right</span> <span class="p">)</span>
+</span><span class="line">
+</span><span class="line">     <span class="k">def</span> <span class="nf">getIpAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ip</span><span class="p">):</span>
+</span><span class="line">         <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">)</span>
+</span><span class="line">         <span class="n">ioffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">index</span> <span class="o">*</span> <span class="mi">7</span>
+</span><span class="line">         <span class="n">aoffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">(</span> <span class="n">ioffset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+</span><span class="line">         <span class="n">address</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAddr</span><span class="p">(</span> <span class="n">aoffset</span> <span class="p">)</span>
+</span><span class="line">         <span class="k">return</span> <span class="n">address</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span> <span class="p">:</span>
+</span><span class="line">    <span class="n">ip_locater</span> <span class="o">=</span> <span class="n">IpLocater</span><span class="p">(</span> <span class="s">&quot;QQWry.Dat&quot;</span> <span class="p">)</span>
+</span><span class="line">    <span class="n">ip_locater</span><span class="o">.</span><span class="n">output</span><span class="p">(</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">120</span> <span class="p">)</span>
+</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="s">&#39;59.64.234.174&#39;</span>
+</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="s">&#39;58.38.139.229&#39;</span>
+</span><span class="line">    <span class="n">address</span> <span class="o">=</span> <span class="n">ip_locater</span><span class="o">.</span><span class="n">getIpAddr</span><span class="p">(</span> <span class="n">string2ip</span><span class="p">(</span> <span class="n">ip</span> <span class="p">)</span> <span class="p">)</span>
+</span><span class="line">    <span class="k">print</span> <span class="s">&quot;the ip </span><span class="si">%s</span><span class="s"> come from </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">address</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1266,60 +1596,6 @@ Happy Hacking</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/12/zai-lu-shang/">在路上</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-02-12T14:00:00+08:00" pubdate data-updated="true">Feb 12<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/02/12/zai-lu-shang/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>过去的一年里，我很刻意在锻炼一些不足的东西，即便如今还是无法和很多我崇拜的朋友那样成熟，但还是深切感受到成长带有一些痛。</p>
-
-<p>大学的我读了计算机。生长环境的原因，到进入大学才真正接触电脑.不夸张的说，我只会开机。从小一直倔强且自觉的人，顿时感觉自己是个loser。但是我还是很努力的去上课，学习，模仿我的同学，那些我看起来很有“天赋”的人，每个独特的个体有不同的经历，就像有些人初中已经在玩Linux， 有的高中玩信息竞赛，真的有无比的羡慕。你可以想象那时候的我就是一个白痴，什么都不懂，所幸的是，我不放弃，于是在努力学习,厚脸皮的取经，跟上老师的步伐。别人花1个小时，好吧，那我就花10个小时。幸运的是我认识到一些很好的同学，他们之间有些人在我心中占有很重的分量。我是一个感恩的人，当我有能力，也会延续这份恩情，给予同样需要帮助的人。就这样我貌似很白痴地拿下了大学的第一个国家奖学金，但是我不开心，因为，我讨厌成为没有安全感，这种安全感是需要我有足够的编程能力来支撑。而那时的我，可能只是个课业任务完成的比较认真的学生。而对于计算机这样一个动手能力极强的学科，我深深觉得还远远不够。说实话很郁闷。我也觉得很奇怪，为什么一个在高中可以担任篮球队长，一个可以面对做口语翻译欣然接受的人会如此沉默寡言。以至于大家误解我太过低调,囧rz，人什么都可以改变的，当你知道你的路在什么地方的时候。</p>
-
-<p>这期间我养成了每天晚上环大学内环慢跑的习惯，这一坚持便是3年。起初的原因是想调节自己的情绪，后来也就成为一种习惯，庆幸的是，我没有像别人一样沉溺于恶习。纵然我相信天道酬勤，也因起步太慢和方法不对，迟迟找不到感觉，焦虑失望的心必然是存在的，跑步帮助我调节。于是我就找我认为厉害的朋友聊天，遗憾的是，站在高处的他们终究只是习惯了自己的思维，没有站在“弱势群体”的角度思考他们的痛。于是，郁闷还在继续，但我没有停下探索与步伐，这期间我还是在企望某个曙光的到临。那种只能意会不可言传的感觉。I hope Change Coming!</p>
-
-<p>大二下的时候和班里的几位同学组了一个团队“叫神马团队”，渐渐接受各种项目的锻炼，是的，聪明的你会发现这是一个契机，我觉得这是开启心智模式的一个序幕。我本着不懂就更要努力的心态，与团队一起在成长，后来我也成了队长。和一些优秀的人在一起能让你更加优秀，的确是的。我开始用了Vim ，学会了GoogleReader ,掌握了各种提高效率的工具（evernote…），开始无尽的折腾，各种系统，各种好玩的技术。也慢慢找到自己想要的方向，我无限迷恋Unix编程艺术。Geek的血液已经开始流淌于我的信仰里。努力变得有方向和满足感了。迷茫也还是有的。</p>
-
-<p>这期间广泛的阅读让我视野大开，CoolShell,Tinyfool,云风的blog，TimYang的后端日志，DBANote….各种我崇拜的人，他们关于技术学习，以及其他相关文章让我流连忘返。这是我希望成为的人。我也开始广泛的接触经典阅读，可以看看我的豆瓣阅读。我发现我找到了那道曙光，这次我继续坚持。大四的时候，我的成绩是2/280,说实话，从大三起我已经开始逃课了，去做各种自己喜欢的事情。我承认还是有很多东西现阶段理解不了，但也会选择性地接受，有机会继续深究，做有心人。是的， 我开始挑战各种各样的技术难题，自信上来了。点滴感悟之中，也就发现了只会技术远远不够。</p>
-
-<p>因为家里某些原因，我放弃保送上海交大，说出来真的需要勇气，我也知道很多人会对我不理解，当我敢于对别人云淡风轻的提起之时，这背后已经是多次失眠哈哈。看来内心需要修炼。我发现和我一起成长的那帮牛逼的高中同学，他们高等学历的身份多多少少让我感受到了压力，但既然选择，那就承担吧.像一个男人一样去面对。现在的我比学生生涯的任何时候都具有强烈的求职欲望和学习能力，我更加知道自己要成为什么样的人。不谦虚的说，我比以前任何时候那个考过全县第一名的我更要强大，心智模式的打开，在我看来才是教育最重要的目的，让我看到了思维的转变。很可悲的是还是有很多人没有找到这样的意识。感谢读计算机这专业以及一路上遇到的人，让我追求独立思考的精神。</p>
-
-<p>今天听了tiny4voice的一篇文章《如何自学和成长》，我发现有很强劲的共鸣。是的，人不应该限制自己，勇敢的去挑战各种可能。就像我曾经去摆地摊：） 我也慢慢发现如果以后有机会，一定要对那些后来人更加地友善，正如曾经帮助过我的人，生活中，有的人，认为他们已经懂的东西很习以为常，然后以站着说话不腰疼的感受，于是说出来的话就很打击这些很渴望进步的学习者的内心，直至现在，我一直被这样的人伤害过，还好我懂得如何提炼更有效的信息，自我判断，只是当你有一天也走到了他们的位置，对他们态度好一些，但如果能感性点会更好。同理心可以让这个如此残酷的世界变得有那么一点人情味。</p>
-
-<p>我希望接下来的日子里，与我的朋友们一起共勉，每一个看我博客的人，我知道你们会是谁，你们真的很棒，感恩与你们同在，无论怎样，开心是最佳选择 :-) 。听到一句话很想与大家分享
-&gt;岂能尽如人意，但求无愧于心，让我们把所有的不好叫做经历。 </p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1341,6 +1617,10 @@ Happy Hacking</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
@@ -1368,10 +1648,6 @@ Happy Hacking</p>
     
       <li class="post">
         <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a>
       </li>
     
   </ul>

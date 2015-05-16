@@ -5,12 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Mysql的一些配置 - 织网</title>
+  <title>织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="我想写一篇长期更新的文章，随着知识积累持续更新的文章，而最近遇到的在涉及的Mysql优化，便是一个可以琢磨的点，变量比较多，并且需要在每次采坑才来的深刻。 tmp_table_size
-这个是临时表的大小，与之对应的有 max_heap_size 单位是Byte, tmp_table_size &hellip;">
+  <meta name="description" content="服务端编程的挑战很美
+Socket编程的服务器模型类型: 循环服务器模型 并发服务器模型 IO复用服务器模型 循环服务器模型: 使用循环方法去逐个处理客户端连接和请求 并发服务器的简单模型:
+使用进程处理客户端的连接和请求 并发服务器的TCP分类: &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +20,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/page/8">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -66,12 +67,15 @@
 </nav>
   <div id="main">
     <div id="content">
-      <div>
-<article class="hentry" role="article">
+      <div class="blog-index">
   
+  
+  
+    <article>
+      
   <header>
     
-      <h1 class="entry-title">Mysql的一些配置</h1>
+      <h1 class="entry-title"><a href="/blog/2012/03/17/fu-wu-qi-she-ji-mo-xing/">服务器设计模型</a></h1>
     
     
       <p class="meta">
@@ -87,130 +91,64 @@
   
 
 
-<time datetime="2014-10-21T23:18:00+08:00" pubdate data-updated="true">Oct 21<span>st</span>, 2014</time>
+<time datetime="2012-03-17T20:37:00+08:00" pubdate data-updated="true">Mar 17<span>th</span>, 2012</time>
         
         
-          | <a href="#comments">Comments</a>
+          | <a href="/blog/2012/03/17/fu-wu-qi-she-ji-mo-xing/#comments">Comments</a>
         
       </p>
     
   </header>
 
 
-<div class="entry-content"><p>我想写一篇长期更新的文章，随着知识积累持续更新的文章，而最近遇到的在涉及的Mysql优化，便是一个可以琢磨的点，变量比较多，并且需要在每次采坑才来的深刻。</p>
+  <div class="entry-content"><blockquote>
+  <p>服务端编程的挑战很美
+Socket编程的服务器模型类型:</p>
+</blockquote>
 
 <ul>
-  <li>tmp_table_size
-这个是临时表的大小，与之对应的有 <code>max_heap_size</code> 单位是Byte, <code>tmp_table_size</code> 的大小关乎临时表的大小, 如果设置太小，会导致一些数据直接写入磁盘，比较蛋疼, 看了官方文档，涉及到<code>Dynamic Variable=Yes</code>
-那么这种配置便可以直接在终端用语句设置，并生效，不需要重启机器</li>
+  <li>循环服务器模型</li>
+  <li>并发服务器模型</li>
+  <li>
+    <p>IO复用服务器模型</p>
+  </li>
+  <li>
+    <p>循环服务器模型:
+ 使用循环方法去逐个处理客户端连接和请求</p>
+  </li>
+  <li>
+    <p>并发服务器的简单模型:
+使用进程处理客户端的连接和请求</p>
+  </li>
+  <li>并发服务器的TCP分类:</li>
 </ul>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set global tmp_table_size = 512 * 1024 *1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>使用了进程池或者线程池的进行客户端请求处理的框架和方法，并按照accept处理情况进行不同状态的划分
+*单客户端单进程，统一accept()
+*单客户端单进程，统一accept()
+*单客户端单线程，各线程独自accept(),使用互斥锁
+*并发服务模型使用IO复用:</p>
 
-<ul>
-  <li>max_connections
-当<code>show processlist</code> 发现有好多链接的时候，客户端想登陆mysql却失败。可以执行, 看看是不是现有的链接数已经逼近</li>
-</ul>
+<p>使用同一处理模块监视多个客户端链接并进行处理.在系统开始的时候，建立多个不同工作类型的处理单元，例如处理连接单元，处理业务单元等。在客户端来的时候，将客户端的连接放在一个状态池中，对所有客户端的连接状态在一个处理单元进行轮询处理，与前面并发服务器相比，客户端增加不会造成系统并行处理单元的增加，而处理能力与CPU和内存速度有直接关系</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show global variable like '%max%'
-</span><span class="line">set global max_connections 1000</span></code></pre></td></tr></table></div></figure></notextile></div>
-<ul>
-  <li>thread_concurrency</li>
-</ul>
+<p>上述所有模型都有Demo</p>
 
-<p>同一时间与性的线程设置，如果分配不当，会导致<code>mysql</code>不能充分使用多｀cpu｀, 出现同一时刻只有一个核在工作。
-<code>thread_concurrency</code> 应设为<code>CPU</code> 核数的2倍. 比如有一个双核的CPU, 那么<code>thread_concurrency</code>的应该为4; 2个双核的cpu, <code>thread_concurrency</code>的值应为8.</p>
-
-<ul>
-  <li>max_allowed_packet
-如果需要进行mysqldump这类操作，需要调大</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set global max_allowed_packet = 2*1024*1024*10</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>skip_slave_start
-配置文件中建议加上skip-slave-start，以免在不需要时候slave线程自己开始执行了</li>
-</ul>
+<p>代码在 <a href="https://github.com/zheng-ji/Server-Model">GitHub 上</a></p>
 </div>
-
-
-  <footer>
-    <p class="meta">
-      
   
-
-<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
-
-      
-
-
-
-
-
-
-
-
   
 
 
-<time datetime="2014-10-21T23:18:00+08:00" pubdate data-updated="true">Oct 21<span>st</span>, 2014</time>
-      
-
-<span class="categories">
+    </article>
   
-    <a class='category' href='/blog/categories/database/'>DataBase</a>
-  
-</span>
-
-
-    </p>
+  <div class="pagination">
     
-      <div class="sharing">
-  
-  
-  
-</div>
-
+    <a href="/blog/archives">Blog Archives</a>
     
-    <p class="meta">
-      
-        <a class="basic-alignment left" href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/" title="Previous Post: 内存都去哪儿啦">&laquo; 内存都去哪儿啦</a>
-      
-      
-        <a class="basic-alignment right" href="/blog/2014/10/23/mysql-unique-index/" title="Next Post: 唯一索引引发的思考">唯一索引引发的思考 &raquo;</a>
-      
-    </p>
-  </footer>
-</article>
-
-
-  <section>
-    <h1>Comments</h1>
-    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Mysql的一些配置"></div>
-<script type="text/javascript">
-    var duoshuoQuery = {short_name:"zhengji"};
-(function() {
- var ds = document.createElement('script');
- ds.type = 'text/javascript';ds.async = true;
- ds.src = 'http://static.duoshuo.com/embed.js';
- ds.charset = 'UTF-8';
- (document.getElementsByTagName('head')[0]
-  || document.getElementsByTagName('body')[0]).appendChild(ds);
- })();
-</script>
-<!-- Duoshuo Comment END -->
-
+    <a class="next" href="/blog/page/7/">Newer &rarr;</a>
+    
+  </div>
 </div>
-  </section>
-
-</div>
-
 <aside class="sidebar">
   
     <section>
@@ -264,7 +202,7 @@
         <a href="http://everet.org/">EverET</a>
     </span>
     <span>
-        <a href="http://www.kidsang.com/">Kid's Zone</a>
+        <a href="http://www.kidsang.com/">Kid&#8217;s Zone</a>
     </span>
     <span>
         <a href="http://blog.onlyice.net">onlyice</a>
@@ -299,7 +237,6 @@
 
   
 </aside>
-
 
     </div>
   </div>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-05-10T20:14:25+08:00</updated>
+  <updated>2015-05-17T00:39:55+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,73 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[搭建Postfix]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/"/>
+    <updated>2015-05-17T00:25:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix</id>
+    <content type="html"><![CDATA[<p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
+
+<h3 id="section">安装</h3>
+
+<p><code>
+sudo apt-get install postfix
+</code></p>
+
+<h3 id="section-1">配置</h3>
+
+<p>编辑 <code>/etc/postfix/main.cnf</code></p>
+
+<p><code>
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_use_tls=yes
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+myhostname = mail.zheng-ji.info 邮箱服务器域名
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+myorigin = $myhostname
+mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
+relay_domains = $mydestination
+inet_interfaces = all
+inet_protocols = all
+</code></p>
+
+<h3 id="section-2">授权</h3>
+
+<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
+
+<p><code>
+A 记录指向 1.2.3.4
+MX 记录也指向 1.2.3.4
+TXT 记录 v=spf1 ip4:1.2.3.4 ~all
+</code></p>
+
+<p>以上操作是防止被认为垃圾邮件。</p>
+
+<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
+编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
+
+<p><code>
+5.6.7.8  OK
+</code></p>
+
+<p>重启并授权生效</p>
+
+<p><code>
+sudo service postfix restart
+postmap access
+</code></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[nginx错误码]]></title>
@@ -319,64 +386,6 @@ iptables -t nat -A POSTROUTING -s 10.4.0.0/16 -j MASQUERADE
 <p><code>
 sudo ifdown eth0; sudo ifup eth0</code> 
 ServerB 就可以连接外网了。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[内存都去哪儿啦]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/10/13/nei-cun-du-qu-na-er-la/"/>
-    <updated>2014-10-13T21:20:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/10/13/nei-cun-du-qu-na-er-la</id>
-    <content type="html"><![CDATA[<h3 id="section">看到的现象</h3>
-
-<p>今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下
-<img src="/images/2014/10/top.png">
-但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。
-<img src="/images/2014/10/nestat.png">
-而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢，不可能一个8核16G的机器系统自己占用了4G吧?</p>
-
-<p>带着这个疑问，查阅了资料，发现其中并非表明所看到的这么简单. 我们来看以下 使用 <code>free -m</code> 命令
-<img src="/images/2014/10/free.png"></p>
-
-<h3 id="mem--">Mem 参数 解释</h3>
-<ul>
-  <li>total 内存总数: 15875 , total = used + free</li>
-  <li>used 已经使用的内存数: 11900</li>
-  <li>free 空闲的内存数: 3975</li>
-  <li>shared 当前已经废弃不用，总是0</li>
-  <li>buffers: Buffer Cache内存数: 145</li>
-  <li>cached: Page Cache内存数: 5561</li>
-</ul>
-
-<h3 id="bufferscache">-/+ buffers/cache的解惑</h3>
-<ul>
-  <li>-buffers/cache 的内存数: 6193 (大致等于第1行的 used - buffers - cached), 反映的是被程序实实在在吃掉的内存，</li>
-  <li>+buffers/cache 的内存数: 9682 (大致等于第1行的 free + buffers + cached), 反映的是可以挪用的内存总数</li>
-</ul>
-
-<h3 id="cache">两种cache</h3>
-<p>因为cpu速度明显快过内存， 为了提高磁盘存取效率, Linux做了一些精心的设计, 采取了两种主要Cache方式, 来做速度的过度, 这些Cache有效缩短了 I/O系统调用(如read,write,getdents)的时间。</p>
-
-<ul>
-  <li>Buffer Cache, 针对磁盘块的读写</li>
-  <li>Page Cache。针对文件inode的读写。</li>
-</ul>
-
-<h3 id="section-1">内存解读的区别</h3>
-
-<p>第1行<code>(mem)的used/free</code>与第2行<code>(-/+ buffers/cache) used/free</code>的区别在于角度的不同:</p>
-
-<ul>
-  <li>第一行因为对于OS，buffers/cached 都是属于被使用，所以他的可用内存是3975M,已用内存是11900MB,其中包括,内核（OS）使用 + 应用使用的+ buffers + cached.</li>
-  <li>第2行所指的是从应用程序角度来看，对于应用程序来说，buffers/cached 是可用的，是为了提高文件读取的性能而设，当应用程序要用到内存的时候，buffer/cached会很快地被回收。所以从应用程序的角度来说，</li>
-</ul>
-
-<p><code>
-可用内存=系统free memory + buffers + cached.
-</code>
-所以，回到话题开头，虽然内存显示用了12.2G，正在被应用程序使用的是7.9G 还有5.6(cache+buffer) +  4G free 可用.内存原来在这里！</p>
-
-<p>获益匪浅 :) </p>
 ]]></content>
   </entry>
   
