@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-05-17T00:39:55+08:00</updated>
+  <updated>2015-06-11T23:21:33+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,63 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[轻巧实时统计用户数]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/"/>
+    <updated>2015-06-11T23:14:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu</id>
+    <content type="html"><![CDATA[<h2 id="section">背景</h2>
+
+<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
+业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
+是时候要改造方案了。</p>
+
+<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
+
+<h2 id="section-1">两个方案的选择</h2>
+
+<ul>
+  <li>Plan A：</li>
+</ul>
+
+<p>将每天的 IP + UA 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
+但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UV</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
+
+<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
+
+<ul>
+  <li>Plan B:</li>
+</ul>
+
+<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">conn = redis()
+</span><span class="line">index = hash(UA+IP)
+</span><span class="line">key = "xxx_2015-05-10"
+</span><span class="line">conn.do('SETBIT', key, index, 1) # 将该hash值对应的位赋值为1
+</span><span class="line">
+</span><span class="line">realtime_uv = conn.do('BITCOUNT', key) # 得到实时的uv</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
+于是欣然选择 Plan B</p>
+
+<h2 id="section-2">一些链接</h2>
+
+<ul>
+  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
+  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
+  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[搭建Postfix]]></title>
@@ -1502,60 +1559,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
 <p>系统学习的书籍，感谢杨先生推荐 : )
 <a href="http://book.douban.com/subject/23008813/">高性能mysql</a></p>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[rsyslog 接收远程日志]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/"/>
-    <updated>2014-07-27T14:26:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi</id>
-    <content type="html"><![CDATA[<p>Rsyslog 接收远程日志</p>
-
-<p>需要开启运程模式, 以ubuntu为例子</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/rsyslog
-</span><span class="line">RSYSLOGD_OPTIONS="-c5 -r -x"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编写模板,文档中说到要在<code>rsyslog.conf</code>里面编辑</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/rsyslog.conf
-</span><span class="line">$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
-</span><span class="line">$template DynFile, "/data/log/%$year%%$month%%$day%/%$year%%$month%%$day%%$hour%.log"
-</span><span class="line">$template dotalogformat, "%msg%\n"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编写过滤规则, 修改 <code>/etc/rsysconf.d/your_business.conf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># 开通端口
-</span><span class="line">$ModLoad imtcp
-</span><span class="line">$InputTCPServerRun 1514
-</span><span class="line">
-</span><span class="line"># 过滤规则
-</span><span class="line">if $msg contains "xx" then ?DynFile;dotalogformat
-</span><span class="line">
-</span><span class="line"># 为了不让它写入syslog.log 而直接写入目标模板
-</span><span class="line">:msg, contains, "xx" ~</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>重启服务</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo service rsyslog start</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 ]]></content>
   </entry>

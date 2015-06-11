@@ -9,13 +9,9 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
-现在我们决定在 IP：1.2.3.4 的机器上部署Postfix服务，让它可以发邮件 安装 1
-sudo apt-get install postfix 配置 编辑 /etc/postfix/main.cnf 1
-2
-3
-4
-5 &hellip;">
+  <meta name="description" content="背景 最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
+业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
+是时候要改造方案了。 后来我用 IP+ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,6 +69,93 @@ sudo apt-get install postfix 配置 编辑 /etc/postfix/main.cnf 1
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-06-11T23:14:00+08:00" pubdate data-updated="true">Jun 11<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2 id="section">背景</h2>
+
+<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
+业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
+是时候要改造方案了。</p>
+
+<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
+
+<h2 id="section-1">两个方案的选择</h2>
+
+<ul>
+  <li>Plan A：</li>
+</ul>
+
+<p>将每天的 IP + UA 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
+但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UV</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
+
+<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
+
+<ul>
+  <li>Plan B:</li>
+</ul>
+
+<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">conn = redis()
+</span><span class="line">index = hash(UA+IP)
+</span><span class="line">key = "xxx_2015-05-10"
+</span><span class="line">conn.do('SETBIT', key, index, 1) # 将该hash值对应的位赋值为1
+</span><span class="line">
+</span><span class="line">realtime_uv = conn.do('BITCOUNT', key) # 得到实时的uv</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
+于是欣然选择 Plan B</p>
+
+<h2 id="section-2">一些链接</h2>
+
+<ul>
+  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
+  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
+  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1141,199 +1224,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/12/13/nginxcuo-wu-ma/">Nginx错误码</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-12-13T15:18:00+08:00" pubdate data-updated="true">Dec 13<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/12/13/nginxcuo-wu-ma/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在定位线上服务问题的时候，通常会去查看<code>Nginx</code> 的<code>error log</code></p>
-
-<p>那么 error 的定义, 对查找问题就显得很有帮助</p>
-
-<ul>
-  <li>upstream prematurely closed connection</li>
-</ul>
-
-<blockquote>
-  <p>请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
-</blockquote>
-
-<ul>
-  <li>recv() failed (104: Connection reset by peer) </li>
-</ul>
-
-<blockquote>
-  <p>服务器的并发连接数超过了其承载量，服务器会将其中一些连接Down掉；客户关掉了浏览器，而服务器还在给客户端发送数据;</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>用户在连接时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>用户在连接成功后读取数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while sending request to upstream </li>
-</ul>
-
-<blockquote>
-  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 连接后面的 upstream 时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应时超时 </p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应头时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx读取来自 upstream 的响应时超时</p>
-</blockquote>
-
-<ul>
-  <li>(104: Connection reset by peer) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream发送了 RST，将连接重置</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent invalid header while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent no valid HTTP/1.0 header while reading response header from upstream</li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>client intended to send too large body </li>
-</ul>
-
-<blockquote>
-  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client 发送的 body 超过了设置值</p>
-</blockquote>
-
-<ul>
-  <li>reopening logs </li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -USR1命令</p>
-</blockquote>
-
-<ul>
-  <li>gracefully shutting down</li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -WINCH命令</p>
-</blockquote>
-
-<ul>
-  <li>no live upstreams while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 下的 server 全都挂了</p>
-</blockquote>
-
-<ul>
-  <li>SSL_do_handshake() failed</li>
-</ul>
-
-<blockquote>
-  <p>SSL握手失败</p>
-</blockquote>
-
-<ul>
-  <li>ngx_slab_alloc() failed: no memory in SSL session shared cache</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache大小不够等原因造成</p>
-</blockquote>
-
-<ul>
-  <li>could not add new SSL session to the session cache while SSL handshaking</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache 大小不够等原因造成</p>
-</blockquote>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1353,6 +1243,10 @@ Kibana 是一个与之配套的 web 界面。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
@@ -1380,10 +1274,6 @@ Kibana 是一个与之配套的 web 界面。</p>
     
       <li class="post">
         <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
       </li>
     
   </ul>

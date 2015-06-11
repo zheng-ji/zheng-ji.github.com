@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="过去的一年里，我很刻意在锻炼一些不足的东西，即便如今还是无法和很多我崇拜的朋友那样成熟，但还是深切感受到成长带有一些痛。 大学的我读了计算机。生长环境的原因，到进入大学才真正接触电脑.不夸张的说，我只会开机。从小一直倔强且自觉的人，顿时感觉自己是个loser。但是我还是很努力的去上课，学习， &hellip;">
+  <meta name="description" content="写这篇文章的时候，参考链接，特此鸣谢 Why要开发Ngnix 模块： 对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang） Nginx 配置结构了解 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,139 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/">Nginx模块开发</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
+
+<h4 id="whyngnix-">Why要开发Ngnix 模块：</h4>
+
+<blockquote>
+  <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
+</blockquote>
+
+<h4 id="nginx-">Nginx 配置结构了解</h4>
+<p>Nginx的配置文件是以block的形式组织的，一个block通常使用大括号“{}”表示。block分为几个层级，整个配置文件为main层级，这 是最大的层级；在main层级下可以有event、http等层级，而http中又会有server block，server block中可以包含location block</p>
+
+<h4 id="nginx">Nginx模块工作原理概述</h4>
+<p>Nginx本身做的工作实际很少，当它接到一个HTTP请求时，它仅仅是通过查找配置文件将此次请求映射到一个location block，而此location中所配置的各个指令则会启动不同的模块去完成工作，因此模块可以看做Nginx真正的劳动工作者。通常一个 location中的指令会涉及一个handler模块和多个filter模块（当然，多个location可以复用同一个模块）。handler模块负 责处理请求，完成响应内容的生成，而filter模块对响应内容进行处理。因此Nginx模块开发分为handler开发和filter开发</p>
+
+<h4 id="nginx-1">展示一个简单的Nginx模块开发全过程</h4>
+<p>我们开发一个叫echo的handler模块，这个模块功能非常简单，它接收“echo”指令，指令可指定一个字符串参数，模块会输出这个字符串作为HTTP响应。例如，做如下配置：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
+</span><span class="line">    echo "hello nginx";
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<table>
+  <tbody>
+    <tr>
+      <td>首先我们需要一个结构用于存储从配置文件中读进来的相关指令参数，即模块配置信息结构。根据Nginx模块开发规则这个结构的命名规则为ngx_http<em>[module-name]</em>[main</td>
+      <td>srv</td>
+      <td>loc]_conf_t</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>实现这个功能需要三步：
++ 读入配置文件中echo指令及其参数；
++ 进行HTTP包装（添加HTTP头等工作）；
++ 将结果返回给客户端。</p>
+
+<h4 id="nginx-2">Nginx模块的安装</h4>
+<p>Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：</p>
+
+<ul>
+  <li>编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=模块完整名称
+</span><span class="line">HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
+</span><span class="line">NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>进入Nginx源代码，使用下面命令编译安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=安装目录 --add-module=模块源代码文件目录
+</span><span class="line">make
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=ngx_http_echo_module
+</span><span class="line">HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
+</span><span class="line">NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">编译安装命令为：</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
+</span><span class="line">make
+</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
+</span><span class="line">    echo "This is my first nginx module!!!";
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>然后用curl测试一下：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -i http://localhost/echo</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1308,91 +1441,6 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/22/zhe-teng-libevent/">折腾libevent</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-03-22T20:25:00+08:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/03/22/zhe-teng-libevent/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="libeven">好奇折腾libeven</h4>
-
-<p>原理介绍转自<a href="www.ibm.com/developerworks/cn/aix/library/au-libev/">IBM developworks</a></p>
-
-<p>处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。</p>
-
-<p>网络连接使用的主要方法如下：</p>
-
-<ul>
-  <li>循环：</li>
-</ul>
-
-<p>早期系统使用简单的循环选择解决方案，即循环遍历打开的网络连接的列表，判断是否有要读取的数据。这种方法既缓慢（尤其是随着连接数量增加越来越慢),又低效（因为在处理当前连接时其他连接可能正在发送请求并等待响应）。在系统循环遍历每个连接时，其他连接不得不等待。如果有100 个连接，其中只有一个有数据，那么仍然必须处理其他 99 个连接，才能轮到真正需要处理的连接。</p>
-
-<ul>
-  <li>poll、epoll 和变体：</li>
-</ul>
-
-<p>这是对循环方法的改进，它用一个结构保存要监视的每个连接的数组，当在网络套接字上发现数据时，通过回调机制调用处理函数。poll 的问题是这个结构会非常大，在列表中添加新的网络连接时，修改结构会增加负载并影响性能。
-选择：</p>
-
-<ul>
-  <li>select() 函数调用使用一个静态结构，它事先被硬编码为相当小的数量（1024 个连接），因此不适用于非常大的部署。</li>
-</ul>
-
-<p>上面的所有解决方案都用简单的循环等待并处理请求，然后把请求分派给另一个函数以处理实际的网络交互。关键在于循环和网络套接字需要大量管理代码，这样才能监听、更新和控制不同的连接和接口。</p>
-
-<p>libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。</p>
-
-<p>创建 libevent 服务器的基本方法是:
-1. 注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。
-2. 执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；
-3. 在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。
-流程：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">event_set() //函数创建新的事件结构
-</span><span class="line">event_add() //在事件队列机制中添加事件；
-</span><span class="line">event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>============Tips===============</p>
-
-<p>Tips:编译过程中需要 -levent
-Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1414,6 +1462,10 @@ Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/To
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
@@ -1441,10 +1493,6 @@ Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/To
     
       <li class="post">
         <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
       </li>
     
   </ul>

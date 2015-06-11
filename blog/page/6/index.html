@@ -9,11 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="纯真IP数据库 参考链接： 这个,这个,还有这个 以上文章写的很好了，我只是把我学习的过程记录下来，做知识积累。 做IP地址查询服务时，一定会听到QQ纯真数据库。当然你需要下载的。名为QQWry.Dat 结构
-QWry.dat文件在结构上分为3块：
-+ 文件头
-+ 记录区
-+ 索引区。 &hellip;">
+  <meta name="description" content="近日折腾Gearman.有兴趣可以参考阅读这个,这个，还有这个 官方说法： Gearman provides a generic application framework to farm out work to other machines or processes that are &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +67,168 @@ QWry.dat文件在结构上分为3块：
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/">分布式处理框架-Gearman</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-20T00:00:00+08:00" pubdate data-updated="true">Jun 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>近日折腾Gearman.有兴趣可以参考阅读<a href="http://www.gearman.org/">这个</a>,<a href="http://pythonhosted.org/gearman/">这个</a>，还有<a href="http://www.s135.com/dips/">这个</a></p>
+
+<p>官方说法：</p>
+
+<blockquote>
+  <p>Gearman provides a generic application framework to farm out work to other machines or processes that are better suited to do the work. It allows you to do work in parallel, to load balance processing, and to call functions between languages. It can be used in a variety of applications, from high-availability web sites to the transport of database replication events. In other words, it is the nervous system for how distributed processing communicates. </p>
+</blockquote>
+
+<p>Gearman是一个提供机器与进程之间相互协作的通信框架。可以让你并行处理作业以及负载均衡，提供不同的语言接口使得不同语言可以互相协作。用处很广泛，从web站点到数据库Replication事件。换句话说，是一个分布式的通讯框架</p>
+
+<h4 id="section">特点</h4>
+
+<ul>
+  <li>
+    <p>开源：
+  多语言支持：Gearman支持的语言种类非常丰富。让我们能够用一种语言来编写Worker程序，但是用另外一种语言编写Client程序。</p>
+  </li>
+  <li>
+    <p>灵活：不必拘泥于固定的形式。您可以采用你希望的任何形式，例如 Map/Reduce。</p>
+  </li>
+  <li>
+    <p>快速：Gearman的协议非常简单，并且有一个用C语言实现的，经过优化的服务器，保证应用的负载在非常低的水平。</p>
+  </li>
+  <li>
+    <p>可植入：因为Gearman非常小巧、灵活置入到现有的任何系统中。</p>
+  </li>
+  <li>
+    <p>无单点故障：Gearman可扩展系统，可以避免系统的失败。</p>
+  </li>
+</ul>
+
+<h4 id="section-1">场景</h4>
+<p>听上去很诱惑的样子了。试想下：
+我们的服务器有IO读写密集型，存储密集型，CPU使用不频繁，内存使用不频繁。如果我们能根据业务充分调动起各个服务器的特点。实现服务器的最大价值。Gearman可以登上舞台 ：）</p>
+
+<p>图解工作流
+<img src="/images/2013/08/gearman.png" /></p>
+
+<h4 id="gearman-">Gearman 有三个角色</h4>
+<ul>
+  <li>Job Server:中央调度，消息中心，负载均衡</li>
+  <li>Client：发起Job,可由任何语言编写</li>
+  <li>Worker：负责执行Job，执行业务流</li>
+</ul>
+
+<p>实操安装Gearman（以ubuntu为例子）,默认的端口4730</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>安装python-gearman</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install python-gearman</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用python编写
+worker代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#worker.py
+</span><span class="line">import os
+</span><span class="line">import gearman
+</span><span class="line">import math 
+</span><span class="line"> 
+</span><span class="line">class CustomGearmanWorker(gearman.GearmanWorker):
+</span><span class="line">   def on_job_execute(self, current_job):
+</span><span class="line">          return super(CustomGearmanWorker, self).on_job_execute(current_job)
+</span><span class="line">def task_callback(gearman_worker, job):
+</span><span class="line">    print job.data
+</span><span class="line">    return job.data + " has received" 
+</span><span class="line">                   
+</span><span class="line">new_worker = CustomGearmanWorker(['127.0.0.1:4730'])
+</span><span class="line">new_worker.register_task("ping", task_callback)
+</span><span class="line">new_worker.work()</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>client代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/env python2.7</span>
+</span><span class="line"><span class="c"># -*- coding: utf-8 -*-</span>
+</span><span class="line"><span class="c"># # file: client.py</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">gearman</span> <span class="kn">import</span> <span class="n">GearmanClient</span>
+</span><span class="line"><span class="n">new_client</span> <span class="o">=</span> <span class="n">GearmanClient</span><span class="p">([</span><span class="s">&#39;127.0.0.1:4730&#39;</span><span class="p">])</span>
+</span><span class="line"><span class="n">current_request</span> <span class="o">=</span> <span class="n">new_client</span><span class="o">.</span><span class="n">submit_job</span><span class="p">(</span><span class="s">&#39;ping&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">)</span>
+</span><span class="line"><span class="n">new_result</span> <span class="o">=</span> <span class="n">current_request</span><span class="o">.</span><span class="n">result</span>
+</span><span class="line"><span class="k">print</span> <span class="n">new_resul</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">foo</span> <span class="n">has</span> <span class="n">received</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用Go测试下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#gearman的Go库,内有example</span>
+</span><span class="line"><span class="n">go</span> <span class="n">get</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mikespook</span><span class="o">/</span><span class="n">gearman</span><span class="o">-</span><span class="n">go</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Happy Hacking!</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1463,139 +1621,6 @@ Happy Hacking</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/">Nginx模块开发</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
-
-<h4 id="whyngnix-">Why要开发Ngnix 模块：</h4>
-
-<blockquote>
-  <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
-</blockquote>
-
-<h4 id="nginx-">Nginx 配置结构了解</h4>
-<p>Nginx的配置文件是以block的形式组织的，一个block通常使用大括号“{}”表示。block分为几个层级，整个配置文件为main层级，这 是最大的层级；在main层级下可以有event、http等层级，而http中又会有server block，server block中可以包含location block</p>
-
-<h4 id="nginx">Nginx模块工作原理概述</h4>
-<p>Nginx本身做的工作实际很少，当它接到一个HTTP请求时，它仅仅是通过查找配置文件将此次请求映射到一个location block，而此location中所配置的各个指令则会启动不同的模块去完成工作，因此模块可以看做Nginx真正的劳动工作者。通常一个 location中的指令会涉及一个handler模块和多个filter模块（当然，多个location可以复用同一个模块）。handler模块负 责处理请求，完成响应内容的生成，而filter模块对响应内容进行处理。因此Nginx模块开发分为handler开发和filter开发</p>
-
-<h4 id="nginx-1">展示一个简单的Nginx模块开发全过程</h4>
-<p>我们开发一个叫echo的handler模块，这个模块功能非常简单，它接收“echo”指令，指令可指定一个字符串参数，模块会输出这个字符串作为HTTP响应。例如，做如下配置：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
-</span><span class="line">    echo "hello nginx";
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<table>
-  <tbody>
-    <tr>
-      <td>首先我们需要一个结构用于存储从配置文件中读进来的相关指令参数，即模块配置信息结构。根据Nginx模块开发规则这个结构的命名规则为ngx_http<em>[module-name]</em>[main</td>
-      <td>srv</td>
-      <td>loc]_conf_t</td>
-    </tr>
-  </tbody>
-</table>
-
-<p>实现这个功能需要三步：
-+ 读入配置文件中echo指令及其参数；
-+ 进行HTTP包装（添加HTTP头等工作）；
-+ 将结果返回给客户端。</p>
-
-<h4 id="nginx-2">Nginx模块的安装</h4>
-<p>Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：</p>
-
-<ul>
-  <li>编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=模块完整名称
-</span><span class="line">HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
-</span><span class="line">NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>进入Nginx源代码，使用下面命令编译安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=安装目录 --add-module=模块源代码文件目录
-</span><span class="line">make
-</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=ngx_http_echo_module
-</span><span class="line">HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
-</span><span class="line">NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="section">编译安装命令为：</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
-</span><span class="line">make
-</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
-</span><span class="line">    echo "This is my first nginx module!!!";
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>然后用curl测试一下：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -i http://localhost/echo</span></code></pre></td></tr></table></div></figure></notextile></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1617,6 +1642,10 @@ Happy Hacking</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
@@ -1644,10 +1673,6 @@ Happy Hacking</p>
     
       <li class="post">
         <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
       </li>
     
   </ul>

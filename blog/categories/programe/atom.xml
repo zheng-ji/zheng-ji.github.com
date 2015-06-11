@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-05-17T00:39:55+08:00</updated>
+  <updated>2015-06-11T23:21:46+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,59 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[轻巧实时统计用户数]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/"/>
+    <updated>2015-06-11T23:14:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu</id>
+    <content type="html"><![CDATA[<h2 id="section">背景</h2>
+
+<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
+业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
+是时候要改造方案了。</p>
+
+<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
+
+<h2 id="section-1">两个方案的选择</h2>
+
+<ul>
+  <li>Plan A：</li>
+</ul>
+
+<p>将每天的 IP + UA 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
+但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UV</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
+
+<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
+
+<ul>
+  <li>Plan B:</li>
+</ul>
+
+<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
+
+<p>```
+conn = redis()
+index = hash(UA+IP)
+key = “xxx_2015-05-10”
+conn.do(‘SETBIT’, key, index, 1) # 将该hash值对应的位赋值为1</p>
+
+<p>realtime_uv = conn.do(‘BITCOUNT’, key) # 得到实时的uv
+```</p>
+
+<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
+于是欣然选择 Plan B</p>
+
+<h2 id="section-2">一些链接</h2>
+
+<ul>
+  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
+  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
+  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[实现一个智能提示框功能]]></title>
@@ -22,7 +75,7 @@
 
 <p>先上图吧：</p>
 
-<p><img src="/images/2015/02/suggest.png"></p>
+<p>{% img /images/2015/02/suggest.png %}</p>
 
 <p>是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。</p>
 
@@ -38,7 +91,7 @@
 
 <h3 id="trie">讲一讲<code>trie</code>树吧</h3>
 
-<p><img src="/images/2015/02/triestruct.png"></p>
+<p>{% img /images/2015/02/triestruct.png %}</p>
 
 <ul>
   <li>根节点不包含字符，除根节点外的每一个子节点都包含一个字符。</li>
@@ -213,107 +266,6 @@ cd go/src
 </code></p>
 
 <p>开始检验, 执行 go , 出现一系列 Usage信息就算通过了 ：）。</p>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[ Expect 与系统自动交互]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu/"/>
-    <updated>2014-03-13T23:05:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu</id>
-    <content type="html"><![CDATA[<p>在<code>linux</code>下 做一些操作的时候，比如使用 <em>scp</em>, <em>telnet</em> 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。</p>
-
-<p>这个时候，你可以使用 <em>expect</em> 语言帮我们解决问题。</p>
-
-<h3 id="section">官方定义</h3>
-<blockquote>
-  <p>Expect是一个用来实现自动交互功能的软件套件 (Expect [is a] software suite for automating interactive tools)</p>
-</blockquote>
-
-<p>expect 是 <a href="http://en.wikipedia.org/wiki/Don_Libes">Don Libes</a> 编写的免费编程工具语言, 由expect-send对组成：</p>
-
-<p>expect等待输出中输出特定的字符，通常是一个提示符，然后发送特定的响应。</p>
-
-<hr />
-
-<p>先来个 helloworld, 注意需要在exp脚本前面加上 <code>#!/usr/bin/expect</code></p>
-
-<p><code>sh
-#!/usr/bin/expect
-send_user "hello world"
-</code></p>
-
-<p>这里的 send_user 类似 echo </p>
-
-<h3 id="section-1">常见用法</h3>
-
-<p><code>
-set i 0    
-set user [lindex $argv 0]
-set timeout 300
-set i 0
-while { $i &lt; 10 } {
-    puts $i;
-    incr i;
-}
-</code></p>
-
-<p>以上分别是:</p>
-
-<ul>
-  <li>将0赋值给变量i;</li>
-  <li>获取脚本的第一个参数给变量user;</li>
-  <li>设置超时时间是300秒</li>
-  <li>循环使用，不多说</li>
-</ul>
-
-<hr />
-
-<p>在 expect脚本中, 最亮点的是 spawn 会启动一个进程，由 expect 和 send 组合负责跟该进程交互, in short </p>
-
-<ul>
-  <li>expect捕获进程需要什么信息</li>
-  <li>send将这个信息发给进程</li>
-  <li>expect eof与spawn对应，表示捕获终端输出信息的终止，即进程已结束</li>
-  <li>expect都是使用 {}，且{, }使用时，前后需要留空格。 只要其中一项符合，就会执行该项，类似switch</li>
-</ul>
-
-<p>看完以下代码相信你就明白其魅力了 ：）</p>
-
-<p>```sh
-#!/usr/bin/expect</p>
-
-<p>set timeout 10
-set host [lindex $argv 0]
-set username [lindex $argv 1]
-set password [lindex $argv 2]</p>
-
-<p>spawn ssh $username@$host
-expect {
-    “(yes/no)?” {
-        send “yes\n”
-        expect “<em>assword:” { send “$password\n” }
-    }
-    “</em>assword:” {
-        send “$password\n”
-    }
-}</p>
-
-<p>expect “$”
-expect eof
-```</p>
-
-<p>使用时, 执行如下脚本命令.  其中<code>expect</code> 捕获到 “*assword:”, 发送 <code>$password</code> 变量,  捕获到<code>$</code>符号，表示登陆成功，结束 spawn 进程</p>
-
-<p><code>
-./autosh.exp xxx(ip地址) xxx(用户名) xxx(密码)
-</code></p>
-
-<hr />
-
-<p>感觉这样的脚本在自动化运维可以有很多运用之处, 至少让你可以在执行需要交互命令的时候跑去喝茶。
-Happy Hacking :-)</p>
 
 ]]></content>
   </entry>

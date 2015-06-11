@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>折腾 - 织网</title>
+  <title>轻巧实时统计用户数 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content=" 这天我被折腾疯了 开始博客迁移，从 http:innerbrilliant.sinaapp.com 迁移至 zheng-ji.info 文档式编程的感觉爽 ：） ">
+  <meta name="description" content="Redis bitset">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/04/02/zhe-teng">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">折腾</h1>
+      <h1 class="entry-title">轻巧实时统计用户数</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2013-04-02T13:53:00+08:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+<time datetime="2015-06-11T23:14:00+08:00" pubdate data-updated="true">Jun 11<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,13 +96,54 @@
   </header>
 
 
-<div class="entry-content"><p><img src="/images/2013/panda.jpg" /></p>
+<div class="entry-content"><h2 id="section">背景</h2>
 
-<p>这天我被折腾疯了</p>
+<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
+业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
+是时候要改造方案了。</p>
 
-<p>开始博客迁移，从 <a href="http:innerbrilliant.sinaapp.com">http:innerbrilliant.sinaapp.com</a> 迁移至 <a href="http://zheng-ji.info">zheng-ji.info</a></p>
+<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
 
-<p>文档式编程的感觉爽 ：）</p>
+<h2 id="section-1">两个方案的选择</h2>
+
+<ul>
+  <li>Plan A：</li>
+</ul>
+
+<p>将每天的 IP + UA 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
+但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UV</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
+
+<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
+
+<ul>
+  <li>Plan B:</li>
+</ul>
+
+<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">conn = redis()
+</span><span class="line">index = hash(UA+IP)
+</span><span class="line">key = "xxx_2015-05-10"
+</span><span class="line">conn.do('SETBIT', key, index, 1) # 将该hash值对应的位赋值为1
+</span><span class="line">
+</span><span class="line">realtime_uv = conn.do('BITCOUNT', key) # 得到实时的uv</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
+于是欣然选择 Plan B</p>
+
+<h2 id="section-2">一些链接</h2>
+
+<ul>
+  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
+  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
+  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
+</ul>
 
 </div>
 
@@ -126,12 +167,12 @@
   
 
 
-<time datetime="2013-04-02T13:53:00+08:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
+<time datetime="2015-06-11T23:14:00+08:00" pubdate data-updated="true">Jun 11<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/life/'>Life</a>
+    <a class='category' href='/blog/categories/programe/'>Programe</a>
   
 </span>
 
@@ -147,10 +188,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/02/17/redisshi-ge-hao-dong-xi/" title="Previous Post: Redis是个好东西">&laquo; Redis是个好东西</a>
+        <a class="basic-alignment left" href="/blog/2015/05/17/da-jian-postfix/" title="Previous Post: 搭建Postfix">&laquo; 搭建Postfix</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/" title="Next Post: 返回值的透彻理解">返回值的透彻理解 &raquo;</a>
       
     </p>
   </footer>
@@ -160,7 +199,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="折腾"></div>
+<div class="ds-thread" data-title="轻巧实时统计用户数"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
@@ -192,6 +231,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
       </li>
     
@@ -217,10 +260,6 @@
     
       <li class="post">
         <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
       </li>
     
   </ul>

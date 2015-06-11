@@ -9,9 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出tcpdump，遗憾的是我略懂皮毛，有必要深入一些。
-简单说下我常用的 TcpDump的方法 1
-tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候还是会忘记， &hellip;">
+  <meta name="description" content="在定位线上服务问题的时候，通常会去查看Nginx 的error log 那么 error 的定义, 对查找问题就显得很有帮助 upstream prematurely closed connection 请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +67,199 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/12/13/nginxcuo-wu-ma/">Nginx错误码</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-13T15:18:00+08:00" pubdate data-updated="true">Dec 13<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/12/13/nginxcuo-wu-ma/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在定位线上服务问题的时候，通常会去查看<code>Nginx</code> 的<code>error log</code></p>
+
+<p>那么 error 的定义, 对查找问题就显得很有帮助</p>
+
+<ul>
+  <li>upstream prematurely closed connection</li>
+</ul>
+
+<blockquote>
+  <p>请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
+</blockquote>
+
+<ul>
+  <li>recv() failed (104: Connection reset by peer) </li>
+</ul>
+
+<blockquote>
+  <p>服务器的并发连接数超过了其承载量，服务器会将其中一些连接Down掉；客户关掉了浏览器，而服务器还在给客户端发送数据;</p>
+</blockquote>
+
+<ul>
+  <li>(111: Connection refused) while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>用户在连接时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
+</blockquote>
+
+<ul>
+  <li>(111: Connection refused) while reading response header from upstream </li>
+</ul>
+
+<blockquote>
+  <p>用户在连接成功后读取数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
+</blockquote>
+
+<ul>
+  <li>(111: Connection refused) while sending request to upstream </li>
+</ul>
+
+<blockquote>
+  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx 连接后面的 upstream 时超时</p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while reading upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx 读取来自 upstream 的响应时超时 </p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while reading response header from upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx 读取来自 upstream 的响应头时超时</p>
+</blockquote>
+
+<ul>
+  <li>(110: Connection timed out) while reading upstream </li>
+</ul>
+
+<blockquote>
+  <p>nginx读取来自 upstream 的响应时超时</p>
+</blockquote>
+
+<ul>
+  <li>(104: Connection reset by peer) while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>upstream发送了 RST，将连接重置</p>
+</blockquote>
+
+<ul>
+  <li>upstream sent invalid header while reading response header from upstream </li>
+</ul>
+
+<blockquote>
+  <p>upstream 发送的响应头无效</p>
+</blockquote>
+
+<ul>
+  <li>upstream sent no valid HTTP/1.0 header while reading response header from upstream</li>
+</ul>
+
+<blockquote>
+  <p>upstream 发送的响应头无效</p>
+</blockquote>
+
+<ul>
+  <li>client intended to send too large body </li>
+</ul>
+
+<blockquote>
+  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client 发送的 body 超过了设置值</p>
+</blockquote>
+
+<ul>
+  <li>reopening logs </li>
+</ul>
+
+<blockquote>
+  <p>用户发送kill  -USR1命令</p>
+</blockquote>
+
+<ul>
+  <li>gracefully shutting down</li>
+</ul>
+
+<blockquote>
+  <p>用户发送kill  -WINCH命令</p>
+</blockquote>
+
+<ul>
+  <li>no live upstreams while connecting to upstream </li>
+</ul>
+
+<blockquote>
+  <p>upstream 下的 server 全都挂了</p>
+</blockquote>
+
+<ul>
+  <li>SSL_do_handshake() failed</li>
+</ul>
+
+<blockquote>
+  <p>SSL握手失败</p>
+</blockquote>
+
+<ul>
+  <li>ngx_slab_alloc() failed: no memory in SSL session shared cache</li>
+</ul>
+
+<blockquote>
+  <p>ssl_session_cache大小不够等原因造成</p>
+</blockquote>
+
+<ul>
+  <li>could not add new SSL session to the session cache while SSL handshaking</li>
+</ul>
+
+<blockquote>
+  <p>ssl_session_cache 大小不够等原因造成</p>
+</blockquote>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -873,90 +1064,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/">Rsyslog 接收远程日志</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-07-27T14:26:00+08:00" pubdate data-updated="true">Jul 27<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Rsyslog 接收远程日志</p>
-
-<p>需要开启运程模式, 以ubuntu为例子</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/rsyslog
-</span><span class="line">RSYSLOGD_OPTIONS="-c5 -r -x"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编写模板,文档中说到要在<code>rsyslog.conf</code>里面编辑</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/rsyslog.conf
-</span><span class="line">$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
-</span><span class="line">$template DynFile, "/data/log/%$year%%$month%%$day%/%$year%%$month%%$day%%$hour%.log"
-</span><span class="line">$template dotalogformat, "%msg%\n"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编写过滤规则, 修改 <code>/etc/rsysconf.d/your_business.conf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># 开通端口
-</span><span class="line">$ModLoad imtcp
-</span><span class="line">$InputTCPServerRun 1514
-</span><span class="line">
-</span><span class="line"># 过滤规则
-</span><span class="line">if $msg contains "xx" then ?DynFile;dotalogformat
-</span><span class="line">
-</span><span class="line"># 为了不让它写入syslog.log 而直接写入目标模板
-</span><span class="line">:msg, contains, "xx" ~</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>重启服务</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo service rsyslog start</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -978,6 +1085,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
@@ -1005,10 +1116,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a>
       </li>
     
   </ul>

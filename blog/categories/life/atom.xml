@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Life | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/life/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-05-17T00:39:55+08:00</updated>
+  <updated>2015-06-11T23:21:46+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -159,7 +159,7 @@
 <p>互联网就是老师，然后让你的手指历经一次又一次磨练。慢慢可以自如转换，不需要看指板。随之而来的有乐感，包括节拍。我听觉不敏锐，需要一个APP来调弦。</p>
 
 <p>上个刺激的图吧,3.4w RMB 一把，想想就好。有钱到那种地步可以考虑下.努力赚钱~~
-<img src="/images/2014/04/guitar.jpg"></p>
+{% img /images/2014/04/guitar.jpg %}</p>
 
 <hr />
 <p>一辈子找到你喜欢的东西，而且持续做下去是挺幸福的,</p>
@@ -182,7 +182,7 @@
     <id>http://zheng-ji.github.com/blog/2014/01/24/<<rework>>-shu-zhai</id>
     <content type="html"><![CDATA[<p>读到ReWork这本久负盛名的书了。摘录了鄙人认为深刻的话语。</p>
 
-<p><img src="/images/2014/01/rework.jpg"></p>
+<p>{% img /images/2014/01/rework.jpg %}</p>
 
 <p>很多话有道理，但是我们见到的只有很少人真的会去做，至少是去刻意克服惰性和思维方式.</p>
 
