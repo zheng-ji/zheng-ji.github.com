@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>半吊子运维 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="今日一台服务器挂了。有幸来到了中华广场的中捷机房。体验了网宿的生活，机房里机柜林立，管理森严（无数保安与监控）。关键是又冷又吵.此行目的给它重装了系统，写代码的人也能有机会做做半吊子运维了.携带了U盘是Ubuntu LTS 12.04的镜像 400 G的硬盘做了分区：
+在删除了原来的分区之后， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/01/30/ban-diao-zi-yun-wei">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">半吊子运维</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-30T13:52:00+08:00" pubdate data-updated="true">Jan 30<span>th</span>, 2013</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>今日一台服务器挂了。有幸来到了中华广场的中捷机房。体验了网宿的生活，机房里机柜林立，管理森严（无数保安与监控）。关键是又冷又吵.此行目的给它重装了系统，写代码的人也能有机会做做半吊子运维了.携带了U盘是Ubuntu LTS 12.04的镜像</p>
+
+<h4 id="g">400 G的硬盘做了分区：</h4>
+<p>在删除了原来的分区之后，建立了新的两个Primary分区，分别是
++ 挂载点/ 给了76G大小，文件系统的类型是ext4
++ /home 给了320G大小，文件系统的类型是ext4
++ swap 给了是4G（跟内存一致）的空间</p>
+
+<h4 id="section">配置源的修改并更新</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo vi /etc/apt/source.list
+</span><span class="line">sudo apt-get dist-upgrade</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>ssh 登录的端口号以及权限设置,安全很重要</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo vi /etc/ssh/sshd_config
+</span><span class="line">#更改端口号
+</span><span class="line">Port xxxx
+</span><span class="line">#修改
+</span><span class="line">PermitRoorLogin No</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>激活另一块网卡（主机有2个网卡）</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo vi /etc/network/interface
+</span><span class="line">iface eth1 inet static
+</span><span class="line">address 192.168.1.120
+</span><span class="line">netmask 255.255.255.0</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行命令 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ifup eth1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Linux系统性能调优,sysctl.conf的编辑</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">net.ipv4.ip_forward = 0
+</span><span class="line">net.ipv4.conf.default.rp_filter = 1
+</span><span class="line">net.ipv4.conf.default.accept_source_route = 0
+</span><span class="line">kernel.sysrq = 0
+</span><span class="line">kernel.core_uses_pid = 1
+</span><span class="line">kernel.shmmni = 4096
+</span><span class="line">kernel.sem = 250 32000 100 128
+</span><span class="line">fs.file-max = 6553600
+</span><span class="line">fs.nr_open = 5000000
+</span><span class="line">net.ipv4.tcp_syncookies = 1
+</span><span class="line">kernel.msgmnb = 65536
+</span><span class="line">kernel.msgmax = 65536
+</span><span class="line">kernel.shmmax = 68719476736
+</span><span class="line">kernel.shmall = 4294967296
+</span><span class="line">net.ipv4.tcp_max_tw_buckets = 200000
+</span><span class="line">net.ipv4.tcp_sack = 1
+</span><span class="line">net.ipv4.tcp_window_scaling = 1
+</span><span class="line">net.ipv4.tcp_rmem = 4096 87380 4194304
+</span><span class="line">net.ipv4.tcp_wmem = 4096 16384 4194304
+</span><span class="line">net.core.wmem_default = 8388608
+</span><span class="line">net.core.rmem_default = 8388608
+</span><span class="line">net.core.rmem_max = 16777216
+</span><span class="line">net.core.wmem_max = 16777216
+</span><span class="line">net.core.netdev_max_backlog = 300000
+</span><span class="line">net.core.somaxconn = 300000
+</span><span class="line">net.ipv4.tcp_max_orphans = 3276800
+</span><span class="line">net.ipv4.tcp_max_syn_backlog = 300000
+</span><span class="line">net.ipv4.tcp_timestamps = 1
+</span><span class="line">net.ipv4.tcp_synack_retries = 1
+</span><span class="line">net.ipv4.tcp_syn_retries = 1
+</span><span class="line">net.ipv4.tcp_tw_recycle = 1
+</span><span class="line">net.ipv4.tcp_tw_reuse = 1
+</span><span class="line">net.ipv4.tcp_mem = 94500000 915000000 927000000
+</span><span class="line">net.ipv4.tcp_fin_timeout = 1
+</span><span class="line">net.ipv4.tcp_keepalive_time = 30
+</span><span class="line">net.ipv4.ip_local_port_range = 1024 65000</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>使sysctl生效</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/sbin/sysctl -p
+</span><span class="line">/sbin/sysctl -w net.ipv4.route.flush=1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>修改NTP网络时间</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install ntp</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-30T13:52:00+08:00" pubdate data-updated="true">Jan 30<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/server/'>Server</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/12/29/gtalkji-qi-ren/" title="Previous Post: Gtalk机器人">&laquo; Gtalk机器人</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/02/12/zai-lu-shang/" title="Next Post: 在路上">在路上 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="半吊子运维"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/04/05/ansiblezi-dong-hua-jiao-ben-ji/">Ansible自动化脚本集</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+    <span>
+        <a href="http://loviselu.com">lovise</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
