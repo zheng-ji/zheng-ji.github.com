@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "跳表skiplist"
+title: "SkipList"
 date: 2014-02-01 10:21
 comments: true
 categories: Programe
-keywords: 跳表 
-description: 跳表skiplist介绍,leveldb
+keywords: skiplist
+description: skiplist, leveldb
 ---
 
 几个星期之前还和@huangSir 说起了Golang支持了这"B格高"的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意
@@ -78,9 +78,10 @@ skiplist* createSkiplist() {
 * 插入
 
 插入元素的时候元素所占有的层数完全是随机的，通过随机算法产生 需要三个步骤:
-1. 第一步需要查找到在每层待插入位置，
-2. 然后需要随机产生一个层数，
-3. 最后就是从高层至下插入.
+
+- 第一步需要查找到在每层待插入位置，
+- 然后需要随机产生一个层数，
+- 最后就是从高层至下插入.
 
 ```
 bool insert(skiplist *sl,int key,int value) {
@@ -179,7 +180,7 @@ int search(skiplist * sl, int key) {
 
 <h3>引用资料</h3>
 - [wikipedia](http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8) 
-- [skiplist讲解](http://dsqiu.iteye.com/blog/1705530)
+- [skiplist讲解](http://blog.csdn.net/ict2014/article/details/17394259)
 - [source code](https://github.com/zheng-ji/ToyCollection/skiplist)
 
 
