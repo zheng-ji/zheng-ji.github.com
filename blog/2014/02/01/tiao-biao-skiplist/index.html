@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>跳表skiplist - 织网</title>
+  <title>SkipList - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="跳表skiplist介绍,leveldb">
-  <meta name="keywords" content="跳表">
+  <meta name="description" content="skiplist, leveldb">
+  <meta name="keywords" content="skiplist">
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">跳表skiplist</h1>
+      <h1 class="entry-title">SkipList</h1>
     
     
       <p class="meta">
@@ -199,10 +199,13 @@
   <li>插入</li>
 </ul>
 
-<p>插入元素的时候元素所占有的层数完全是随机的，通过随机算法产生 需要三个步骤:
-1. 第一步需要查找到在每层待插入位置，
-2. 然后需要随机产生一个层数，
-3. 最后就是从高层至下插入.</p>
+<p>插入元素的时候元素所占有的层数完全是随机的，通过随机算法产生 需要三个步骤:</p>
+
+<ul>
+  <li>第一步需要查找到在每层待插入位置，</li>
+  <li>然后需要随机产生一个层数，</li>
+  <li>最后就是从高层至下插入.</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -378,7 +381,7 @@
 <h3>引用资料</h3>
 <ul>
   <li><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">wikipedia</a> </li>
-  <li><a href="http://dsqiu.iteye.com/blog/1705530">skiplist讲解</a></li>
+  <li><a href="http://blog.csdn.net/ict2014/article/details/17394259">skiplist讲解</a></li>
   <li><a href="https://github.com/zheng-ji/ToyCollection/skiplist">source code</a></li>
 </ul>
 
@@ -438,7 +441,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="跳表skiplist"></div>
+<div class="ds-thread" data-title="SkipList"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

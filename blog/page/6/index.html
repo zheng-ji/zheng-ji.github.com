@@ -235,333 +235,6 @@ worker代码</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/">纯真IP数据库读取</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-18T19:14:00+08:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/06/18/chun-zhen-ipshu-ju-ku-du-qu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>纯真IP数据库</p>
-
-<p>参考链接：</p>
-
-<p><a href="http://lumaqq.linuxsir.org/article/qqwry_format_detail.html">这个</a>,<a href="http://www.pythonclub.org/python-flies/chunzhen-ip-database">这个</a>,还有<a href="http://demon.tw/programming/python-qqwry-dat.html">这个</a></p>
-
-<p>以上文章写的很好了，我只是把我学习的过程记录下来，做知识积累。</p>
-
-<p>做IP地址查询服务时，一定会听到QQ纯真数据库。当然你需要下载的。名为QQWry.Dat</p>
-
-<p>结构
-QWry.dat文件在结构上分为3块：
-+ 文件头
-+ 记录区
-+ 索引区。</p>
-
-<p>一般我们要查找IP时，先在索引区查找记录偏移，然后再到记录区读出信息。由于记录区的记录是不定长的，所以直接在记录区中搜索是不可能的。由于记录数比较多，如果我们遍历索引区也会是有点慢的，一般来说，我们可以用二分查找法搜索索引区，其速度比遍历索引区快若干数量级。
-纯真数据库内容结构</p>
-
-<ul>
-  <li>文件头：4字节开始索引偏移值+4字节结尾索引偏移值</li>
-  <li>记录区： 每条IP记录格式 ==&gt; IP地址[国家信息][地区信息]</li>
-</ul>
-
-<p>对于国家记录，可以有三种表示方式：
-* 字符串形式(IP记录第5字节不等于0×01和0×02的情况)，
-* 重定向模式1(第5字节为0×01),则接下来3字节为国家信息存储地的偏移值
-* 重定向模式(第5字节为0×02),</p>
-
-<p>对于地区记录，可以有两种表示方式： 字符串形式和重定向</p>
-
-<p>最后一条规则：重定向模式1的国家记录后不能跟地区记录</p>
-
-<p>索引区： 每条索引记录格式 ==&gt; 4字节起始IP地址 + 3字节指向IP记录的偏移值
-索引区的IP和它指向的记录区一条记录中的IP构成一个IP范围。查询信息是这个
-范围内IP的信息</p>
-
-<p>代码不是我写的，网上有很多版本。这里纯粹是为了学习。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-<span class="line-number">37</span>
-<span class="line-number">38</span>
-<span class="line-number">39</span>
-<span class="line-number">40</span>
-<span class="line-number">41</span>
-<span class="line-number">42</span>
-<span class="line-number">43</span>
-<span class="line-number">44</span>
-<span class="line-number">45</span>
-<span class="line-number">46</span>
-<span class="line-number">47</span>
-<span class="line-number">48</span>
-<span class="line-number">49</span>
-<span class="line-number">50</span>
-<span class="line-number">51</span>
-<span class="line-number">52</span>
-<span class="line-number">53</span>
-<span class="line-number">54</span>
-<span class="line-number">55</span>
-<span class="line-number">56</span>
-<span class="line-number">57</span>
-<span class="line-number">58</span>
-<span class="line-number">59</span>
-<span class="line-number">60</span>
-<span class="line-number">61</span>
-<span class="line-number">62</span>
-<span class="line-number">63</span>
-<span class="line-number">64</span>
-<span class="line-number">65</span>
-<span class="line-number">66</span>
-<span class="line-number">67</span>
-<span class="line-number">68</span>
-<span class="line-number">69</span>
-<span class="line-number">70</span>
-<span class="line-number">71</span>
-<span class="line-number">72</span>
-<span class="line-number">73</span>
-<span class="line-number">74</span>
-<span class="line-number">75</span>
-<span class="line-number">76</span>
-<span class="line-number">77</span>
-<span class="line-number">78</span>
-<span class="line-number">79</span>
-<span class="line-number">80</span>
-<span class="line-number">81</span>
-<span class="line-number">82</span>
-<span class="line-number">83</span>
-<span class="line-number">84</span>
-<span class="line-number">85</span>
-<span class="line-number">86</span>
-<span class="line-number">87</span>
-<span class="line-number">88</span>
-<span class="line-number">89</span>
-<span class="line-number">90</span>
-<span class="line-number">91</span>
-<span class="line-number">92</span>
-<span class="line-number">93</span>
-<span class="line-number">94</span>
-<span class="line-number">95</span>
-<span class="line-number">96</span>
-<span class="line-number">97</span>
-<span class="line-number">98</span>
-<span class="line-number">99</span>
-<span class="line-number">100</span>
-<span class="line-number">101</span>
-<span class="line-number">102</span>
-<span class="line-number">103</span>
-<span class="line-number">104</span>
-<span class="line-number">105</span>
-<span class="line-number">106</span>
-<span class="line-number">107</span>
-<span class="line-number">108</span>
-<span class="line-number">109</span>
-<span class="line-number">110</span>
-<span class="line-number">111</span>
-<span class="line-number">112</span>
-<span class="line-number">113</span>
-<span class="line-number">114</span>
-<span class="line-number">115</span>
-<span class="line-number">116</span>
-<span class="line-number">117</span>
-<span class="line-number">118</span>
-<span class="line-number">119</span>
-<span class="line-number">120</span>
-<span class="line-number">121</span>
-<span class="line-number">122</span>
-<span class="line-number">123</span>
-<span class="line-number">124</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/python</span>
-</span><span class="line">
-</span><span class="line"><span class="kn">from</span> <span class="nn">struct</span> <span class="kn">import</span> <span class="o">*</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">string</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">ip2string</span><span class="p">(</span> <span class="n">ip</span> <span class="p">):</span>
-</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0xff000000</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">24</span>
-</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x00ff0000</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">16</span>
-</span><span class="line">    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x0000ff00</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span>
-</span><span class="line">    <span class="n">d</span> <span class="o">=</span> <span class="n">ip</span> <span class="o">&amp;</span> <span class="mh">0x000000ff</span>
-</span><span class="line">    <span class="k">return</span> <span class="s">&quot;</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">.</span><span class="si">%d</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">string2ip</span><span class="p">(</span> <span class="nb">str</span> <span class="p">):</span>
-</span><span class="line">    <span class="n">ss</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="s">&#39;.&#39;</span><span class="p">);</span>
-</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="il">0L</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ss</span><span class="p">:</span>
-</span><span class="line">        <span class="n">ip</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">atoi</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">ip</span><span class="p">;</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">IpLocater</span> <span class="p">:</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span> <span class="bp">self</span><span class="p">,</span> <span class="n">ipdb_file</span> <span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span> <span class="n">ipdb_file</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span> <span class="p">)</span>
-</span><span class="line">        <span class="c"># get index address</span>
-</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">8</span> <span class="p">)</span>
-</span><span class="line">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">last_index</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;II&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_index</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span><span class="p">)</span> <span class="o">/</span> <span class="mi">7</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">getString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
-</span><span class="line">             <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
-</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
-</span><span class="line">        <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
-</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="n">ch</span><span class="p">)</span>
-</span><span class="line">        <span class="k">while</span> <span class="n">byte</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span class="line">            <span class="nb">str</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">+</span> <span class="n">ch</span>
-</span><span class="line">            <span class="n">ch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
-</span><span class="line">            <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="n">ch</span><span class="p">)</span>
-</span><span class="line">        <span class="k">return</span> <span class="nb">str</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">getLong3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
-</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
-</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-</span><span class="line">        <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;HB&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
-</span><span class="line">        <span class="k">return</span> <span class="p">(</span><span class="n">b</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">+</span> <span class="n">a</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">getAreaAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">offset</span> <span class="p">:</span>
-</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
-</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
-</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x01</span> <span class="ow">or</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
-</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span>
-</span><span class="line">            <span class="k">if</span> <span class="n">p</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">p</span> <span class="p">)</span>
-</span><span class="line">            <span class="k">else</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="s">&quot;&quot;</span>
-</span><span class="line">        <span class="k">else</span><span class="p">:</span>
-</span><span class="line">             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
-</span><span class="line">
-</span><span class="line">     <span class="k">def</span> <span class="nf">getAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">offset</span> <span class="p">,</span><span class="n">ip</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
-</span><span class="line">        <span class="n">countryAddr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
-</span><span class="line">        <span class="n">areaAddr</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
-</span><span class="line">        <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
-</span><span class="line">        <span class="p">(</span><span class="n">byte</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x01</span><span class="p">:</span>
-</span><span class="line">            <span class="n">countryOffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span>
-</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">countryOffset</span> <span class="p">)</span>
-</span><span class="line">            <span class="nb">str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">1</span> <span class="p">)</span>
-</span><span class="line">            <span class="p">(</span><span class="n">b</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&#39;B&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
-</span><span class="line">            <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
-</span><span class="line">                <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span> <span class="p">)</span>
-</span><span class="line">                <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">countryOffset</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">)</span>
-</span><span class="line">            <span class="k">else</span><span class="p">:</span>
-</span><span class="line">                <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">countryOffset</span> <span class="p">)</span>
-</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">()</span>
-</span><span class="line">        <span class="k">elif</span> <span class="n">byte</span> <span class="o">==</span> <span class="mh">0x02</span><span class="p">:</span>
-</span><span class="line">            <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">()</span> <span class="p">)</span>
-</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">8</span> <span class="p">)</span>
-</span><span class="line">        <span class="k">else</span><span class="p">:</span>
-</span><span class="line">            <span class="n">countryAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getString</span><span class="p">(</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">)</span>
-</span><span class="line">            <span class="n">areaAddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAreaAddr</span><span class="p">(</span> <span class="p">)</span>
-</span><span class="line">
-</span><span class="line">        <span class="k">return</span> <span class="n">countryAddr</span> <span class="o">+</span> <span class="s">&quot;/&quot;</span> <span class="o">+</span> <span class="n">areaAddr</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first</span> <span class="p">,</span><span class="n">last</span> <span class="p">):</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">last</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="p">:</span>
-</span><span class="line">            <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_count</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first</span><span class="p">,</span><span class="n">last</span><span class="p">):</span>
-</span><span class="line">            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">index</span> <span class="o">*</span> <span class="mi">7</span>
-</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
-</span><span class="line">            <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">7</span> <span class="p">)</span>
-</span><span class="line">            <span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">of1</span><span class="p">,</span><span class="n">of2</span><span class="p">)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&quot;IHB&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">)</span>
-</span><span class="line">            <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAddr</span><span class="p">(</span> <span class="n">of1</span> <span class="o">+</span> <span class="p">(</span><span class="n">of2</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ip</span><span class="p">,</span><span class="n">left</span><span class="p">,</span><span class="n">right</span><span class="p">):</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">right</span><span class="o">-</span><span class="n">left</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-</span><span class="line">            <span class="k">return</span> <span class="n">left</span>
-</span><span class="line">        <span class="k">else</span><span class="p">:</span>
-</span><span class="line">            <span class="n">middle</span> <span class="o">=</span> <span class="p">(</span> <span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-</span><span class="line">            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">middle</span> <span class="o">*</span> <span class="mi">7</span>
-</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span> <span class="n">offset</span> <span class="p">)</span>
-</span><span class="line">            <span class="n">buf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipdb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span> <span class="mi">4</span> <span class="p">)</span>
-</span><span class="line">            <span class="p">(</span><span class="n">new_ip</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="s">&quot;I&quot;</span><span class="p">,</span><span class="n">buf</span><span class="p">)</span>
-</span><span class="line">            <span class="k">if</span> <span class="n">ip</span> <span class="o">&lt;=</span> <span class="n">new_ip</span> <span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">middle</span> <span class="p">)</span>
-</span><span class="line">            <span class="k">else</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span> <span class="n">middle</span><span class="p">,</span> <span class="n">right</span> <span class="p">)</span>
-</span><span class="line">
-</span><span class="line">     <span class="k">def</span> <span class="nf">getIpAddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ip</span><span class="p">):</span>
-</span><span class="line">         <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find</span><span class="p">(</span> <span class="n">ip</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">index_count</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">)</span>
-</span><span class="line">         <span class="n">ioffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_index</span> <span class="o">+</span> <span class="n">index</span> <span class="o">*</span> <span class="mi">7</span>
-</span><span class="line">         <span class="n">aoffset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getLong3</span><span class="p">(</span> <span class="n">ioffset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
-</span><span class="line">         <span class="n">address</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAddr</span><span class="p">(</span> <span class="n">aoffset</span> <span class="p">)</span>
-</span><span class="line">         <span class="k">return</span> <span class="n">address</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span> <span class="p">:</span>
-</span><span class="line">    <span class="n">ip_locater</span> <span class="o">=</span> <span class="n">IpLocater</span><span class="p">(</span> <span class="s">&quot;QQWry.Dat&quot;</span> <span class="p">)</span>
-</span><span class="line">    <span class="n">ip_locater</span><span class="o">.</span><span class="n">output</span><span class="p">(</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">120</span> <span class="p">)</span>
-</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="s">&#39;59.64.234.174&#39;</span>
-</span><span class="line">    <span class="n">ip</span> <span class="o">=</span> <span class="s">&#39;58.38.139.229&#39;</span>
-</span><span class="line">    <span class="n">address</span> <span class="o">=</span> <span class="n">ip_locater</span><span class="o">.</span><span class="n">getIpAddr</span><span class="p">(</span> <span class="n">string2ip</span><span class="p">(</span> <span class="n">ip</span> <span class="p">)</span> <span class="p">)</span>
-</span><span class="line">    <span class="k">print</span> <span class="s">&quot;the ip </span><span class="si">%s</span><span class="s"> come from </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span><span class="n">address</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
       <h1 class="entry-title"><a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/">Unix Domain Socket – IPC通信机制</a></h1>
     
     
@@ -1614,6 +1287,139 @@ MessagePack是一个基于二进制高效的对象序列化Library用于跨语�
 它可以像JSON那样，在许多种语言之间交换结构对象；但是它比JSON更快速也更轻巧。
 支持Python、Ruby、Java、C/C++、Javascript等众多语言。
 Happy Hacking</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/">Nginx模块开发</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
+
+<h4 id="whyngnix-">Why要开发Ngnix 模块：</h4>
+
+<blockquote>
+  <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
+</blockquote>
+
+<h4 id="nginx-">Nginx 配置结构了解</h4>
+<p>Nginx的配置文件是以block的形式组织的，一个block通常使用大括号“{}”表示。block分为几个层级，整个配置文件为main层级，这 是最大的层级；在main层级下可以有event、http等层级，而http中又会有server block，server block中可以包含location block</p>
+
+<h4 id="nginx">Nginx模块工作原理概述</h4>
+<p>Nginx本身做的工作实际很少，当它接到一个HTTP请求时，它仅仅是通过查找配置文件将此次请求映射到一个location block，而此location中所配置的各个指令则会启动不同的模块去完成工作，因此模块可以看做Nginx真正的劳动工作者。通常一个 location中的指令会涉及一个handler模块和多个filter模块（当然，多个location可以复用同一个模块）。handler模块负 责处理请求，完成响应内容的生成，而filter模块对响应内容进行处理。因此Nginx模块开发分为handler开发和filter开发</p>
+
+<h4 id="nginx-1">展示一个简单的Nginx模块开发全过程</h4>
+<p>我们开发一个叫echo的handler模块，这个模块功能非常简单，它接收“echo”指令，指令可指定一个字符串参数，模块会输出这个字符串作为HTTP响应。例如，做如下配置：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
+</span><span class="line">    echo "hello nginx";
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<table>
+  <tbody>
+    <tr>
+      <td>首先我们需要一个结构用于存储从配置文件中读进来的相关指令参数，即模块配置信息结构。根据Nginx模块开发规则这个结构的命名规则为ngx_http<em>[module-name]</em>[main</td>
+      <td>srv</td>
+      <td>loc]_conf_t</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>实现这个功能需要三步：
++ 读入配置文件中echo指令及其参数；
++ 进行HTTP包装（添加HTTP头等工作）；
++ 将结果返回给客户端。</p>
+
+<h4 id="nginx-2">Nginx模块的安装</h4>
+<p>Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：</p>
+
+<ul>
+  <li>编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=模块完整名称
+</span><span class="line">HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
+</span><span class="line">NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>进入Nginx源代码，使用下面命令编译安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=安装目录 --add-module=模块源代码文件目录
+</span><span class="line">make
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=ngx_http_echo_module
+</span><span class="line">HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
+</span><span class="line">NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">编译安装命令为：</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
+</span><span class="line">make
+</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
+</span><span class="line">    echo "This is my first nginx module!!!";
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>然后用curl测试一下：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -i http://localhost/echo</span></code></pre></td></tr></table></div></figure></notextile></div>
 </div>
   
   
