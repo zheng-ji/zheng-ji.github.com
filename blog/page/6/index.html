@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="近日折腾Gearman.有兴趣可以参考阅读这个,这个，还有这个 官方说法： Gearman provides a generic application framework to farm out work to other machines or processes that are &hellip;">
+  <meta name="description" content="今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些后端服务。当时用Go语言实现 源代码,使用的便是gozmq库.这个消息通信框架库的文章有很多，比较著名的当属一淘的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档 优点： 高度封装。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,70 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/29/hui-gu-zeromq/">回顾 ZeroMQ</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/29/hui-gu-zeromq/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些<a href="https://github.com/zheng-ji/log2aws">后端服务</a>。当时用Go语言实现 源代码,使用的便是<a href="https://github.com/alecthomas/gozmq">gozmq库</a>.这个消息通信框架库的文章有很多，比较著名的当属<a href="www.searchtb.com/2012/08/zeromq-primer.html">一淘</a>的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档</p>
+
+<h4 id="section">优点：</h4>
+<ul>
+  <li>
+    <p>高度封装。
+它处于会话层之上，应用层之下，你不需要自己写一行的socket函数调用就能完成复杂的网络通信工作。</p>
+  </li>
+  <li>
+    <p>点对点的消息传输上。
+传统的消息队列都需要一个消息服务器来存储转发消息。而ZeroMQ则把侧重点放在了点对点的消息传输上。ZeroMQ能缓存消息，但是是在发送端缓存。ZeroMQ里有水位设置的相关接口来控制缓存量。当然，ZeroMQ也支持传统的消息队列（通过zmq_device来实现）。这样使得客户端在重启的时候可以重新发送上次未发送成功的消息</p>
+  </li>
+  <li>
+    <p>灵活的收发模式。
+REQ-REP 请求响应模式，PUSH-PULL： 推拉模式， PUB-SUB： 发布订阅模式 等。 其中任何一方都可以作为服务端</p>
+  </li>
+  <li>
+    <p>以统一接口支持多种底层通信方式
+支持线程间通信，进程间通信，跨主机通信，假如你想把本机多进程的软件放到跨主机的环境里去执行，通常要将IPC接口用套接字重写一遍。非常麻烦。而有了ZeroMQ就方便多了，只要把通信协议从”ipc:///xxx”改为”tcp://<em>.</em>.<em>.</em>:<em>**</em>”就可以了，其他代码通通不需要改，如果这个是从配置文件里读的话，那么程序就完全不要动了，直接复制到其他机器上就可以了。</p>
+  </li>
+  <li>
+    <p>异步高效。
+ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模式，通过单独出一个IO线程来实现，要把资源释放函数交给ZeroMQ让ZeroMQ发完消息自己释放，所以消息发送调用之后不要立刻释放相关资源。</p>
+  </li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1294,139 +1358,6 @@ Happy Hacking</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/">Nginx模块开发</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
-
-<h4 id="whyngnix-">Why要开发Ngnix 模块：</h4>
-
-<blockquote>
-  <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
-</blockquote>
-
-<h4 id="nginx-">Nginx 配置结构了解</h4>
-<p>Nginx的配置文件是以block的形式组织的，一个block通常使用大括号“{}”表示。block分为几个层级，整个配置文件为main层级，这 是最大的层级；在main层级下可以有event、http等层级，而http中又会有server block，server block中可以包含location block</p>
-
-<h4 id="nginx">Nginx模块工作原理概述</h4>
-<p>Nginx本身做的工作实际很少，当它接到一个HTTP请求时，它仅仅是通过查找配置文件将此次请求映射到一个location block，而此location中所配置的各个指令则会启动不同的模块去完成工作，因此模块可以看做Nginx真正的劳动工作者。通常一个 location中的指令会涉及一个handler模块和多个filter模块（当然，多个location可以复用同一个模块）。handler模块负 责处理请求，完成响应内容的生成，而filter模块对响应内容进行处理。因此Nginx模块开发分为handler开发和filter开发</p>
-
-<h4 id="nginx-1">展示一个简单的Nginx模块开发全过程</h4>
-<p>我们开发一个叫echo的handler模块，这个模块功能非常简单，它接收“echo”指令，指令可指定一个字符串参数，模块会输出这个字符串作为HTTP响应。例如，做如下配置：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
-</span><span class="line">    echo "hello nginx";
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<table>
-  <tbody>
-    <tr>
-      <td>首先我们需要一个结构用于存储从配置文件中读进来的相关指令参数，即模块配置信息结构。根据Nginx模块开发规则这个结构的命名规则为ngx_http<em>[module-name]</em>[main</td>
-      <td>srv</td>
-      <td>loc]_conf_t</td>
-    </tr>
-  </tbody>
-</table>
-
-<p>实现这个功能需要三步：
-+ 读入配置文件中echo指令及其参数；
-+ 进行HTTP包装（添加HTTP头等工作）；
-+ 将结果返回给客户端。</p>
-
-<h4 id="nginx-2">Nginx模块的安装</h4>
-<p>Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：</p>
-
-<ul>
-  <li>编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=模块完整名称
-</span><span class="line">HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
-</span><span class="line">NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>进入Nginx源代码，使用下面命令编译安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=安装目录 --add-module=模块源代码文件目录
-</span><span class="line">make
-</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=ngx_http_echo_module
-</span><span class="line">HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
-</span><span class="line">NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="section">编译安装命令为：</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
-</span><span class="line">make
-</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
-</span><span class="line">    echo "This is my first nginx module!!!";
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>然后用curl测试一下：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -i http://localhost/echo</span></code></pre></td></tr></table></div></figure></notextile></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1448,6 +1379,10 @@ Happy Hacking</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
@@ -1475,10 +1410,6 @@ Happy Hacking</p>
     
       <li class="post">
         <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/03/haproxy-plus-mysql/">haproxy - MySQl 的负载均衡</a>
       </li>
     
   </ul>

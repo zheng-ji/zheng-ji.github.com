@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-06-24T08:28:52+08:00</updated>
+  <updated>2015-07-12T09:01:43+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,170 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[my.cnf配置依据]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/"/>
+    <updated>2015-07-12T08:35:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju</id>
+    <content type="html"><![CDATA[<p>阅读完<a href="http://book.douban.com/subject/6873681/">构建高性能服务器</a> 一书，书中对 <code>MySQL</code> 配置做了讲解，我用烂笔头记录一番，明白它们这么配置的真正意义，形成系统的认知。</p>
+
+<ul>
+  <li><a href="#第一节">通用配置</a></li>
+  <li><a href="#第二节">innodb_pool_buffer 合理配置</a></li>
+  <li><a href="#第三节">文件打开数的合理设置</a></li>
+  <li><a href="#第四节">打开表优化设置</a></li>
+  <li><a href="#第五节">临时表的设置</a></li>
+  <li><a href="#第六节">查看索引命中率</a></li>
+</ul>
+
+<h3 id="第一节">通用配置</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">skip-name-resolve:</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>禁止 MySQL 对外连接 DNS 解析 ,这一选项可以消除 MySQL 进行DNS解析时间，开启该选项，所有远程主机连接授权都要使用 IP。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">back_log=512</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>指出在 MySQL 暂停响应之前，有多少个请求被存在堆栈中。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">key_buffer_size</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>指定用于索引的缓冲区大小，增加它可得到更好的索引处理能力，对于内存 4G 左右，可设置为 256MB。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">max_allowed_packet=4M</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>设定在一次网络传输中的最大值。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">thread_stack=256k</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>设置每个线程的堆栈大小，可满足普通操作。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">table_cache=614k</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>高速缓冲区的大小，当mysql访问一个表示，缓冲区还有空间，那么这个表就会被放入缓冲区，一般看峰值时间状态值，open_tables与open_cache，用于判断是否需要增加table_cache，如果open_Table接近table_cache就要增加了。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sort_buffer_size=6M</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>设定查询排序所用的缓冲区大小，是对每个链接而言，如果有100个连接，那么分配的总缓存是100*6=600M。
+read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">thread_cache_size=64</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>设置缓存中的链接线程的最大数量,4GB内存以上的我们会给64或者更大。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">query_cache_size=64M</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果该值比较小反而会影响效率，可以考虑不用。如果太大，缓存区中碎片会很多。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">tmp_table_size</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>设置内存临时表的最大值，如果超过改制，就会将临时表写入磁盘，范围是1kB-4GB。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">max_connection</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果超过该值，会出现<code>too many connections</code>。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">max_connect_errors</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>设置每个主机中连接请求异常中断最大次数，如果超过，MySQL禁止host连接请求，直到MySQL重启。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">wait_timeout = 120</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>一个请求的最大链接时间。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">thread_concurrency=8</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>该参数为服务器逻辑CPU * 2。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">skip-networking</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>该选项可以关闭连接方式，如果需要远程连接，不要开启。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">innodb_flush_log_at_trx_commit = 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>设置为0就是等到 innodb_log_buffer_size 队列满了之后再统一存储，默认是1，是最安全的设置。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">innodb_thread_concurrency = 8</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>服务器几个CPU就设置多少。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">read_rnd_buffer_Size = 16M</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>设置随机读的使用的缓冲区。</p>
+
+<h3 id="第二节">innodb_buffer_pool 的合理设置</h3>
+
+<p>不要武断的把innodb_buffer pool 配置为内存的50-80% 应具体而定。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show status like 'innodb_buffer_pool_%'
+</span><span class="line">
+</span><span class="line">关注的有
+</span><span class="line">innodb_buffer_pool_pages_data;
+</span><span class="line">innodb_buffer_pool_page_total;
+</span><span class="line">innodb_buffer_pool_read_request;
+</span><span class="line">innodb_buffer_pool_reads;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>然后看</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">读命中率 (innodb_buffer_pool_read_request - innodb_buffer_pool_reads) / innodb_buffer_pool_read_request;
+</span><span class="line">写命中率 innodb_buffer_pool_pages_data /innodb_buffer_pool_page_total;</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>如果读写命中率都能在95%以上就很好了。</p>
+
+<h3 id="第三节">文件打开数的合理设置依据</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'open_files'
+</span><span class="line">show variables like 'open_file_limit';</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>比较合适的设置是 Open_files / open_files_limit * 100% &lt;= 75;</p>
+
+<h3 id="第四节">打开表优化设置依据</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'open%tables';
+</span><span class="line">show variable like 'table_cache';</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>比较合适</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">open_tables / opende_tables * 100 &gt; 85%;
+</span><span class="line">open_Tables / table_Cache* 100% &lt; 95%；</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第五节">临时表的设置依据</h3>
+
+<p>每次执行语句，关于已经被创造了的临时表的数量，可以这么设置:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show gloabl status like 'created_tmp5';
+</span><span class="line">Created_tmp_disk_table / Created_tmp_tables * 100% &lt;= 25 %</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第六节">查看索引命中率</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'key_read%';</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>key_cache_miss_rate = key_Read / key_read_request * 100% 小于 1% 是很好的，
+意味着1000个请求有一个直接读硬盘。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[轻巧实时统计用户数]]></title>
@@ -1447,119 +1611,6 @@ ServerB 就可以连接外网了。</p>
 </span><span class="line">slave-read-only yes # 只读</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>这样就开始备份了。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Percona Server 做主从]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/09/07/percona-server-zuo-zhu-cong/"/>
-    <updated>2014-09-07T15:31:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/09/07/percona-server-zuo-zhu-cong</id>
-    <content type="html"><![CDATA[<p>数据库做主从，这个过程是需要很耐心的。</p>
-
-<p>数据库做主从目的:</p>
-
-<ul>
-  <li>故障恢复， 柔性可用</li>
-  <li>也可以做读写分离</li>
-</ul>
-
-<p>实验过程中 mysql 用的版本是 Percona Server ，</p>
-
-<p><a href="http://www.percona.com/doc/percona-server/5.5/installation/apt_repo.html">安装过程</a></p>
-
-<p>由于修改默认的数据目录，数据文件不再使用 <code>/var/lib/mysql</code>,数据文件夹被我安放位置是 <code>/data/mysql/data</code> 同时log 目录也放在这里 <code>/data/mysql/log</code> 
-注意需要修改目录属主</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo chown mysql:mysql  -R /data/mysql
-</span><span class="line">然后执行 sudo mysql_install_db </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这时候会发生 <code>sudo service mysql stop</code> 失败，原因和方法见此 <a href="http://serverfault.com/questions/32692/cant-start-stop-mysql-service/420222#420222">神贴</a></p>
-
-<p>好了开始进入正题了，备份数据的原理</p>
-
-<ul>
-  <li>在主库上把数据更改记录到二进制日志 (Binary Log) </li>
-  <li>备库将主库的日志复制到自己的中继日志中</li>
-  <li>备库读取中继日志的事件，将其重放到备库的数据之上</li>
-</ul>
-
-<p>从其他服务器克隆备库的方法：</p>
-
-<ul>
-  <li>使用冷备份：关闭主库，将数据复制到备库，重启主库后，会使用一个新的二进制日志文件，在备库执行 CHANGE MASTER TO 指向这个文件的起始处，缺陷在于关闭主库</li>
-  <li>使用热备份，如果仅使用，mysqlhotcopy,或rsync来复制数据</li>
-  <li>使用快照或备份：需要知道二进制日志坐标，就可以使用主库的快照和备份来初始化备库，只需要把备份或快照恢复到备库，然后使用 CHANGE MASTER TO 指定二进制日志的坐标.</li>
-  <li>用<code>Percona Xtrabackup</code>  个人推荐  <a href="http://www.percona.com/doc/percona-xtrabackup/2.1/howtos/setting_up_replication.html">链接</a></li>
-</ul>
-
-<p>======= 实际的步骤如下 ====</p>
-
-<ul>
-  <li>备份主库的数据</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">innobackupex --user=root --password=xxx /home/zj/backup</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>在/home/zj/backup目录下就生成了2014-08-21_10-11-4` 目录</p>
-
-<ul>
-  <li>复制数据到从库，通过<code>scp</code>将上一步生成的目录放置在从库机器(~/tmp`)将原来的data目录备份, 在从库机器执行</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mv /data/mysql/data /data/mysql/data_bak
-</span><span class="line">mv ~/tmp/2014-08-21_10-11-46  /data/mysql/data
-</span><span class="line">chown mysql:mysql -R /data/mysql/data</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>配置主服务器</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">GRANT REPLICATION SLAVE ON *.*  TO 'repl'@'$slaveip' IDENTIFIED BY ''slavepass</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>配置从数据库,并重启</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">server-id=2</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>开始复制</li>
-</ul>
-
-<p>需要定位位置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cat /data/mysql/data/xtrabackup_binlog_info
-</span><span class="line">log-bin.000001     481</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>在从库执行 </li>
-</ul>
-
-<p><code>
-mysql&gt; CHANGE MASTER TO MASTER_HOST='$masterip',
-       MASTER_USER='repl',
-       MASTER_PASSWORD='$slavepass',
-       MASTER_LOG_FILE='log-bin.000001',
-       MASTER_LOG_POS=481;
-mysql&gt; START SLAVE;
-mysql&gt; SHOW SLAVE STATUS \G
-</code></p>
-
-<hr />
-
-<p>系统学习的书籍，感谢杨先生推荐 : )
-<a href="http://book.douban.com/subject/23008813/">高性能mysql</a></p>
-
 ]]></content>
   </entry>
   
