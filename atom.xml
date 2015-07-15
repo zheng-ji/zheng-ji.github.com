@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-07-16T00:44:13+08:00</updated>
+  <updated>2015-07-16T00:45:40+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -1570,7 +1570,7 @@ ServerB 就可以连接外网了。</p>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[redis热备]]></title>
+    <title type="html"><![CDATA[redis 主从平滑切换]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/10/04/redisre-bei/"/>
     <updated>2014-10-04T22:28:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/10/04/redisre-bei</id>
