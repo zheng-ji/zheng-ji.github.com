@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-07-16T00:45:40+08:00</updated>
+  <updated>2015-07-24T23:17:30+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,28 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[记录错误登陆的btmp文件]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/"/>
+    <updated>2015-07-24T23:06:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian</id>
+    <content type="html"><![CDATA[<p>今天查看了服务器时，发现 <code>/var/log/btmp</code> 日志文件较大。</p>
+
+<p>此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
+这个文件是需要用 <code>lastab</code> 命令才可读的。</p>
+
+<p>查看尝试恶意登陆的前十个IP</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo lastb | awk '{ print $3}' | awk '{++S[$NF]} END {for(a in S) print a, S[a]}' | sort -rk2 |head</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果有有必要封阻IP的话，可以执行：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">iptables -A INPUT -i eth0 -s *.*.*.0/24 -j DROP</span></code></pre></td></tr></table></div></figure></notextile></div>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[my.cnf配置依据]]></title>
@@ -1566,43 +1588,6 @@ ServerB 就可以连接外网了。</p>
 <p>所以，回到话题开头，虽然内存显示用了12.2G，正在被应用程序使用的是7.9G 还有5.6(cache+buffer) +  4G free 可用.内存原来在这里！</p>
 
 <p>获益匪浅 :) </p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[redis 主从平滑切换]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/10/04/redisre-bei/"/>
-    <updated>2014-10-04T22:28:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/10/04/redisre-bei</id>
-    <content type="html"><![CDATA[<p>业务原来所在的Redis需要做迁移，感谢Redis，主从切换不算太复杂。
-为了可以更好地阐述过程，我们定义了：</p>
-
-<ul>
-  <li>A 服务器，原来拥有 redis 数据库的机器</li>
-  <li>B 服务器，未来取代 A 服务器的 redis 数据库服务器</li>
-</ul>
-
-<h2 id="section">主从同步</h2>
-
-<p>把 B 服务器的 redis 配置更改为:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">slaveof  IP地址 端口</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就开始同步了，并且只读了。接下来准备把 B 服务器提升为 master,</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">redis-in-b-host&gt; slaveof no one</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>B服务器就断掉主从同步，提升为主，并行可读写</p>
-
-<h2 id="tips">Tips;</h2>
-
-<p>我们在停止服务的5分钟，在 A 的命令行，执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">bgsave</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>使得内存里的数据，完整地保存于 dumps.rdb</p>
 ]]></content>
   </entry>
   

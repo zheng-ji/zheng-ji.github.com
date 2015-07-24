@@ -9,8 +9,9 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="阅读完构建高性能服务器 一书，书中对 MySQL 配置做了讲解，我用烂笔头记录一番，明白它们这么配置的真正意义，形成系统的认知。 通用配置 innodb_pool_buffer 合理配置 文件打开数的合理设置 打开表优化设置 临时表的设置 查看索引命中率 通用配置 1
-skip-name- &hellip;">
+  <meta name="description" content="今天查看了服务器时，发现 /var/log/btmp 日志文件较大。 此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
+这个文件是需要用 lastab 命令才可读的。 查看尝试恶意登陆的前十个IP 1
+sudo lastb | awk '{ print $3}' | &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +69,58 @@ skip-name- &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的btmp文件</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-07-24T23:06:00+08:00" pubdate data-updated="true">Jul 24<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天查看了服务器时，发现 <code>/var/log/btmp</code> 日志文件较大。</p>
+
+<p>此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
+这个文件是需要用 <code>lastab</code> 命令才可读的。</p>
+
+<p>查看尝试恶意登陆的前十个IP</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo lastb | awk '{ print $3}' | awk '{++S[$NF]} END {for(a in S) print a, S[a]}' | sort -rk2 |head</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果有有必要封阻IP的话，可以执行：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">iptables -A INPUT -i eth0 -s *.*.*.0/24 -j DROP</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1176,155 +1229,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/">搭建elasticsearch与kibana</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-01-31T12:52:00+08:00" pubdate data-updated="true">Jan 31<span>st</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
-Kibana 是一个与之配套的 web 界面。</p>
-
-<h3 id="section">安装所需的：</h3>
-
-<ul>
-  <li>需要openJDK</li>
-  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">elasticsearch-1.4.2.deb</a></li>
-  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">kibana-4.0.0-beta3.tar.gz</a></li>
-</ul>
-
-<h3 id="section-1">配置相关</h3>
-<p>启动 elasticsearch 方式如下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo service elasticsearch restart</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>我是使用 <a href="http://wiki.zheng-ji.info/Sys/supervisor.html">supervisor</a> 启动 kibana, </li>
-  <li>同时使用 <a href="http://wiki.zheng-ji.info/Sys/monit.html">monit</a> 监控elasticsearch </li>
-</ul>
-
-<p>在/etc/defaut/elasticsearch 配置数据文件目录的地址，log 地址，调整内存和堆栈大小，个人认为机器配置的50% 就可以了。</p>
-
-<p>Nginx 配置，使得kibanan可以被外部访问，eleasticsearch 默认监听的是5601：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">server {
-</span><span class="line">        listen 80;
-</span><span class="line">        #auth_basic_user_file /home/ymserver/auth/kibana-user;
-</span><span class="line">        error_log /home/ymserver/log/nginx/kibana.err.log;
-</span><span class="line">        location / {
-</span><span class="line">            proxy_pass http://127.0.0.1:5601$request_uri;
-</span><span class="line">            proxy_set_header Host $http_host;
-</span><span class="line">            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
-</span><span class="line">            proxy_set_header X-Forwarded-Proto $scheme;
-</span><span class="line">        }
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-2">使用过程</h3>
-<p>Python 有支持elasticsearch 的库 <a href="https://github.com/elasticsearch/elasticsearch-py">elasticsearch-py</a>，
-用其导数据进入elasticsearch,需要指定好索引。</p>
-
-<p>使用restful<a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/">查询</a>， 
-如下例子：其中’2014-12-18’是索引名，q后面是查询条件，_all表示全部索引</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -XGET 'http://localhost:9200/2014-12-18/_search/?q=name:861160022835011'
-</span><span class="line">curl -XGET 'http://localhost:9200/_all/_search/?q=name:861160022835011'
-</span><span class="line">curl -XGET localhost:9200/_search -d '
-</span><span class="line">{
-</span><span class="line">    "query": {
-</span><span class="line">        "bool": {
-</span><span class="line">            "must": [
-</span><span class="line">            {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field1": "X"
-</span><span class="line">                }
-</span><span class="line">            },
-</span><span class="line">            {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field3": "Z"
-</span><span class="line">                }
-</span><span class="line">            }
-</span><span class="line">            ],
-</span><span class="line">            "must_not": {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field2": "Y"
-</span><span class="line">                }
-</span><span class="line">            }
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">}'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-3">性能概述</h3>
-<p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1344,6 +1248,10 @@ Kibana 是一个与之配套的 web 界面。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的btmp文件</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
@@ -1371,10 +1279,6 @@ Kibana 是一个与之配套的 web 界面。</p>
     
       <li class="post">
         <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
       </li>
     
   </ul>

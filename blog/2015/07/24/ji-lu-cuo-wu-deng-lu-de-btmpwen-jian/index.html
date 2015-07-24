@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>实现一个智能提示框功能 - 织网</title>
+  <title>记录错误登陆的btmp文件 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="golang trie">
+  <meta name="description" content="linux">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/02/08/trie-suggestion">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">实现一个智能提示框功能</h1>
+      <h1 class="entry-title">记录错误登陆的btmp文件</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2015-02-08T13:40:00+08:00" pubdate data-updated="true">Feb 8<span>th</span>, 2015</time>
+<time datetime="2015-07-24T23:06:00+08:00" pubdate data-updated="true">Jul 24<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,99 +96,20 @@
   </header>
 
 
-<div class="entry-content"><p>耗了3个夜晚出来的东西.</p>
+<div class="entry-content"><p>今天查看了服务器时，发现 <code>/var/log/btmp</code> 日志文件较大。</p>
 
-<p>先上图吧：</p>
+<p>此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
+这个文件是需要用 <code>lastab</code> 命令才可读的。</p>
 
-<p><img src="/images/2015/02/suggest.png" /></p>
-
-<p>是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。</p>
-
-<p>起因: 在公司<code>GitLab</code>看到有这人对内部管理系统提出了这个需求，但是一直没有被<code>close</code>, 我觉得应该挺有趣的，好奇心驱动下就开始搞了。</p>
-
-<p>如果仅仅是实现这个需求，应该有很多种</p>
-
-<ul>
-  <li>方法一：使用一个hash,将关键字填入key，如果采用此法，数据量大的时候估计堪忧，以一个汉字2个Byte计算的话，1kw个词条，1个词条10个词语的话需要占用大于200M内存。</li>
-  <li>方法二：前缀匹配，那么应该怎么选择数据结构,朴素的做法是O(N^N),我们肯定采用复杂度较优的Trie树  O(1)</li>
-  <li>方法三：Radix Tree 据说这个是linux cache的一个算法。看了几个小时，真心复杂，不得不佩服内核开发者！</li>
-</ul>
-
-<h3 id="trie">讲一讲<code>trie</code>树吧</h3>
-
-<p><img src="/images/2015/02/triestruct.png" /></p>
-
-<ul>
-  <li>根节点不包含字符，除根节点外的每一个子节点都包含一个字符。</li>
-  <li>根节点到某一节点，路径上经过的字符连接起来，就是该节点对应的字符串。</li>
-  <li>每个单词的公共前缀作为一个字符节点保存。</li>
-  <li>叶子节点的指针是空的</li>
-</ul>
-
-<p>以下是具体的数据结构代码</p>
+<p>查看尝试恶意登陆的前十个IP</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">type Node struct {
-</span><span class="line">    Link     map[string]*Node  #指针
-</span><span class="line">    Key      string                     #每个节点的字符
-</span><span class="line">    IsLeaf   bool                       #是否叶子节点 
-</span><span class="line">    Weight   float64                    #权重
-</span><span class="line">    LongWord string                     #从根节点到该节点的长字符
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo lastb | awk '{ print $3}' | awk '{++S[$NF]} END {for(a in S) print a, S[a]}' | sort -rk2 |head</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>围绕这个数据结构做了
-构建树，删除节点，添加节点，获取子节点等</p>
-
-<h3 id="section">知识铺垫：</h3>
-<p>在用 Go 语言处理中文字符的时候，需要特别使用 []rune数组，看以下示范代码就知道了,他把中文处理成1个字符表现的编码方式了。正式我们下列处理Trie需要用到的。</p>
+<p>如果有有必要封阻IP的话，可以执行：</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">package main
-</span><span class="line">import "fmt"
-</span><span class="line">
-</span><span class="line">func main () {
-</span><span class="line">    m_str := "编程"
-</span><span class="line">    fmt.Println("fmt:", m_str)
-</span><span class="line">    m_str_rune := []rune(m_str)
-</span><span class="line">    fmt.Println("fmt:", m_str_rune)
-</span><span class="line">    m_str_byte := []byte(m_str)
-</span><span class="line">    fmt.Println("fmt:", m_str_byte)
-</span><span class="line">}
-</span><span class="line">
-</span><span class="line">$ ./test_rune
-</span><span class="line">fmt: 编程
-</span><span class="line">fmt: [32534 31243]
-</span><span class="line">fmt: [231 188 150 231 168 139]</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">测试结果：</h3>
-<p>导入100W条词条,搜索的反应是瞬秒，1ms返回响应，在4G的机器上，整个程序占用内存0.3%。</p>
-
-<hr />
-
-<p>每个成熟的互联网产品，背后都是工程师耗费一点一滴思维的结晶构建而成的。对待技术不得不敬畏。</p>
-
-<p><a href="https://github.com/zheng-ji/trietips">代码</a></p>
+</pre></td><td class="code"><pre><code class=""><span class="line">iptables -A INPUT -i eth0 -s *.*.*.0/24 -j DROP</span></code></pre></td></tr></table></div></figure></notextile></div>
 </div>
 
 
@@ -211,12 +132,12 @@
   
 
 
-<time datetime="2015-02-08T13:40:00+08:00" pubdate data-updated="true">Feb 8<span>th</span>, 2015</time>
+<time datetime="2015-07-24T23:06:00+08:00" pubdate data-updated="true">Jul 24<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/programe/'>Programe</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -232,10 +153,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2015/02/03/haproxy-plus-mysql/" title="Previous Post: haproxy - MySQl 的负载均衡">&laquo; haproxy - MySQl 的负载均衡</a>
+        <a class="basic-alignment left" href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/" title="Previous Post: my.cnf配置依据">&laquo; my.cnf配置依据</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2015/03/09/tui-dao-zi-ji/" title="Next Post: 推倒自己">推倒自己 &raquo;</a>
       
     </p>
   </footer>
@@ -245,7 +164,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="实现一个智能提示框功能"></div>
+<div class="ds-thread" data-title="记录错误登陆的btmp文件"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

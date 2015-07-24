@@ -9,7 +9,9 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="数据库做主从，这个过程是需要很耐心的。 数据库做主从目的: 故障恢复， 柔性可用 也可以做读写分离 实验过程中 mysql 用的版本是 Percona Server ， 安装过程 由于修改默认的数据目录，数据文件不再使用 /var/lib/mysql,数据文件夹被我安放位置是 /data/ &hellip;">
+  <meta name="description" content="业务原来所在的Redis需要做迁移，感谢Redis，主从切换不算太复杂。
+为了可以更好地阐述过程，我们定义了： A 服务器，原来拥有 redis 数据库的机器 B 服务器，未来取代 A 服务器的 redis 数据库服务器 主从同步 把 B 服务器的 redis 配置更改为: 1
+slaveof &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +69,73 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/04/redisre-bei/">Redis 主从平滑切换</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-04T22:28:00+08:00" pubdate data-updated="true">Oct 4<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/10/04/redisre-bei/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>业务原来所在的Redis需要做迁移，感谢Redis，主从切换不算太复杂。
+为了可以更好地阐述过程，我们定义了：</p>
+
+<ul>
+  <li>A 服务器，原来拥有 redis 数据库的机器</li>
+  <li>B 服务器，未来取代 A 服务器的 redis 数据库服务器</li>
+</ul>
+
+<h2 id="section">主从同步</h2>
+
+<p>把 B 服务器的 redis 配置更改为:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">slaveof  IP地址 端口</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就开始同步了，并且只读了。接下来准备把 B 服务器提升为 master,</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">redis-in-b-host&gt; slaveof no one</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>B服务器就断掉主从同步，提升为主，并行可读写</p>
+
+<h2 id="tips">Tips;</h2>
+
+<p>我们在停止服务的5分钟，在 A 的命令行，执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">bgsave</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>使得内存里的数据，完整地保存于 dumps.rdb</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1409,79 +1478,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/22/liu-xia-liao-xie-dong-xi/">留下了些东西</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-04-22T19:32:00+08:00" pubdate data-updated="true">Apr 22<span>nd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/04/22/liu-xia-liao-xie-dong-xi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>出于对这两个月的交代，记录下完成自动化平台开发的这段经历。</p>
-
-<p>所在的 Team 业务性很浓，浓到大家已经不愿意改变，可以忍受无尽的重复劳动和时间摧残。业务繁多，导致需要花费很多时间去学习和适应人为的规则，在我看来是很不应该了。</p>
-
-<p>当某一天 leader 突然说希望有一个自动化的平台来处理我们的业务，解放外包以及正职人员的劳动力，降低新人熟悉业务的门槛。我很诧异但也很高兴他会提出来这件事情，不具说原因了，至少我很开心，每日机械的做业务是件很忧伤的事情。</p>
-
-<h3 id="section">做的事</h3>
-<p>项目中，我承担了大部分后台功能的开发（C++），感谢同事的信任（也许我相对比较吃苦爱折腾）。今天系统上线了并承接10个业务，挺欣慰的。
-   该系统是个做个自动化的运营开发系统，并不复杂。</p>
-
-<ul>
-  <li>支持批量查询现网游戏日志的数据库，多线程去执行多个大区的数据。可以切换不同的数据库。UI类似phpmyadmin的界面;</li>
-  <li>上传统计代码后，自动编译和发布可执行文件到各个统计机;</li>
-  <li>支持任务队列补算;</li>
-  <li>跟踪任务执行情况，trace 错误信息;</li>
-  <li>解析统计机器的crontab的内容，可在系统配置调度信息;</li>
-  <li>解析统计机器的调度脚本,增删改查程序，以及其执行顺序;</li>
-</ul>
-
-<p>希望该系统可以取代原本粗暴重复的操作。提升效率的同时也降低出错的可能。</p>
-
-<h3 id="section-1">说到写文档。</h3>
-
-<p><code>资深同事</code>觉得要写的高 (厚) 大（黑）上 (学)，甚至吹嘘地出彩。大公司的生存之道，这些潜规则你不愿意去遵守，有时候会受伤，很多时候我选择忠于内心,包括这次。因为我终究认为这东西很平凡，它的优点在于有价值，不是纯粹为 KPI 为生的物品。我用 <code>markdown</code> 把整个后台设计和类图都清爽的表达出来。在给组内推行 markdown 的时候，本以为如此好用的工具会得到大家青睐，但显然大家还是不愿意接受，遗憾。</p>
-
-<h3 id="something">something</h3>
-<p>系统模拟了业务人员平时的工作流程，所以适应起来相对容易。不过依然有部分同事会排斥，新东西的诞生让他们有了不信任感。也许需要给他们更多的时间来适应。或许生活中我们也会这样，新事物总需要经受住考验质疑，只有足够好才会被历史选择。</p>
-
-<p>这个开发过程中，也让我看到很多不好的过程，比如代码发布，持续构建，技术选择。做的不是很好，但平日的阅读和折腾理解让我坚信有更对的选择。比如访问量不大的系统用C++写CGI就是很蛋疼的选择，PM 的个人视野也限制了进展的效率。</p>
-
-<p>这个工具开发烧了我不少脑筋，需要足够智能去适配业务，以及变态的需求，极力去推动这个系统也让软技能也有一番磨练。</p>
-
-<hr />
-
-<p>末了，我在腾讯还是留下了一个让自己自豪的东西。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1503,6 +1499,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的btmp文件</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
@@ -1530,10 +1530,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a>
       </li>
     
   </ul>
