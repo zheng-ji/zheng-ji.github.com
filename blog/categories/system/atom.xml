@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-07-24T23:17:30+08:00</updated>
+  <updated>2015-07-28T22:40:07+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -21,7 +21,7 @@
     <content type="html"><![CDATA[<p>今天查看了服务器时，发现 <code>/var/log/btmp</code> 日志文件较大。</p>
 
 <p>此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
-这个文件是需要用 <code>lastab</code> 命令才可读的。</p>
+这个文件是需要用 <code>lastb</code> 命令才可读的。</p>
 
 <p>查看尝试恶意登陆的前十个IP</p>
 
