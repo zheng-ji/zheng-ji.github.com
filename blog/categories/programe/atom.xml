@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-08-10T23:12:31+08:00</updated>
+  <updated>2015-08-10T23:16:21+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -75,7 +75,7 @@ conn.do(‘SETBIT’, key, index, 1) # 将该hash值对应的位赋值为1</p>
 
 <p>先上图吧：</p>
 
-<p><img src="/images/2015/02/suggest.png"></p>
+<p>{% img /images/2015/02/suggest.png %}</p>
 
 <p>是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。</p>
 
@@ -91,7 +91,7 @@ conn.do(‘SETBIT’, key, index, 1) # 将该hash值对应的位赋值为1</p>
 
 <h3 id="trie">讲一讲<code>trie</code>树吧</h3>
 
-<p><img src="/images/2015/02/triestruct.png"></p>
+<p>{% img /images/2015/02/triestruct.png %}</p>
 
 <ul>
   <li>根节点不包含字符，除根节点外的每一个子节点都包含一个字符。</li>
