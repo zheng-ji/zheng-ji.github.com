@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Nginx与php-fpm系统参数配置 - 织网</title>
+  <title>twemproxy 一个redis代理 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Nginx 调优 PHP 优化">
-  <meta name="keywords" content="Nginx 调优 PHP 优化">
+  <meta name="description" content="redis proxy twemproxy">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/08/16/twemproxy">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Nginx与php-fpm系统参数配置</h1>
+      <h1 class="entry-title">Twemproxy 一个redis代理</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+<time datetime="2015-08-16T12:11:00+08:00" pubdate data-updated="true">Aug 16<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,59 +96,99 @@
   </header>
 
 
-<div class="entry-content"><p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
+<div class="entry-content"><p>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</p>
 
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
+<ul>
+  <li><a href="#第一节">初窥原理</a></li>
+  <li><a href="#第二节">安装与配置</a></li>
+  <li><a href="#第三节">不支持的操作</a></li>
+  <li><a href="#第四节">压力测试</a></li>
+  <li><a href="#第五节">摘自极光博客的评论</a></li>
+</ul>
 
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
+<h3 id="第一节">初窥原理</h3>
+
+<ul>
+  <li>Twitter 出品的轻量级 Redis，memcached 代理，使用它可以减少缓存服务器的连接数，并且利用它来作分片。</li>
+  <li>作是说最差情况下，性能损耗不会多于20%。背后是用了pipeline，redis是支持使用pipeline批处理的。</li>
+  <li>twemproxy 与每个 redis 服务器都会建立一个连接，每个连接实现了两个 FIFO 的队列， 通过这两个队列实现对 redis 的 pipeline 访问，将多个客户端的访问合并到一个连接，这样既减少了redis服务器的连接数，又提高了访问性能。</li>
+</ul>
+
+<h3 id="第二节">安装与配置</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
 <span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
-</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
-</span><span class="line">pm = static # 使用静态进程管理
-</span><span class="line">pm.max_children = 128
-</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
-
-<ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
-</span><span class="line">shell&gt; service irqbalance start
-</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install automake
+</span><span class="line">apt-get install libtool
+</span><span class="line">git clone git://github.com/twitter/twemproxy.git
+</span><span class="line">cd twemproxy
+</span><span class="line">autoreconf -fvi
+</span><span class="line">./configure
+</span><span class="line">make
+</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>默认的可执行文件在 /usr/local/sbin/nutcracker</p>
 
 <ul>
-  <li>为nginx 绑定 cpu</li>
+  <li>配置文件 /etc/nutcracker/nutcracker.yml</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">worker_processes  8;
-</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alpha:
+</span><span class="line">    listen: 127.0.0.1:8877
+</span><span class="line">    hash: fnv1a_64
+</span><span class="line">    distribution: ketama
+</span><span class="line">    auto_eject_hosts: true
+</span><span class="line">    redis: true
+</span><span class="line">    server_retry_timeout: 30000
+</span><span class="line">    server_failure_limit: 3
+</span><span class="line">    servers:
+</span><span class="line">        - 127.0.0.1:6379:1 master0  #后端的redis-server
+</span><span class="line">        - 127.0.0.1:6380:1 master1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>当 redis 做缓存的使用的时候应该启用 auto_eject_hosts， 如果某个节点失败的时候将该节点删除，虽然丧失了数据的一致性，但作为缓存使用，保证了这个集群的高可用性。当redis做存储的使用时为了保持数据的一致性，应该禁用 auto_eject_hosts,也就是当某个节点失败之后并不删除该节点。</p>
+
+<h3 id="第三节">不支持的操作</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">keys command: keys,migrate,move object,randomkey,rename,renamenx,
+</span><span class="line">sort strings command: bitop,mset,msetnx
+</span><span class="line">list command: blpop,brpop,brpoplpush
+</span><span class="line">scripting command: script exists,script flush,script kill,script load
+</span><span class="line">pub/sub command:(全部不支持)psubscribe,publish,punsubscribe,subscribe,unsubscribe</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第四节">压测</h3>
+
+<p>感谢 redis 提供的 redis-benchmark 工具，用它来做压测挺好的。</p>
 
 <ul>
-  <li>连接数调整，</li>
+  <li>n 表示多少个连接</li>
+  <li>r 表示多少个 key,</li>
+  <li>t 代表命令</li>
 </ul>
-
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -167,25 +207,60 @@
 <span class="line-number">15</span>
 <span class="line-number">16</span>
 <span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
-</span><span class="line">fs.file-max = 6553600
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji.info:~$ redis-benchmark -p 6700 -t smembers,hexists,get,hget,lrange,ltrim,zcard,setex,sadd -n 1000000 -r 100000000
 </span><span class="line">
-</span><span class="line">vim /etc/security/limits.conf
-</span><span class="line">* soft nofile 655360
-</span><span class="line">* hard nofile 655360
+</span><span class="line">====== GET ======
+</span><span class="line">1000000 requests completed in 12.95 seconds
+</span><span class="line">50 parallel clients
+</span><span class="line">3 bytes payload
+</span><span class="line">keep alive: 1
 </span><span class="line">
-</span><span class="line">vim /etc/nginx/nginx.conf
+</span><span class="line">99.19% &lt;= 1 milliseconds
+</span><span class="line">99.93% &lt;= 2 milliseconds
+</span><span class="line">100.00% &lt;= 2 milliseconds
+</span><span class="line">77220.08 requests per second
 </span><span class="line">
-</span><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">events {
-</span><span class="line">    worker_connections 300000;
-</span><span class="line">    use epoll;
-</span><span class="line">}
-</span><span class="line">http {
-</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">====== SADD ======
+</span><span class="line">1000000 requests completed in 10.74 seconds
+</span><span class="line">50 parallel clients
+</span><span class="line">3 bytes payload
+</span><span class="line">keep alive: 1
+</span><span class="line">
+</span><span class="line">99.88% &lt;= 1 milliseconds
+</span><span class="line">99.95% &lt;= 2 milliseconds
+</span><span class="line">99.97% &lt;= 3 milliseconds
+</span><span class="line">99.99% &lt;= 4 milliseconds
+</span><span class="line">100.00% &lt;= 4 milliseconds
+</span><span class="line">93144.56 requests per second</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
+<p>如作者所言, 性能几乎可以跟直连redis比拟，背后的数据也很均匀,使用twemproxy 观察连接数, 一直都保持在个位数左右。</p>
+
+<h3 id="第五节">摘自极光博客的评论</h3>
+
+<ul>
+  <li>前端使用 Twemproxy 做代理，后端的 Redis 数据能基本上根据 key 来进行比较均衡的分布。</li>
+  <li>后端一台 Redis 挂掉后，Twemproxy 能够自动摘除。恢复后，Twemproxy 能够自动识别、恢复并重新加入到 Redis 组中重新使用。</li>
+  <li>Redis 挂掉后，后端数据是否丢失依据 Redis 本身的策略配置，与 Twemproxy 基本无关。</li>
+  <li>如果要新增加一台 Redis，Twemproxy 需要重启才能生效；并且数据不会自动重新 Reblance，需要人工单独写脚本来实现。</li>
+  <li>如同时部署多个 Twemproxy，配置文件一致（测试配置为distribution：ketama,modula），则可以从任意一个读取，都可以正确读取 key对应的值。</li>
+  <li>多台 Twemproxy 配置一样，客户端分别连接多台 Twemproxy可以在一定条件下提高性能。根据 Server 数量，提高比例在 110-150%之间。</li>
+  <li>如原来已经有 2 个节点 Redis，后续有增加 2 个 Redis，则数据分布计算与原来的 Redis 分布无关，现有数据如果需要分布均匀的话，需要人工单独处理。</li>
+  <li>如果 Twemproxy 的后端节点数量发生变化，Twemproxy 相同算法的前提下，原来的数据必须重新处理分布，否则会存在找不到key值的情况。</li>
+</ul>
+
+<hr />
+
+<p>参考链接</p>
+
+<p><a href="http://blog.jpush.cn/redis-twemproxy-benchmark/">极光推送的博客</a></p>
 </div>
 
 
@@ -208,12 +283,12 @@
   
 
 
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+<time datetime="2015-08-16T12:11:00+08:00" pubdate data-updated="true">Aug 16<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/system/'>System</a>
+    <a class='category' href='/blog/categories/server/'>Server</a>
   
 </span>
 
@@ -229,10 +304,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/10/29/iptablezuo-natzhuan-fa/" title="Previous Post: iptable做NAT转发">&laquo; iptable做NAT转发</a>
+        <a class="basic-alignment left" href="/blog/2015/08/10/hackthon/" title="Previous Post: 黑客马拉松">&laquo; 黑客马拉松</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/11/25/tired/" title="Next Post: 慢">慢 &raquo;</a>
       
     </p>
   </footer>
@@ -242,7 +315,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Nginx与php-fpm系统参数配置"></div>
+<div class="ds-thread" data-title="Twemproxy 一个redis代理"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

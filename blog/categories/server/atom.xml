@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Server | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/server/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-08-14T22:28:00+08:00</updated>
+  <updated>2015-08-16T13:27:06+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,138 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[twemproxy 一个redis代理]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/08/16/twemproxy/"/>
+    <updated>2015-08-16T12:11:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/08/16/twemproxy</id>
+    <content type="html"><![CDATA[<p>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</p>
+
+<ul>
+  <li><a href="#第一节">初窥原理</a></li>
+  <li><a href="#第二节">安装与配置</a></li>
+  <li><a href="#第三节">不支持的操作</a></li>
+  <li><a href="#第四节">压力测试</a></li>
+  <li><a href="#第五节">摘自极光博客的评论</a></li>
+</ul>
+
+<h3 id="第一节">初窥原理</h3>
+
+<ul>
+  <li>Twitter 出品的轻量级 Redis，memcached 代理，使用它可以减少缓存服务器的连接数，并且利用它来作分片。</li>
+  <li>作是说最差情况下，性能损耗不会多于20%。背后是用了pipeline，redis是支持使用pipeline批处理的。</li>
+  <li>twemproxy 与每个 redis 服务器都会建立一个连接，每个连接实现了两个 FIFO 的队列， 通过这两个队列实现对 redis 的 pipeline 访问，将多个客户端的访问合并到一个连接，这样既减少了redis服务器的连接数，又提高了访问性能。</li>
+</ul>
+
+<h3 id="第二节">安装与配置</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<p><code>
+apt-get install automake
+apt-get install libtool
+git clone git://github.com/twitter/twemproxy.git
+cd twemproxy
+autoreconf -fvi
+./configure
+make
+sudo make install
+</code>
+默认的可执行文件在 /usr/local/sbin/nutcracker</p>
+
+<ul>
+  <li>配置文件 /etc/nutcracker/nutcracker.yml</li>
+</ul>
+
+<p><code>
+alpha:
+    listen: 127.0.0.1:8877
+    hash: fnv1a_64
+    distribution: ketama
+    auto_eject_hosts: true
+    redis: true
+    server_retry_timeout: 30000
+    server_failure_limit: 3
+    servers:
+        - 127.0.0.1:6379:1 master0  #后端的redis-server
+        - 127.0.0.1:6380:1 master1
+</code></p>
+
+<p>当 redis 做缓存的使用的时候应该启用 auto_eject_hosts， 如果某个节点失败的时候将该节点删除，虽然丧失了数据的一致性，但作为缓存使用，保证了这个集群的高可用性。当redis做存储的使用时为了保持数据的一致性，应该禁用 auto_eject_hosts,也就是当某个节点失败之后并不删除该节点。</p>
+
+<h3 id="第三节">不支持的操作</h3>
+
+<p><code>
+keys command: keys,migrate,move object,randomkey,rename,renamenx,
+sort strings command: bitop,mset,msetnx
+list command: blpop,brpop,brpoplpush
+scripting command: script exists,script flush,script kill,script load
+pub/sub command:(全部不支持)psubscribe,publish,punsubscribe,subscribe,unsubscribe
+</code></p>
+
+<h3 id="第四节">压测</h3>
+
+<p>感谢 redis 提供的 redis-benchmark 工具，用它来做压测挺好的。</p>
+
+<ul>
+  <li>n 表示多少个连接</li>
+  <li>r 表示多少个 key,</li>
+  <li>t 代表命令</li>
+</ul>
+
+<p>```
+zj@zheng-ji.info:~$ redis-benchmark -p 6700 -t smembers,hexists,get,hget,lrange,ltrim,zcard,setex,sadd -n 1000000 -r 100000000</p>
+
+<p>====== GET ======
+1000000 requests completed in 12.95 seconds
+50 parallel clients
+3 bytes payload
+keep alive: 1</p>
+
+<p>99.19% &lt;= 1 milliseconds
+99.93% &lt;= 2 milliseconds
+100.00% &lt;= 2 milliseconds
+77220.08 requests per second</p>
+
+<p>====== SADD ======
+1000000 requests completed in 10.74 seconds
+50 parallel clients
+3 bytes payload
+keep alive: 1</p>
+
+<p>99.88% &lt;= 1 milliseconds
+99.95% &lt;= 2 milliseconds
+99.97% &lt;= 3 milliseconds
+99.99% &lt;= 4 milliseconds
+100.00% &lt;= 4 milliseconds
+93144.56 requests per second
+```</p>
+
+<p>如作者所言, 性能几乎可以跟直连redis比拟，背后的数据也很均匀,使用twemproxy 观察连接数, 一直都保持在个位数左右。</p>
+
+<h3 id="第五节">摘自极光博客的评论</h3>
+
+<ul>
+  <li>前端使用 Twemproxy 做代理，后端的 Redis 数据能基本上根据 key 来进行比较均衡的分布。</li>
+  <li>后端一台 Redis 挂掉后，Twemproxy 能够自动摘除。恢复后，Twemproxy 能够自动识别、恢复并重新加入到 Redis 组中重新使用。</li>
+  <li>Redis 挂掉后，后端数据是否丢失依据 Redis 本身的策略配置，与 Twemproxy 基本无关。</li>
+  <li>如果要新增加一台 Redis，Twemproxy 需要重启才能生效；并且数据不会自动重新 Reblance，需要人工单独写脚本来实现。</li>
+  <li>如同时部署多个 Twemproxy，配置文件一致（测试配置为distribution：ketama,modula），则可以从任意一个读取，都可以正确读取 key对应的值。</li>
+  <li>多台 Twemproxy 配置一样，客户端分别连接多台 Twemproxy可以在一定条件下提高性能。根据 Server 数量，提高比例在 110-150%之间。</li>
+  <li>如原来已经有 2 个节点 Redis，后续有增加 2 个 Redis，则数据分布计算与原来的 Redis 分布无关，现有数据如果需要分布均匀的话，需要人工单独处理。</li>
+  <li>如果 Twemproxy 的后端节点数量发生变化，Twemproxy 相同算法的前提下，原来的数据必须重新处理分布，否则会存在找不到key值的情况。</li>
+</ul>
+
+<hr />
+
+<p>参考链接</p>
+
+<p><a href="http://blog.jpush.cn/redis-twemproxy-benchmark/">极光推送的博客</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[为服务端程序构建docker]]></title>
@@ -362,117 +494,6 @@ DEFAULT_FORWARD_POLICY = "ACCEPT"
   <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
   <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
   <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[微信公众号开发]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/"/>
-    <updated>2014-01-07T18:47:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa</id>
-    <content type="html"><![CDATA[<h3 id="section">微信公众账号开发</h3>
-
-<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
-&gt; 人生苦短,我爱python</p>
-
-<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
-
-<p><img src="/images/2013/12/nba.jpg"></p>
-
-<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
-
-<h5 id="section-1">注册</h5>
-<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
-
-<h5 id="section-2">微信认证</h5>
-<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
-
-<p>加密/校验流程如下：</p>
-
-<ul>
-  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
-  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
-  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
-</ul>
-
-<p>```python
-class BaseHandler(tornado.web.RequestHandler):
-    #基类,实现基本认证，子类只需要继承就可以完成微信认证
-    def prepare(self):
-        timestamp = self.get_argument(“timestamp”, None)
-        nonce = self.get_argument(“nonce”, None)
-        signature = self.get_argument(“signature”, None)
-        print ‘request:’, timestamp, nonce, signature
-        print self.request.method, timestamp, nonce, signature
-        if validate(timestamp, nonce, signature) is False:
-            print “=========validate failed =====”
-            self.finish()</p>
-
-<p>def validate(timestamp, nonce, signature):
-    print ‘validate:’, timestamp, nonce, signature
-    if timestamp is None or nonce is None or signature is None:
-        return False
-    tmp = [TOKEN, timestamp, nonce]
-    tmp = sorted(tmparr)
-    tmpStr = ‘‘.join(tmp)
-    hashStr = sha1(tmpStr).hexdigest()
-    return (hashStr == signature)
-```</p>
-
-<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
-
-<p><code>
-class serverHandler(BaseHandler):
-    def get(self):
-        echostr = self.get_argument('echostr', None)
-        self.write(echostr)
-</code> </p>
-
-<h5 id="section-3">. 菜单订制</h5>
-<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
-
-<p><code>
-class UIHandler(tornado.web.RequestHandler):
-    def get(self):
-        msg = self.render_string('menu.json')
-        createMenu(menu)
-</code></p>
-
-<h5 id="section-4">. 响应用户按键输入</h5>
-
-<p><code>
-xml = uni(self.request.body)        #获取微信服务器发送过来的xml,转化为unicode
-dic = xml2dict(xml)                 #将xml解析成dict
-if dic['MsgType'].lower() == 'event':
-    event = dic['Event'].lower()
-    if event == 'subscribe':
-        ctx = do_subscribe(dic)     #订阅逻辑
-        msg = self.render_string('text_resp.xml', dic=ctx)
-        self.write(msg)
-    elif event == 'click':
-        ctx = do_click(dic)         #点击逻辑
-        msg = self.render_string('text_resp.xml', dic=ctx)
-        self.write(msg)
-</code></p>
-
-<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
-
-<h4 id="section-5">相关链接</h4>
-<ul>
-  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
-  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
-</ul>
-
-<h4 id="section-6">开发中用到的库</h4>
-<ul>
-  <li><code>tornado</code></li>
-  <li><code>virtualenv</code></li>
-  <li><code>pyquery(做爬虫)</code></li>
-  <li><code>pymongo</code></li>
-  <li><code>lxml</code></li>
-  <li><code>urllib2</code></li>
 </ul>
 
 ]]></content>
