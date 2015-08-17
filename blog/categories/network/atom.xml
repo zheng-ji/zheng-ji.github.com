@@ -4,7 +4,7 @@
   <title><![CDATA[Category: NetWork | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/network/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-08-17T23:29:59+08:00</updated>
+  <updated>2015-08-17T23:36:52+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -181,168 +181,6 @@ zerorpc tcp://127.0.0.1:4242 streaming_range 10 20 2 --json
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[leveldb的RPCServer]]></title>
-    <link href="http://zheng-ji.github.com/blog/2013/09/21/leveldbde-rpcserver/"/>
-    <updated>2013-09-21T11:33:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2013/09/21/leveldbde-rpcserver</id>
-    <content type="html"><![CDATA[<p>leveldb作为一个高性能的存储引擎，并不提供Server以及网络的功能，但我坚信一定会有，因为这个世界有很多人会被其性能所吸引，总有人忍不住会写一个壳包装下，万能的github让我不用重复造轮子。<a href="https://github.com/srinikom/leveldb-server">这个</a> ,还有<a href="https://github.com/quiver/leveldb-rpc/">这个</a></p>
-
-<p>XML RPC 的代码很简单，但可以从中学到了不少东西的,主要使用的是 python 的<a href="http://zheng-ji.info//blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/">leveldb binding</a> </p>
-
-<h4 id="serverpy">server.py</h4>
-
-<p>```python
-‘'’XML-RPC server for leveldb
-‘’’
-import argparse
-from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler</p>
-
-<p>import leveldb</p>
-
-<p>class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths = (‘/RPC2’,)</p>
-
-<p>class LevelDBMethod(object):
-    def <strong>init</strong>(self, datadir):
-        self.db = leveldb.LevelDB(datadir)</p>
-
-<pre><code>def put(self, key, value):
-    return self.db.Put(key, value)
-
-def get(self, key):
-    try:
-    return self.db.Get(key)
-    except KeyError, err:
-    return ''
-
-def delete(self, key):
-    return self.db.Delete(key)
-</code></pre>
-
-<p>def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(‘–port’, type=int, nargs=’?’, default=8000)
-    parser.add_argument(‘–datadir’, type=str, nargs=’?’, default=’data’)
-    args = parser.parse_args()</p>
-
-<pre><code># Create server
-server = SimpleXMLRPCServer(("localhost", args.port),
-            requestHandler=RequestHandler,
-            allow_none=True)
-server.register_introspection_functions()
-server.register_instance(LevelDBMethod(args.datadir))
-server.serve_forever()
-</code></pre>
-
-<p>if <strong>name</strong> == ‘<strong>main</strong>’:
-    main()
-```</p>
-
-<h4 id="clientpy">client.py</h4>
-
-<p>```python
-‘'’XML-RPC client for leveldb
-‘’’</p>
-
-<p>import argparse
-import cmd
-from xmlrpclib import ServerProxy</p>
-
-<p>class Cmd(cmd.Cmd):
-    def <strong>init</strong>(self, host, port, *args, **kw):
-        cmd.Cmd.<strong>init</strong>(self, *args, **kw)
-        self.prompt = ‘%s:%d&gt; ‘ % (host, port)
-        self.server = ServerProxy(‘http://%s:%d’ % (host, port))</p>
-
-<pre><code>def do_put(self, arg):
-    args = arg.split()
-    if len(args) != 2:
-        print "(error) ERR wrong number of arguments for 'put' command"
-        return
-    key, value = args
-    result = self.server.put(key, value)
-
-def do_get(self, arg):
-    args = arg.split()
-    if len(args) != 1:
-        print "(error) ERR wrong number of arguments for 'get' command"
-        return
-    key, = args
-    result = self.server.get(key)
-    if result:
-        print result
-
-def do_delete(self, arg):
-    args = arg.split()
-    if len(args) != 1:
-        print "(error) ERR wrong number of arguments for 'delete' command"
-        return
-    key, = args
-    result = self.server.delete(key)
-
-def do_EOF(self, arg):
-    return True
-</code></pre>
-
-<p>def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(‘–host’, type=str, nargs=’?’, default=’localhost’)
-    parser.add_argument(‘–port’, type=int, nargs=’?’, default=8000)
-    args = parser.parse_args()</p>
-
-<pre><code>cmd = Cmd(args.host, args.port)
-cmd.cmdloop()
-</code></pre>
-
-<p>if <strong>name</strong> == ‘<strong>main</strong>’:
-    main()
-```</p>
-
-<h4 id="server">Server代码:</h4>
-<ul>
-  <li>SimpleXMLRpcServer拓展,自定义业务逻辑类 LevelDBMethod,以及RPC运行路径别名,注册业务代码</li>
-</ul>
-
-<p><code>python
- # Create server
-server = SimpleXMLRPCServer(("localhost", args.port),
-        requestHandler=RequestHandler,
-        allow_none=True)
-server.register_introspection_functions()
-server.register_instance(LevelDBMethod(args.datadir))
-server.serve_forever()
-</code></p>
-
-<ul>
-  <li>argsparse解析命令行参数 </li>
-  <li>包装leveldb ,公开RPC函数调用</li>
-</ul>
-
-<h4 id="client">Client代码:</h4>
-<ul>
-  <li>调用xmprpclib 的ServerProxy，完成网络RPC调用</li>
-</ul>
-
-<p><code>python
-self.server = ServerProxy('http://%s:%d' % (host, port))
-</code></p>
-
-<ul>
-  <li>cmd模块，自定义命令行提示工具,调用cmdloop() 实现循环调用,继承cmd.Cmd类时，函数名为do_动作名</li>
-  <li>argsparse解析命令行参数 </li>
-</ul>
-
-<p><code>python
-parser = argparse.ArgumentParser()
-parser.add_argument('--host', type=str, nargs='?', default='localhost')
-parser.add_argument('--port', type=int, nargs='?', default=8000)
-args = parser.parse_args()
-</code></p>
-
-]]></content>
-  </entry>
-  
-  <entry>
     <title type="html"><![CDATA[Jsonp解决跨域请求]]></title>
     <link href="http://zheng-ji.github.com/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/"/>
     <updated>2013-09-15T21:50:00+08:00</updated>
@@ -443,6 +281,54 @@ REQ-REP 请求响应模式，PUSH-PULL： 推拉模式， PUB-SUB： 发布订�
 ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模式，通过单独出一个IO线程来实现，要把资源释放函数交给ZeroMQ让ZeroMQ发完消息自己释放，所以消息发送调用之后不要立刻释放相关资源。</p>
   </li>
 </ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Unix Domain Socket – IPC通信机制]]></title>
+    <link href="http://zheng-ji.github.com/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/"/>
+    <updated>2013-06-17T23:52:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi</id>
+    <content type="html"><![CDATA[<h4 id="unix-domain-socket">什么是Unix Domain Socket</h4>
+<p>基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率：</p>
+
+<ul>
+  <li>不需要经过网络协议栈</li>
+  <li>不需要打包拆包、计算校验和、维护序号和应答等</li>
+</ul>
+
+<p>只是将应用层数据从一个进程拷贝到另一个进程。这是因为，IPC机制本质上是可靠的通讯，而网络协议是为不可靠的通讯设计的。UNIX Domain Socket也提供面向流和面向数据包两种API接口，类似于TCP和UDP，但是面向消息的UNIX Domain Socket也是可靠的，消息既不会丢失也不会顺序错乱。</p>
+
+<h4 id="section">应用</h4>
+
+<p>UNIX Domain Socket是全双工的，API接口语义丰富，相比其它IPC机制有明显的优越性，目前已成为使用最广泛的IPC机制，比如X Window服务器和GUI程序之间就是通过UNIX Domain Socket通讯的。</p>
+
+<p>Nginx通过unix:/socket与fastcgi连接，提升性能,比tcp socket要高效
++ 在nginx.conf中修改配置为：</p>
+
+<p><code>
+fastcgi_pass unix:/tmp/php-cgi.sock;
+#fastcgi_pass 127.0.0.1:9000;
+</code></p>
+
+<ul>
+  <li>在php-fpm.conf中修改配置为：</li>
+</ul>
+
+<p><code>
+/tmp/php-cgi.sock
+</code></p>
+
+<p>通信过程</p>
+
+<p><img src="/images/2013/08/ipc_unix_socket-300x300.png"></p>
+
+<p>用Unix domain socket写的Demo</p>
+
+<p>使用UNIX Domain Socket的过程和网络socket十分相似，也要先调用socket()创建一个socket文件描述符，address family指定为AF_UNIX，type可以选择SOCK_DGRAM或SOCK_STREAM，protocol参数仍然指定为0即可。通常是指定/tmp/目录下的一个文件作为通信路径</p>
+
+<p>源码demo<a href="https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock">链接</a></p>
 
 ]]></content>
   </entry>
