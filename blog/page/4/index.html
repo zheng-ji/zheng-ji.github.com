@@ -9,7 +9,12 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="在深圳有感情的地方不多，深圳大学算是一个了，周六的晚上有吉他社的学生们在这里学习音乐，遗憾的是我最近才发现，如果一年前知道的话就不用自己“闭门造车”了。 在华工的时候身边有几位哥们（uc,jh）玩吉他的时候，心生喜爱。2013年的5月份。某个炎热的傍晚，拨起琴弦，就再也停不下来了。 2013-06 &hellip;">
+  <meta name="description" content="之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。 修改 ~.zshrc,添加以下环境变量 1
+2
+3
+export GOROOT=$HOME/go
+export GOBIN=$GOROOT/bin
+export PATH=$PATH:$GOBIN 开始安装, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +72,71 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/03/mac-an-zhuang-go/">Mac 安装Go</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-03T09:32:00+08:00" pubdate data-updated="true">May 3<span>rd</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/05/03/mac-an-zhuang-go/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><hr />
+<p>之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。</p>
+
+<p>修改 <code>~.zshrc</code>,添加以下环境变量</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">export GOROOT=$HOME/go
+</span><span class="line">export GOBIN=$GOROOT/bin
+</span><span class="line">export PATH=$PATH:$GOBIN</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>开始安装,耗时有点久
+保证你的电脑安装有 hg, 如果没有,请执行 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo easy_install mercurial</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hg clone -u release https://code.google.com/p/go
+</span><span class="line">cd go/src
+</span><span class="line">./all.bash</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>开始检验, 执行 go , 出现一系列 Usage信息就算通过了 ：）。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1460,64 +1530,6 @@ Happy Hacking :-)</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/12/21/yu-jian/">遇见</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-12-21T16:16:00+08:00" pubdate data-updated="true">Dec 21<span>st</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/12/21/yu-jian/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>昨晚参加腾讯周年晚会,同事在YY今晚的明星是孙燕姿,可惜最后没有如他所愿”遇见”女神.当晚应邀表演的是同为15周年生日的羽泉.对于从来没有参加过大型演唱会的小白来说,人生又圆满了一点。</p>
-
-<p>在见到 ponyMa 等人时我并没有兴奋。反而是深居简入的 AllenZhang 张小龙,让我小激动了一把,大学时起对这样的孤胆极客有神秘的敬仰.张小龙很少在公众媒体前曝光,留给外界的事迹大概是单挑 foxmail,QQmail 之父,缔造微信神话,产品哲学大师。 这样一位爱在深夜听摇滚,烟瘾十足的中年老男人,看上去依然有很浓的技术宅风格,开玩笑时略显不自然的腼腆.微微的驼背。 越是神秘,外界越会过度解读。小龙哥说希望未来可以让大家去”月球上打飞机”… 我虽然坐在内场,但是终究是靠后,只好通过屏幕看清楚的.曾经在南方通讯大厦的期待见到却没能见到的人此时出现了, 低调的风格有深深的内涵。</p>
-
-<p><img src="/images/2013/12/Allen.jpg" /></p>
-
-<p>话说回来,同事虽然没有如愿听到孙燕姿,我却貌似被条件反射地提醒,浮现在脑海的是《遇见》,回来之后凭着某种鸡血,开始搜索曲子练习,在写这篇文章的时候, 可以弹出来。连续五个周末加班，突然可以自己安排时间,甚是知足。弹起琴的时候会忘掉很多东西。工作的事情依旧例行化,比较杂比较琐碎,出于责任心和对心境的自我锻炼(至少我是如此认为),内心有两种声音:</p>
-
-<ul>
-  <li>年轻人要有一种吃苦的态度,对于工作的事情不要挑三拣四</li>
-  <li>年轻人应该勇敢去追求自己想要的东西,很明显我们愿意追求真善美与理想</li>
-</ul>
-
-<p>对于前者,践行后发觉职场的厚黑学,日子过得很忙很累,收获是有的。迷茫的是,收获的东西可能不是你的初心,会怀疑是否有意义,往往抗拒的时候,是凭着意志去承受。</p>
-
-<p>对于后者,除了幸运到一定的程度才可能在中国实现吧,于是成为很多人的向往。 可以看到不少倔强的人没有放弃，因为有着的这样的情怀,所以不少人会对 Allen 这样的人物很敬仰,同样的还有云风.韩寒</p>
-
-<p><img src="/images/2013/12/gitar.jpg" /></p>
-
-<p>我们以某种莫名的执着与生活妥协着,却期待现实与理想可以在某个点遇见彼此。我试着用这种方式写下这篇碎语,不知道你们看懂了么？</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1539,6 +1551,10 @@ Happy Hacking :-)</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/21/supervisorjian-ting-qi/">supervisor监听器</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/08/16/twemproxy/">twemproxy 一个redis代理</a>
@@ -1566,10 +1582,6 @@ Happy Hacking :-)</p>
     
       <li class="post">
         <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
       </li>
     
   </ul>

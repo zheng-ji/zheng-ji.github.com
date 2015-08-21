@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能 初窥原理 安装与配置 不支持的操作 压力测试 摘自极光博客的评论 初窥原理 Twitter 出品的轻量级 &hellip;">
+  <meta name="description" content="我们之前使用 monit 来监控程序状态的，服务比较多是用 supervisor 启动的，如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。 庆幸的是，supervisor 的 eventListener 支持我的设想。 这个监控程序需要用 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,112 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/21/supervisorjian-ting-qi/">Supervisor监听器</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-08-21T16:36:00+08:00" pubdate data-updated="true">Aug 21<span>st</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/08/21/supervisorjian-ting-qi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>我们之前使用 monit 来监控程序状态的，服务比较多是用 supervisor 启动的，如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。</p>
+
+<p>庆幸的是，supervisor 的 <code>eventListener</code> 支持我的设想。</p>
+
+<p>这个监控程序需要用 supervisor 启动，类型不再是<code>program</code>, 而是<code>eventlistener</code>，这里有几个比较耗时的地方需要记录下。</p>
+
+<ul>
+  <li>supervisor 有独特的通信协议,需要遵循，否则通讯不会被触发</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">def write_stdout(self, s):
+</span><span class="line">    sys.stdout.write(s)
+</span><span class="line">    sys.stdout.flush()
+</span><span class="line">
+</span><span class="line">write_stdout('READY\n') //类似开始握手
+</span><span class="line">write_stdout('RESULT 2\nOK') //结束通讯</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>需要从标准输入端读取事件,而且他是个阻塞的事件模型</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">while 1:
+</span><span class="line">    self.write_stdout('READY\n')
+</span><span class="line">    line = sys.stdin.readline()
+</span><span class="line">    do_some_thing()
+</span><span class="line">    self.write_stdout('RESULT 2\nOK')</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>supervisor 配置文件需要订阅事件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[eventlistener:alarm]
+</span><span class="line">user=zj
+</span><span class="line">command=/usr/bin/python /home/ymserver/bin/alarm/main.py
+</span><span class="line">events=PROCESS_STATE_EXITED,PROCESS_STATE_STOPPED,PROCESS_STATE_FATAL
+</span><span class="line">
+</span><span class="line"># 记录控制台输出的日志位置
+</span><span class="line">stderr_logfile=/home/zj/log/supervisor/alarm.err.log
+</span><span class="line">stdout_logfile=/home/zj/log/supervisor/alarm.output.log</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>弄好 supervisor 配置，以及部署好代码之后，需要重启 supervisor 才会真正的订阅事件。
+从此 supervisor 管理的程序一旦有 <code>FATAL</code>,<code>EXIT</code> 等状态就会触发程序，程序中就会触发自定义的报警。</p>
+
+<hr />
+
+<p><a href="https://github.com/zheng-ji/ToyCollection/tree/master/supervisor-listener">代码</a></p>
+
+<p>Happy Hack!</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1137,137 +1243,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-02-08T13:40:00+08:00" pubdate data-updated="true">Feb 8<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/02/08/trie-suggestion/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>耗了3个夜晚出来的东西.</p>
-
-<p>先上图吧：</p>
-
-<p><img src="/images/2015/02/suggest.png" /></p>
-
-<p>是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。</p>
-
-<p>起因: 在公司<code>GitLab</code>看到有这人对内部管理系统提出了这个需求，但是一直没有被<code>close</code>, 我觉得应该挺有趣的，好奇心驱动下就开始搞了。</p>
-
-<p>如果仅仅是实现这个需求，应该有很多种</p>
-
-<ul>
-  <li>方法一：使用一个hash,将关键字填入key，如果采用此法，数据量大的时候估计堪忧，以一个汉字2个Byte计算的话，1kw个词条，1个词条10个词语的话需要占用大于200M内存。</li>
-  <li>方法二：前缀匹配，那么应该怎么选择数据结构,朴素的做法是O(N^N),我们肯定采用复杂度较优的Trie树  O(1)</li>
-  <li>方法三：Radix Tree 据说这个是linux cache的一个算法。看了几个小时，真心复杂，不得不佩服内核开发者！</li>
-</ul>
-
-<h3 id="trie">讲一讲<code>trie</code>树吧</h3>
-
-<p><img src="/images/2015/02/triestruct.png" /></p>
-
-<ul>
-  <li>根节点不包含字符，除根节点外的每一个子节点都包含一个字符。</li>
-  <li>根节点到某一节点，路径上经过的字符连接起来，就是该节点对应的字符串。</li>
-  <li>每个单词的公共前缀作为一个字符节点保存。</li>
-  <li>叶子节点的指针是空的</li>
-</ul>
-
-<p>以下是具体的数据结构代码</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">type Node struct {
-</span><span class="line">    Link     map[string]*Node  #指针
-</span><span class="line">    Key      string                     #每个节点的字符
-</span><span class="line">    IsLeaf   bool                       #是否叶子节点 
-</span><span class="line">    Weight   float64                    #权重
-</span><span class="line">    LongWord string                     #从根节点到该节点的长字符
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>围绕这个数据结构做了
-构建树，删除节点，添加节点，获取子节点等</p>
-
-<h3 id="section">知识铺垫：</h3>
-<p>在用 Go 语言处理中文字符的时候，需要特别使用 []rune数组，看以下示范代码就知道了,他把中文处理成1个字符表现的编码方式了。正式我们下列处理Trie需要用到的。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">package main
-</span><span class="line">import "fmt"
-</span><span class="line">
-</span><span class="line">func main () {
-</span><span class="line">    m_str := "编程"
-</span><span class="line">    fmt.Println("fmt:", m_str)
-</span><span class="line">    m_str_rune := []rune(m_str)
-</span><span class="line">    fmt.Println("fmt:", m_str_rune)
-</span><span class="line">    m_str_byte := []byte(m_str)
-</span><span class="line">    fmt.Println("fmt:", m_str_byte)
-</span><span class="line">}
-</span><span class="line">
-</span><span class="line">$ ./test_rune
-</span><span class="line">fmt: 编程
-</span><span class="line">fmt: [32534 31243]
-</span><span class="line">fmt: [231 188 150 231 168 139]</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">测试结果：</h3>
-<p>导入100W条词条,搜索的反应是瞬秒，1ms返回响应，在4G的机器上，整个程序占用内存0.3%。</p>
-
-<hr />
-
-<p>每个成熟的互联网产品，背后都是工程师耗费一点一滴思维的结晶构建而成的。对待技术不得不敬畏。</p>
-
-<p><a href="https://github.com/zheng-ji/trietips">代码</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1287,6 +1262,10 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/08/21/supervisorjian-ting-qi/">supervisor监听器</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/08/16/twemproxy/">twemproxy 一个redis代理</a>
@@ -1314,10 +1293,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     
       <li class="post">
         <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建docker</a>
       </li>
     
   </ul>

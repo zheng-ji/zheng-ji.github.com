@@ -5,13 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>用到的Tcpdump - 织网</title>
+  <title>supervisor监听器 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出tcpdump，遗憾的是我略懂皮毛，有必要深入一些。
-简单说下我常用的 TcpDump的方法 1
-tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候还是会忘记， &hellip;">
+  <meta name="description" content="supervisor 监控">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -20,7 +18,7 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/08/21/supervisorjian-ting-qi">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -72,7 +70,7 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
   
   <header>
     
-      <h1 class="entry-title">用到的Tcpdump</h1>
+      <h1 class="entry-title">Supervisor监听器</h1>
     
     
       <p class="meta">
@@ -88,7 +86,7 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
   
 
 
-<time datetime="2014-11-29T14:15:00+08:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time>
+<time datetime="2015-08-21T16:36:00+08:00" pubdate data-updated="true">Aug 21<span>st</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -98,36 +96,74 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
   </header>
 
 
-<div class="entry-content"><p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
-简单说下我常用的 TcpDump的方法</p>
+<div class="entry-content"><p>我们之前使用 monit 来监控程序状态的，服务比较多是用 supervisor 启动的，如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>庆幸的是，supervisor 的 <code>eventListener</code> 支持我的设想。</p>
 
-<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
+<p>这个监控程序需要用 supervisor 启动，类型不再是<code>program</code>, 而是<code>eventlistener</code>，这里有几个比较耗时的地方需要记录下。</p>
+
+<ul>
+  <li>supervisor 有独特的通信协议,需要遵循，否则通讯不会被触发</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">-i 指定网卡
-</span><span class="line">-Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
-</span><span class="line">-s 0 表示整包抓取
-</span><span class="line">-c 1024 表示包得大小</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
-这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
-
-<p>Tcpdump 中的 flag 有必要提下：</p>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">def write_stdout(self, s):
+</span><span class="line">    sys.stdout.write(s)
+</span><span class="line">    sys.stdout.flush()
+</span><span class="line">
+</span><span class="line">write_stdout('READY\n') //类似开始握手
+</span><span class="line">write_stdout('RESULT 2\nOK') //结束通讯</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
-  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
-  <li>SYNC 表示主动连接到对方，建立连接</li>
-  <li>FIN 表示传送结束，发送方等待对方响应</li>
+  <li>需要从标准输入端读取事件,而且他是个阻塞的事件模型</li>
 </ul>
 
-<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">while 1:
+</span><span class="line">    self.write_stdout('READY\n')
+</span><span class="line">    line = sys.stdin.readline()
+</span><span class="line">    do_some_thing()
+</span><span class="line">    self.write_stdout('RESULT 2\nOK')</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>supervisor 配置文件需要订阅事件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[eventlistener:alarm]
+</span><span class="line">user=zj
+</span><span class="line">command=/usr/bin/python /home/ymserver/bin/alarm/main.py
+</span><span class="line">events=PROCESS_STATE_EXITED,PROCESS_STATE_STOPPED,PROCESS_STATE_FATAL
+</span><span class="line">
+</span><span class="line"># 记录控制台输出的日志位置
+</span><span class="line">stderr_logfile=/home/zj/log/supervisor/alarm.err.log
+</span><span class="line">stdout_logfile=/home/zj/log/supervisor/alarm.output.log</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>弄好 supervisor 配置，以及部署好代码之后，需要重启 supervisor 才会真正的订阅事件。
+从此 supervisor 管理的程序一旦有 <code>FATAL</code>,<code>EXIT</code> 等状态就会触发程序，程序中就会触发自定义的报警。</p>
+
+<hr />
+
+<p><a href="https://github.com/zheng-ji/ToyCollection/tree/master/supervisor-listener">代码</a></p>
+
+<p>Happy Hack!</p>
+
 </div>
 
 
@@ -150,14 +186,8 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
   
 
 
-<time datetime="2014-11-29T14:15:00+08:00" pubdate data-updated="true">Nov 29<span>th</span>, 2014</time>
+<time datetime="2015-08-21T16:36:00+08:00" pubdate data-updated="true">Aug 21<span>st</span>, 2015</time>
       
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/system/'>System</a>
-  
-</span>
 
 
     </p>
@@ -171,10 +201,8 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/11/25/tired/" title="Previous Post: 慢">&laquo; 慢</a>
+        <a class="basic-alignment left" href="/blog/2015/08/16/twemproxy/" title="Previous Post: twemproxy 一个redis代理">&laquo; twemproxy 一个redis代理</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/12/13/nginxcuo-wu-ma/" title="Next Post: nginx错误码">nginx错误码 &raquo;</a>
       
     </p>
   </footer>
@@ -184,7 +212,7 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 如果仅仅是看manual 多数时候�
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="用到的Tcpdump"></div>
+<div class="ds-thread" data-title="Supervisor监听器"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
