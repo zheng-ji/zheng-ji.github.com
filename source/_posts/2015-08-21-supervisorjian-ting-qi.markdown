@@ -8,7 +8,7 @@ categories:
 description: supervisor 监控 
 ---
 
-我们之前使用 monit 来监控程序状态的，服务比较多是用 supervisor 启动的，如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。
+我们服务多是用 supervisor 启动的， 但监控多数是用 `monit`, 如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。
 
 庆幸的是，supervisor 的 `eventListener` 支持我的设想。
 
