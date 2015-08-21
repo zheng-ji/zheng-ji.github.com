@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-08-21T16:46:59+08:00</updated>
+  <updated>2015-08-21T16:49:35+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -18,7 +18,7 @@
     <link href="http://zheng-ji.github.com/blog/2015/08/21/supervisorjian-ting-qi/"/>
     <updated>2015-08-21T16:36:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/08/21/supervisorjian-ting-qi</id>
-    <content type="html"><![CDATA[<p>我们之前使用 monit 来监控程序状态的，服务比较多是用 supervisor 启动的，如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。</p>
+    <content type="html"><![CDATA[<p>我们服务多是用 supervisor 启动的， 但监控多数是用 <code>monit</code>, 如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。</p>
 
 <p>庆幸的是，supervisor 的 <code>eventListener</code> 支持我的设想。</p>
 
