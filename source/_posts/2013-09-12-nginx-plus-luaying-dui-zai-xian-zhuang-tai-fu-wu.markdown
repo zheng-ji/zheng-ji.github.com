@@ -3,7 +3,8 @@ layout: post
 title: "nginx+lua应对在线状态服务"
 date: 2013-09-12 23:12
 comments: true
-categories: Server Nginx 
+categories: Server
+description: nginx lua
 ---
 
 几天前在@ideawu的博客上看到了其一篇文章中讲到的技术题.

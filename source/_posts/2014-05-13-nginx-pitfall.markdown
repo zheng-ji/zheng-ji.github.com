@@ -3,7 +3,7 @@ layout: post
 title: "[译]nginx pitfall"
 date: 2014-05-13 22:26
 comments: true
-categories: Nginx 
+categories: Server
 keywords: Nginx pitfall
 description: Nginx pitfall
 ---

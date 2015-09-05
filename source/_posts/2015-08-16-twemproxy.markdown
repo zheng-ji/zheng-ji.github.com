@@ -9,7 +9,7 @@ description: redis proxy twemproxy
 
 为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能
 
-* [初窥原理](#第一节)
+: [初窥原理](#第一节)
 * [安装与配置](#第二节)
 * [不支持的操作](#第三节)
 * [压力测试](#第四节)
