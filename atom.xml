@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-08-21T16:49:35+08:00</updated>
+  <updated>2015-09-05T18:55:40+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,165 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Ansible的使用经验]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan/"/>
+    <updated>2015-09-05T18:09:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan</id>
+    <content type="html"><![CDATA[<p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择<code>Ansible</code>来做自动化批量操作。</p>
+
+<p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
+
+<ul>
+  <li><a href="#第一节">配置 ansible.cfg 文件</a></li>
+  <li><a href="#第二节">使用 ansible role 来区分业务</a></li>
+  <li><a href="#第三节">files 目录的路径定位</a></li>
+  <li><a href="#第四节">使用 tags 区分不同操作</a></li>
+  <li><a href="#第五节">规划 ansible roles 的 tasks 文件</a></li>
+  <li><a href="#第六节">ansible-play-book 一些常用的选项</a></li>
+</ul>
+
+<h3 id="第一节">更好地配置文件</h3>
+
+<p>我们会如下配置 <code>/etc/ansible/host</code>, 特意指明用户与 端口</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[web-cluster]
+</span><span class="line">&lt;node-1-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj
+</span><span class="line">&lt;node-2-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在 <code>/etc/ansible/ansible.cfg</code> 文件里
+我们特意提及了 ansible-role 的配置，未来我们会使用这个东西</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">roles_path    = /home/zj/my-ansible/roles</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">使用 ansible role 来区分业务</h3>
+
+<p>打开 <code>ansible</code> 部署脚本的文件夹, 目录树如下</p>
+
+<p><code>cd /home/zj/my-ansible/</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">haproxy
+</span><span class="line">     - entry.yaml
+</span><span class="line">roles
+</span><span class="line">     - haproxy
+</span><span class="line">        - files
+</span><span class="line">        - handlers
+</span><span class="line">        - vars
+</span><span class="line">        - tasks</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我用一个管理 haproxy 的例子来讲解这种方式。
+在 <code>roles</code> 目录下创建 <code>haproxy</code>, 如上所示，需要有四个目录;</p>
+
+<ul>
+  <li><code>files</code> 目录下放置需要被传输到远端的文件;</li>
+  <li><code>vars</code>  目录下有一个 <code>main.yml</code>文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
+  <li><code>handlers</code> 目录下有一个 <code>main.yml</code>, 可以定义一些通用的操作，比如重启服务等;</li>
+  <li><code>tasks</code> 目录下是我们编写 <code>main.yml</code> 脚本，执行业务逻辑的地方;</li>
+</ul>
+
+<blockquote>
+  <p>那么 ansible role 的入口在哪呢？</p>
+</blockquote>
+
+<p>在 <code>~/my-ansible/haproxy/entry.yml</code> 中，指定了roles的角色，如此一来， 
+ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备执行 <code>tasks/main.yml</code> </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: web-cluster
+</span><span class="line">  roles:
+</span><span class="line">    - haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">files 目录的路径定位</h3>
+
+<p>摘取 <code>~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
+</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+</span><span class="line">  sudo: yes</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这里的<code>src=haproxy.cfg</code> 意味着 <code>~/my-ansible/roles/haproxy/files/haproxy.cfg</code></p>
+
+<h3 id="第四节">使用 tags 区分不同操作</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: install ppa
+</span><span class="line">  shell: add-apt-repository -y ppa:vbernat/haproxy-1.5
+</span><span class="line">  sudo: yes
+</span><span class="line">  tags:
+</span><span class="line">    - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以下命令，是使用 tags 参数区分操作的例子</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/my-ansible/haproxy
+</span><span class="line">ansible-playbook entry.yml -v -K --tags "install-haproxy"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
+
+<p>tasks 目录有一个主执行文件 <code>main.yml</code>, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 <code>include</code> 语法。</p>
+
+<p><code>cat ~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- include: 'install-haproxy.yml'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里</p>
+
+<p><code>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
+</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+</span><span class="line">  sudo: yes
+</span><span class="line">  tags:
+</span><span class="line">     - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>tags 最好也与该 yml 文件名一致，清晰分明</p>
+
+<h3 id="第六节">ansible-play-book 一些常用的选项</h3>
+
+<ul>
+  <li>-K 需要 sudo 权限去客户机执行命令，会提示你输入密码</li>
+  <li>-v 可以输出冗余的执行过程</li>
+  <li>–check 可以测试脚本执行情况，但实际并未在远程机器执行</li>
+  <li>–tags 提示 ansible-play-book 调用哪些 tags 命令</li>
+</ul>
+
+<p>使用过ansible roles 之后，最大的体会是操作调理化，甚至编程化，合理的利用 handler, vars, 能更加优雅抽象。</p>
+
+<hr />
+
+<p>上述的例子在 Github 有代码, 结合本文阅读可能更容易上手
+<a href="https://github.com/zheng-ji/ToyCollection/tree/master/my-ansible">Link</a> </p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[supervisor监听器]]></title>
@@ -94,15 +253,16 @@
     <link href="http://zheng-ji.github.com/blog/2015/08/16/twemproxy/"/>
     <updated>2015-08-16T12:11:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/08/16/twemproxy</id>
-    <content type="html"><![CDATA[<p>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</p>
-
-<ul>
-  <li><a href="#第一节">初窥原理</a></li>
-  <li><a href="#第二节">安装与配置</a></li>
-  <li><a href="#第三节">不支持的操作</a></li>
-  <li><a href="#第四节">压力测试</a></li>
-  <li><a href="#第五节">摘自极光博客的评论</a></li>
-</ul>
+    <content type="html"><![CDATA[<dl>
+  <dt>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</dt>
+  <dd>
+    <p><a href="#第一节">初窥原理</a>
+* <a href="#第二节">安装与配置</a>
+* <a href="#第三节">不支持的操作</a>
+* <a href="#第四节">压力测试</a>
+* <a href="#第五节">摘自极光博客的评论</a></p>
+  </dd>
+</dl>
 
 <h3 id="第一节">初窥原理</h3>
 
@@ -1598,91 +1758,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 <p><code>
 sudo ifdown eth0; sudo ifup eth0</code> 
 ServerB 就可以连接外网了。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[唯一索引引发的思考]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/10/23/mysql-unique-index/"/>
-    <updated>2014-10-23T23:18:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/10/23/mysql-unique-index</id>
-    <content type="html"><![CDATA[<p>最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 <code>Duplicated Key entry Error</code>,</p>
-
-<h3 id="section">回放事件</h3>
-
-<p>我们的数据表，之前是有 <code>UNIQUE INDEX(cuid, aid)</code>, 因为去掉索引，服务持续写入，导致有重复记录，所幸的是，这是一个统计表, 不影响功能，所以需要找出重复的记录</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">select cuid,aid from (
-</span><span class="line">    select cuid, aid,count(1) as num
-</span><span class="line">    from register_chn 
-</span><span class="line">    group by cuid,aid having num &gt; 1
-</span><span class="line">) t;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>显示有8条记录,如果手动删除,是很慢且愚蠢的做法,还是用 SQL 执行,镇定之后执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">delete from register_chn where (cuid,aid) in (
-</span><span class="line">    select cuid,aid from (
-</span><span class="line">        select cuid, aid,count(1) as num
-</span><span class="line">        from register_chn
-</span><span class="line">        group by cuid,aid having num &gt; 1
-</span><span class="line">    ) t
-</span><span class="line">);</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>影响了８条记录.然后瞬间加上索引.所幸是成功了, 事实上当时的合理操作应该是用事务。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">BEGIN;
-</span><span class="line">delete from register_chn where (cuid,aid) in (
-</span><span class="line">    select cuid,aid from (
-</span><span class="line">        select cuid, aid,count(1) as num
-</span><span class="line">        from register_chn
-</span><span class="line">        group by cuid,aid having num &gt; 1
-</span><span class="line">    ) t
-</span><span class="line">);
-</span><span class="line">alter table register_chn add unique index(cuid, aid);
-</span><span class="line">COMMINT;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">引发的思考</h3>
-
-<p>后来想想, 上述方法虽然解决问题了, 但是有点碰运气成分。如果频繁快速地产生重复记录,也许就没那么好运了,事实上可以执行以下 SQL:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">alter ignore table register_chn add unique index(cuid, aid)；</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果你以为很简单,那就错了。这个方法在 MySQL 5.0 上使用是没问题的，但是在5.6 之前是有bug的，亲自测试Percona 版本5.5, 的确会失败
-官方的解决方法是：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set session old_alter_table = on;
-</span><span class="line">alter ignore table register_chn add unique index(cuid, aid);</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>在有主备的情况,记得执行前设置一下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set session sql_log_bin=off. </span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>以免备库报错。同样还需要在备库重复一下主库的操作, 这也算是一个不太完美的解决思路。</p>
-
 ]]></content>
   </entry>
   

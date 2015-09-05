@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="我们服务多是用 supervisor 启动的， 但监控多数是用 monit, 如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。 庆幸的是，supervisor 的 eventListener 支持我的设想。 这个监控程序需要用 supervisor 启动， &hellip;">
+  <meta name="description" content="当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择Ansible来做自动化批量操作。 之前有记录一些 Ansible 入门的使用,请看这里, 这半年的积累, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,195 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible的使用经验</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-09-05T18:09:00+08:00" pubdate data-updated="true">Sep 5<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择<code>Ansible</code>来做自动化批量操作。</p>
+
+<p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
+
+<ul>
+  <li><a href="#第一节">配置 ansible.cfg 文件</a></li>
+  <li><a href="#第二节">使用 ansible role 来区分业务</a></li>
+  <li><a href="#第三节">files 目录的路径定位</a></li>
+  <li><a href="#第四节">使用 tags 区分不同操作</a></li>
+  <li><a href="#第五节">规划 ansible roles 的 tasks 文件</a></li>
+  <li><a href="#第六节">ansible-play-book 一些常用的选项</a></li>
+</ul>
+
+<h3 id="第一节">更好地配置文件</h3>
+
+<p>我们会如下配置 <code>/etc/ansible/host</code>, 特意指明用户与 端口</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[web-cluster]
+</span><span class="line">&lt;node-1-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj
+</span><span class="line">&lt;node-2-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在 <code>/etc/ansible/ansible.cfg</code> 文件里
+我们特意提及了 ansible-role 的配置，未来我们会使用这个东西</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">roles_path    = /home/zj/my-ansible/roles</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">使用 ansible role 来区分业务</h3>
+
+<p>打开 <code>ansible</code> 部署脚本的文件夹, 目录树如下</p>
+
+<p><code>cd /home/zj/my-ansible/</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">haproxy
+</span><span class="line">     - entry.yaml
+</span><span class="line">roles
+</span><span class="line">     - haproxy
+</span><span class="line">        - files
+</span><span class="line">        - handlers
+</span><span class="line">        - vars
+</span><span class="line">        - tasks</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我用一个管理 haproxy 的例子来讲解这种方式。
+在 <code>roles</code> 目录下创建 <code>haproxy</code>, 如上所示，需要有四个目录;</p>
+
+<ul>
+  <li><code>files</code> 目录下放置需要被传输到远端的文件;</li>
+  <li><code>vars</code>  目录下有一个 <code>main.yml</code>文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
+  <li><code>handlers</code> 目录下有一个 <code>main.yml</code>, 可以定义一些通用的操作，比如重启服务等;</li>
+  <li><code>tasks</code> 目录下是我们编写 <code>main.yml</code> 脚本，执行业务逻辑的地方;</li>
+</ul>
+
+<blockquote>
+  <p>那么 ansible role 的入口在哪呢？</p>
+</blockquote>
+
+<p>在 <code>~/my-ansible/haproxy/entry.yml</code> 中，指定了roles的角色，如此一来， 
+ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备执行 <code>tasks/main.yml</code> </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: web-cluster
+</span><span class="line">  roles:
+</span><span class="line">    - haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">files 目录的路径定位</h3>
+
+<p>摘取 <code>~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
+</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+</span><span class="line">  sudo: yes</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这里的<code>src=haproxy.cfg</code> 意味着 <code>~/my-ansible/roles/haproxy/files/haproxy.cfg</code></p>
+
+<h3 id="第四节">使用 tags 区分不同操作</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: install ppa
+</span><span class="line">  shell: add-apt-repository -y ppa:vbernat/haproxy-1.5
+</span><span class="line">  sudo: yes
+</span><span class="line">  tags:
+</span><span class="line">    - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以下命令，是使用 tags 参数区分操作的例子</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/my-ansible/haproxy
+</span><span class="line">ansible-playbook entry.yml -v -K --tags "install-haproxy"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
+
+<p>tasks 目录有一个主执行文件 <code>main.yml</code>, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 <code>include</code> 语法。</p>
+
+<p><code>cat ~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- include: 'install-haproxy.yml'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里</p>
+
+<p><code>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
+</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+</span><span class="line">  sudo: yes
+</span><span class="line">  tags:
+</span><span class="line">     - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>tags 最好也与该 yml 文件名一致，清晰分明</p>
+
+<h3 id="第六节">ansible-play-book 一些常用的选项</h3>
+
+<ul>
+  <li>-K 需要 sudo 权限去客户机执行命令，会提示你输入密码</li>
+  <li>-v 可以输出冗余的执行过程</li>
+  <li>–check 可以测试脚本执行情况，但实际并未在远程机器执行</li>
+  <li>–tags 提示 ansible-play-book 调用哪些 tags 命令</li>
+</ul>
+
+<p>使用过ansible roles 之后，最大的体会是操作调理化，甚至编程化，合理的利用 handler, vars, 能更加优雅抽象。</p>
+
+<hr />
+
+<p>上述的例子在 Github 有代码, 结合本文阅读可能更容易上手
+<a href="https://github.com/zheng-ji/ToyCollection/tree/master/my-ansible">Link</a> </p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -205,15 +394,16 @@
   </header>
 
 
-  <div class="entry-content"><p>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</p>
-
-<ul>
-  <li><a href="#第一节">初窥原理</a></li>
-  <li><a href="#第二节">安装与配置</a></li>
-  <li><a href="#第三节">不支持的操作</a></li>
-  <li><a href="#第四节">压力测试</a></li>
-  <li><a href="#第五节">摘自极光博客的评论</a></li>
-</ul>
+  <div class="entry-content"><dl>
+  <dt>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</dt>
+  <dd>
+    <p><a href="#第一节">初窥原理</a>
+* <a href="#第二节">安装与配置</a>
+* <a href="#第三节">不支持的操作</a>
+* <a href="#第四节">压力测试</a>
+* <a href="#第五节">摘自极光博客的评论</a></p>
+  </dd>
+</dl>
 
 <h3 id="第一节">初窥原理</h3>
 
@@ -1180,69 +1370,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-03-09T23:45:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/03/09/tui-dao-zi-ji/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>知乎上面有一个有趣而且严肃的<a href="http://www.zhihu.com/question/24665029/answer/28567915?from=singlemessage&amp;isappinstalled=0">问题</a>, 再次引起我对代码质量的思考。</p>
-
-<p>如知乎所言，代码质量低下如：</p>
-
-<ul>
-  <li>文件关系混乱</li>
-  <li>注释过期、不明确或者没有</li>
-  <li>文档过期、不明确或者没有</li>
-  <li>架构乱设计</li>
-  <li>过度设计</li>
-  <li>不检查用户输入的错误情况</li>
-  <li>不检查API或者函数返回的errorcode或者exception</li>
-  <li>没有单元测试等自动化测试过程</li>
-  <li>编译起来很难</li>
-  <li>到处复制代码，公用的部分不整理成内部库</li>
-</ul>
-
-<p>垃圾代码存在的客观因素有很多, 包括时间压力，业务留坑，绕开技术难点等。回头发现自己生产出坏代码的时候，除了羞愧，我是带有深深的污点强迫症。就好比一个工匠毕其一生修炼雕塑，却留下令自己鄙视的雕纹, 说道关乎尊严或许也不为过的。</p>
-
-<p>于是我愿意，且习惯性推倒自己的过去，希望用每一个顿悟的今天取代往日无知的自我。</p>
-
-<p>春节的时候学习了 flask, 发现以前写过的一些 Web 项目实现不够优雅，在 flask 对比实现下更是丑陋, 同样的功能，如果换一种方法, 可以感受到简洁，编码组织的顺畅， 更好地部署方式。 遂用了2个晚上推倒了以前写过的一个短地址服务。加上了一些提升用户体验的前端代码, 我想这样或许能给使用这个系统的人带来工作效率的提高吧。</p>
-
-<p>那晚回去的路上, 我是开心的，好比闻到洗好晒干的被子发出的芬芳。我想我应该，也会一直记住这种感觉，并践行着。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1256,12 +1383,16 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible的使用经验</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/08/21/supervisorjian-ting-qi/">supervisor监听器</a>
@@ -1289,10 +1420,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     
       <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
       </li>
     
   </ul>

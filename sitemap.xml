@@ -50,7 +50,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2013/02/17/nginxmo-kuai-kai-fa/</loc>
-        <lastmod>2014-02-10T13:00:30+08:00</lastmod>
+        <lastmod>2015-09-05T18:36:44+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2013/02/17/redisshi-ge-hao-dong-xi/</loc>
@@ -112,7 +112,7 @@
         <loc>
             http://zheng-ji.github.com/blog/2013/09/12/nginx-plus-luaying-dui-zai-xian-zhuang-tai-fu-wu/
         </loc>
-        <lastmod>2014-02-10T12:46:30+08:00</lastmod>
+        <lastmod>2015-09-05T18:37:37+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/</loc>
@@ -194,7 +194,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/05/13/nginx-pitfall/</loc>
-        <lastmod>2014-05-15T12:21:30+08:00</lastmod>
+        <lastmod>2015-09-05T18:31:32+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/06/21/da-mo-de-qing-chun/</loc>
@@ -310,11 +310,15 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2015/08/16/twemproxy/</loc>
-        <lastmod>2015-08-16T13:25:39+08:00</lastmod>
+        <lastmod>2015-09-05T18:55:22+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2015/08/21/supervisorjian-ting-qi/</loc>
         <lastmod>2015-08-21T16:49:31+08:00</lastmod>
+    </url>
+    <url>
+        <loc>http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan/</loc>
+        <lastmod>2015-09-05T18:55:19+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/about/</loc>
@@ -322,11 +326,11 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/archives/</loc>
-        <lastmod>2015-08-21T16:49:31+08:00</lastmod>
+        <lastmod>2015-09-05T18:55:22+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/</loc>
-        <lastmod>2015-08-21T16:49:31+08:00</lastmod>
+        <lastmod>2015-09-05T18:55:22+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/robots.txt</loc>

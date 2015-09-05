@@ -9,12 +9,14 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。 修改 ~.zshrc,添加以下环境变量 1
+  <meta name="description" content="做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。 以下给出一个 demo 1
+2
+mkdir hacker
+vim foo.py 编辑以下内容 1
 2
 3
-export GOROOT=$HOME/go
-export GOBIN=$GOROOT/bin
-export PATH=$PATH:$GOBIN 开始安装, &hellip;">
+4
+5 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,6 +74,101 @@ export PATH=$PATH:$GOBIN 开始安装, &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/03/make-setup-dot-py/">制作setup.py</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-03T11:52:00+08:00" pubdate data-updated="true">May 3<span>rd</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/05/03/make-setup-dot-py/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
+
+<p>以下给出一个 demo </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mkdir hacker
+</span><span class="line">vim foo.py</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑以下内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">Hacker</span><span class="p">():</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">motto</span> <span class="o">=</span> <span class="s">&quot;No evil, Be Hacker&quot;</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">printMotto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">motto</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>开始编写 setup.py, 也许是为了知识产权保护，里面按照规矩会让作者填上资料。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">setup</span>
+</span><span class="line"><span class="n">setup</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Hacker&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="n">version</span><span class="o">=</span><span class="s">&#39;1.0&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="n">description</span><span class="o">=</span><span class="s">&#39;be hake or be hacked&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="n">author</span><span class="o">=</span><span class="s">&#39;zheng-ji&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="n">author_email</span><span class="o">=</span><span class="s">&#39;zhengji91@gmail.com&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="n">url</span><span class="o">=</span><span class="s">&#39;http://zheng-ji.info&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="n">py_modules</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">],</span>
+</span><span class="line">        <span class="n">install_requires</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;requests&quot;</span><span class="p">]</span>
+</span><span class="line">     <span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>好了，这个时候执行,</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">sudo</span> <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
+
+<p>删除的话，就得蛋疼去 <code>/usr/lib/python2.7/</code> 手动删除,在 mac 里面是 <code>/Library/Python/2.7/site-packages</code></p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1412,124 +1509,6 @@ Happy Hacking :-)</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/06/re-geng-xin/">热更新</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-01-06T20:58:00+08:00" pubdate data-updated="true">Jan 6<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/01/06/re-geng-xin/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话:</p>
-
-<ol>
-  <li>当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过,从而reload指定模块就可以在不重启服务的情况下读取修改的配置,</li>
-  <li>sys.module[‘modname’]返回的是该模块的pyc文件，而该文件是没有修改时间的，所以计算修改时间需要取py文件的属性</li>
-</ol>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">time</span>
-</span><span class="line"><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
-</span><span class="line"><span class="k">def</span> <span class="nf">auto_reload</span><span class="p">():</span>
-</span><span class="line">    <span class="n">mods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;test_config&quot;</span><span class="p">]</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">mods</span><span class="p">:</span>
-</span><span class="line">        <span class="k">try</span><span class="p">:</span>
-</span><span class="line">            <span class="n">module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">mod</span><span class="p">]</span>
-</span><span class="line">        <span class="k">except</span><span class="p">:</span>
-</span><span class="line">            <span class="k">continue</span>
-</span><span class="line">        <span class="n">filename</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">__file__</span>
-</span><span class="line">        <span class="k">print</span> <span class="n">filename</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">):</span>
-</span><span class="line">            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">,</span> <span class="s">&quot;.py&quot;</span><span class="p">)</span>
-</span><span class="line">            <span class="n">mod_time</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-</span><span class="line">        <span class="k">if</span> <span class="ow">not</span> <span class="s">&quot;loadtime&quot;</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
-</span><span class="line">            <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="mi">0</span> <span class="c"># first load&#39;s time  1*</span>
-</span><span class="line">            <span class="k">try</span><span class="p">:</span>
-</span><span class="line">                <span class="k">if</span> <span class="n">mod_time</span> <span class="o">&gt;</span> <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span><span class="p">:</span>
-</span><span class="line">                    <span class="nb">reload</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
-</span><span class="line">                <span class="k">except</span><span class="p">:</span>
-</span><span class="line">                    <span class="k">pass</span>
-</span><span class="line">        <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="n">mod_time</span> <span class="c"># 2*</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
-</span><span class="line">    <span class="kn">import</span> <span class="nn">time</span>
-</span><span class="line">    <span class="kn">import</span> <span class="nn">my_config</span>
-</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="bp">None</span>
-</span><span class="line">    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-</span><span class="line">        <span class="n">auto_reload</span><span class="p">()</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span> <span class="o">!=</span> <span class="n">tmp</span><span class="p">:</span>
-</span><span class="line">        <span class="k">print</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
-</span><span class="line">        <span class="n">tmp</span> <span class="o">=</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
-</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>test_config.py</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">address</span> <span class="o">=</span> <span class="s">&quot;127.0.0.1&quot;</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1545,12 +1524,16 @@ Happy Hacking :-)</p>
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/nginx'>Nginx</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible的使用经验</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/08/21/supervisorjian-ting-qi/">supervisor监听器</a>
@@ -1578,10 +1561,6 @@ Happy Hacking :-)</p>
     
       <li class="post">
         <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay log Corrupt 恢复</a>
       </li>
     
   </ul>

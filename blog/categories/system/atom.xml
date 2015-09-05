@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-08-21T16:49:35+08:00</updated>
+  <updated>2015-09-05T18:55:40+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,149 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Ansible的使用经验]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan/"/>
+    <updated>2015-09-05T18:09:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan</id>
+    <content type="html"><![CDATA[<p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择<code>Ansible</code>来做自动化批量操作。</p>
+
+<p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
+
+<ul>
+  <li><a href="#第一节">配置 ansible.cfg 文件</a></li>
+  <li><a href="#第二节">使用 ansible role 来区分业务</a></li>
+  <li><a href="#第三节">files 目录的路径定位</a></li>
+  <li><a href="#第四节">使用 tags 区分不同操作</a></li>
+  <li><a href="#第五节">规划 ansible roles 的 tasks 文件</a></li>
+  <li><a href="#第六节">ansible-play-book 一些常用的选项</a></li>
+</ul>
+
+<h3 id="第一节">更好地配置文件</h3>
+
+<p>我们会如下配置 <code>/etc/ansible/host</code>, 特意指明用户与 端口</p>
+
+<p>```
+[web-cluster]</p>
+<node-1-ip> ansible_ssh_port=<your port=""> ansible_ssh_user=zj
+<node-2-ip> ansible_ssh_port=<your port=""> ansible_ssh_user=zj
+```
+
+在 `/etc/ansible/ansible.cfg` 文件里
+我们特意提及了 ansible-role 的配置，未来我们会使用这个东西
+
+```
+roles_path    = /home/zj/my-ansible/roles
+```
+
+<h3 id="第二节">使用 ansible role 来区分业务</h3>
+
+打开 `ansible` 部署脚本的文件夹, 目录树如下
+
+`cd /home/zj/my-ansible/`
+
+```
+haproxy
+     - entry.yaml
+roles
+     - haproxy
+        - files
+        - handlers
+        - vars
+        - tasks
+```
+
+我用一个管理 haproxy 的例子来讲解这种方式。
+在 `roles` 目录下创建 `haproxy`, 如上所示，需要有四个目录;
+
+* `files` 目录下放置需要被传输到远端的文件;
+* `vars`  目录下有一个 `main.yml`文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;
+* `handlers` 目录下有一个 `main.yml`, 可以定义一些通用的操作，比如重启服务等;
+* `tasks` 目录下是我们编写 `main.yml` 脚本，执行业务逻辑的地方;
+
+&gt; 那么 ansible role 的入口在哪呢？
+
+在 `~/my-ansible/haproxy/entry.yml` 中，指定了roles的角色，如此一来， 
+ansible-playbook 就会去 `/home/zj/my-ansible/roles/haproxy` 准备执行 `tasks/main.yml` 
+
+```
+- hosts: web-cluster
+  roles:
+    - haproxy
+```
+
+<h3 id="第三节">files 目录的路径定位</h3>
+
+摘取 `~/my-ansible/roles/haproxy/tasks/main.yml`
+
+```
+- name: copy haproxy conf
+  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+  sudo: yes
+```
+
+这里的`src=haproxy.cfg` 意味着 `~/my-ansible/roles/haproxy/files/haproxy.cfg`
+
+<h3 id="第四节">使用 tags 区分不同操作</h3>
+
+```
+- name: install ppa
+  shell: add-apt-repository -y ppa:vbernat/haproxy-1.5
+  sudo: yes
+  tags:
+    - install-haproxy
+```
+
+以下命令，是使用 tags 参数区分操作的例子
+
+```
+cd ~/my-ansible/haproxy
+ansible-playbook entry.yml -v -K --tags "install-haproxy"
+```
+
+<h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
+
+tasks 目录有一个主执行文件 `main.yml`, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 `include` 语法。
+
+`cat ~/my-ansible/roles/haproxy/tasks/main.yml`
+
+```
+- include: 'install-haproxy.yml'
+```
+
+include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里
+
+`cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml`
+
+```
+- name: copy haproxy conf
+  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+  sudo: yes
+  tags:
+     - install-haproxy
+```
+tags 最好也与该 yml 文件名一致，清晰分明
+
+<h3 id="第六节">ansible-play-book 一些常用的选项</h3>
+
+
+* -K 需要 sudo 权限去客户机执行命令，会提示你输入密码
+* -v 可以输出冗余的执行过程
+* --check 可以测试脚本执行情况，但实际并未在远程机器执行
+* --tags 提示 ansible-play-book 调用哪些 tags 命令
+
+使用过ansible roles 之后，最大的体会是操作调理化，甚至编程化，合理的利用 handler, vars, 能更加优雅抽象。
+
+----
+
+上述的例子在 Github 有代码, 结合本文阅读可能更容易上手
+[Link](https://github.com/zheng-ji/ToyCollection/tree/master/my-ansible) 
+
+
+</your></node-2-ip></your></node-1-ip>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[记录错误登陆的btmp文件]]></title>
@@ -301,85 +444,6 @@ tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024
 </ul>
 
 <p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Nginx与php-fpm系统参数配置]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/"/>
-    <updated>2014-11-02T15:46:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi</id>
-    <content type="html"><![CDATA[<p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
-
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
-
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
-
-<p><code>
-listen = /var/run/php5-fpm.sock
-listen.backlog = -1 (on FreeBSD -1 unlimit)
-pm = static # 使用静态进程管理
-pm.max_children = 128
-request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉
-</code></p>
-
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<p><code>
-ulimit -n 655360
-</code></p>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
-
-<ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<p><code>
-shell&gt; yum -y install irqbalance
-shell&gt; service irqbalance start
-cat /proc/irqbalance #查看中断的分布
-</code></p>
-
-<ul>
-  <li>为nginx 绑定 cpu</li>
-</ul>
-
-<p><code>
-worker_rlimit_nofile 300000;
-worker_processes  8;
-worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;
-</code></p>
-
-<ul>
-  <li>连接数调整，</li>
-</ul>
-
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
-
-<p>```
-vi /etc/sysctl.conf 进行了微调
-fs.file-max = 6553600</p>
-
-<p>vim /etc/security/limits.conf
-* soft nofile 655360
-* hard nofile 655360</p>
-
-<p>vim /etc/nginx/nginx.conf</p>
-
-<p>worker_rlimit_nofile 300000;
-events {
-    worker_connections 300000;
-    use epoll;
-}
-http {
-    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
-}
-```</p>
-
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
 ]]></content>
   </entry>
   

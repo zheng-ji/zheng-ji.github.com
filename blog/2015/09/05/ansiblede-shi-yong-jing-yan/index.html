@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>折腾docker - 织网</title>
+  <title>Ansible的使用经验 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="ubuntu docker">
-  <meta name="keywords" content="ubuntu docker">
+  <meta name="description" content="ansible role">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">折腾docker</h1>
+      <h1 class="entry-title">Ansible的使用经验</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-07-16T20:20:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2014</time>
+<time datetime="2015-09-05T18:09:00+08:00" pubdate data-updated="true">Sep 5<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,49 +96,41 @@
   </header>
 
 
-<div class="entry-content"><p>早在1年前就听过 <a href="http://docs.docker.com/">docker</a>这个 Golang 社区的明星产品 。</p>
+<div class="entry-content"><p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择<code>Ansible</code>来做自动化批量操作。</p>
 
-<h3 id="section">简单地介绍</h3>
-
-<p>Docker 提供了一个可以运行你的应用程序的容器。像一个可移植的容器引擎那样工作。它把应用程序及所有程序的依赖环境打包到一个虚拟容器中，这个虚拟容器可以运行在任何一种 Linux 服务器上。这大大地提高了程序运行的灵活性和可移植性，极大的降低运维成本。</p>
-
-<h3 id="section-1">组成</h3>
+<p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
 
 <ul>
-  <li>Docker 服务器守护程序（server daemon），用于管理所有的容器。</li>
-  <li>Docker 命令行客户端，用于控制服务器守护程序。</li>
-  <li>Docker 镜像：查找和浏览 docker 容器镜像。它也访问这里得到：<a href="https://index.docker.io/">链接</a></li>
+  <li><a href="#第一节">配置 ansible.cfg 文件</a></li>
+  <li><a href="#第二节">使用 ansible role 来区分业务</a></li>
+  <li><a href="#第三节">files 目录的路径定位</a></li>
+  <li><a href="#第四节">使用 tags 区分不同操作</a></li>
+  <li><a href="#第五节">规划 ansible roles 的 tasks 文件</a></li>
+  <li><a href="#第六节">ansible-play-book 一些常用的选项</a></li>
 </ul>
 
-<h3 id="docker">有了虚拟机为什么还要docker?</h3>
-<p>virtualbox 等虚拟机提供的是完整的操作系统环境, 迁移的时候太大了。它们包含了大量类似硬件驱动、虚拟处理器、网络接口等等并不需要的信息，也需要比较长时间的启动，同时也会消耗大量的内存、CPU 资源。</p>
+<h3 id="第一节">更好地配置文件</h3>
 
-<p>Docker 相比起来就非常轻量级了。运行起来就和一个常规程序差不多。这个容器不仅仅运行快，创建一个镜像和制作文件系统快照也很快,甚至比vagrant更节约资源</p>
-
-<h3 id="section-2">初体验</h3>
-<p>下载docker 并安装 ubuntu 12.04 这里如果没有指明 <code>ubuntu:12.04</code>, 会将所有ubuntu镜像都下载。由于被墙，速度惨不忍睹.</p>
+<p>我们会如下配置 <code>/etc/ansible/host</code>, 特意指明用户与 端口</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo apt-get install docker.io
-</span><span class="line">zj@zheng-ji:~$ sudo docker pull ubuntu:12.04 </span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[web-cluster]
+</span><span class="line">&lt;node-1-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj
+</span><span class="line">&lt;node-2-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>查看已有的镜像</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker images</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>使用 bash 命令进入docker的指定镜像</p>
+<p>在 <code>/etc/ansible/ansible.cfg</code> 文件里
+我们特意提及了 ansible-role 的配置，未来我们会使用这个东西</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker run -t -i -p 3000 ubuntu:12.04 /bin/bash</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">roles_path    = /home/zj/my-ansible/roles</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>这时候我就可以像一个新系统一样把玩了, 比如创建一个目录。</p>
+<h3 id="第二节">使用 ansible role 来区分业务</h3>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ mkdir /home/zj/test</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>打开 <code>ansible</code> 部署脚本的文件夹, 目录树如下</p>
 
-<p>好了，我想把这个现场保存下来做移植到别的地方直接使用。需要到 <a href="https://registry.hub.docker.com/u/">这里</a> 注册一个账户，然后再上传，类似在 github  上面一样的操作。</p>
+<p><code>cd /home/zj/my-ansible/</code></p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -146,58 +138,114 @@
 <span class="line-number">4</span>
 <span class="line-number">5</span>
 <span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps 
-</span><span class="line">
-</span><span class="line">//因为我已经commit 过一次，所以名字变成我的别名 zhengji/helloworld
-</span><span class="line">zj@zheng-ji:~$ docker ps
-</span><span class="line">CONTAINER ID        IMAGE                       COMMAND             CREATED             STATUS              PORTS                     NAMES
-</span><span class="line">8dad3aa4451f        zhengji/helloworld:latest   bin/bash            27 minutes ago      Up 27 minutes       0.0.0.0:49156-&gt;3000/tcp   high_galileo      </span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">haproxy
+</span><span class="line">     - entry.yaml
+</span><span class="line">roles
+</span><span class="line">     - haproxy
+</span><span class="line">        - files
+</span><span class="line">        - handlers
+</span><span class="line">        - vars
+</span><span class="line">        - tasks</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>可以看到要保存的镜像的 CONTAINER ID</p>
+<p>我用一个管理 haproxy 的例子来讲解这种方式。
+在 <code>roles</code> 目录下创建 <code>haproxy</code>, 如上所示，需要有四个目录;</p>
 
-<p>这个时候提交</p>
+<ul>
+  <li><code>files</code> 目录下放置需要被传输到远端的文件;</li>
+  <li><code>vars</code>  目录下有一个 <code>main.yml</code>文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
+  <li><code>handlers</code> 目录下有一个 <code>main.yml</code>, 可以定义一些通用的操作，比如重启服务等;</li>
+  <li><code>tasks</code> 目录下是我们编写 <code>main.yml</code> 脚本，执行业务逻辑的地方;</li>
+</ul>
+
+<blockquote>
+  <p>那么 ansible role 的入口在哪呢？</p>
+</blockquote>
+
+<p>在 <code>~/my-ansible/haproxy/entry.yml</code> 中，指定了roles的角色，如此一来， 
+ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备执行 <code>tasks/main.yml</code> </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: web-cluster
+</span><span class="line">  roles:
+</span><span class="line">    - haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">files 目录的路径定位</h3>
+
+<p>摘取 <code>~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
+</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+</span><span class="line">  sudo: yes</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这里的<code>src=haproxy.cfg</code> 意味着 <code>~/my-ansible/roles/haproxy/files/haproxy.cfg</code></p>
+
+<h3 id="第四节">使用 tags 区分不同操作</h3>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~$ sudo docker commit 8dad3aa4451f zhengji/helloworld -m "test"
-</span><span class="line">61f9527f368395ee228af07062b3f1a26fa7143ba2721c4f9755ae93d588358e
-</span><span class="line">
-</span><span class="line">zj@zheng-ji:~$ sudo docker push zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: install ppa
+</span><span class="line">  shell: add-apt-repository -y ppa:vbernat/haproxy-1.5
+</span><span class="line">  sudo: yes
+</span><span class="line">  tags:
+</span><span class="line">    - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>下次pull 下来就可以使用了</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker pull zhengji/helloworld</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<h3 id="section-3">可能遇到的坑</h3>
-
-<ul>
-  <li>需要编辑 /etc/default/docker.io 然后编辑里面的,使得其可以解决 DNS解析</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">DOCKER_OPTS = "-dns 8.8.8.8"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>设置 ufw 端口可转发</li>
-</ul>
+<p>以下命令，是使用 tags 参数区分操作的例子</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vim /etc/default/ufw
-</span><span class="line">DEFAULT_FORWARD_POLICY = "ACCEPT"</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/my-ansible/haproxy
+</span><span class="line">ansible-playbook entry.yml -v -K --tags "install-haproxy"</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h3 id="section-4">参考链接</h3>
+<h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
+
+<p>tasks 目录有一个主执行文件 <code>main.yml</code>, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 <code>include</code> 语法。</p>
+
+<p><code>cat ~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- include: 'install-haproxy.yml'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里</p>
+
+<p><code>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
+</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
+</span><span class="line">  sudo: yes
+</span><span class="line">  tags:
+</span><span class="line">     - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>tags 最好也与该 yml 文件名一致，清晰分明</p>
+
+<h3 id="第六节">ansible-play-book 一些常用的选项</h3>
 
 <ul>
-  <li><a href="http://www.docker.org.cn/book/docker.html">docker 中文</a></li>
-  <li><a href="http://www.docker.org.cn/book/docker.html">docker官网</a></li>
-  <li><a href="http://segmentfault.com/a/1190000000366923">Docker入门教程</a></li>
+  <li>-K 需要 sudo 权限去客户机执行命令，会提示你输入密码</li>
+  <li>-v 可以输出冗余的执行过程</li>
+  <li>–check 可以测试脚本执行情况，但实际并未在远程机器执行</li>
+  <li>–tags 提示 ansible-play-book 调用哪些 tags 命令</li>
 </ul>
+
+<p>使用过ansible roles 之后，最大的体会是操作调理化，甚至编程化，合理的利用 handler, vars, 能更加优雅抽象。</p>
+
+<hr />
+
+<p>上述的例子在 Github 有代码, 结合本文阅读可能更容易上手
+<a href="https://github.com/zheng-ji/ToyCollection/tree/master/my-ansible">Link</a> </p>
 
 </div>
 
@@ -221,12 +269,12 @@
   
 
 
-<time datetime="2014-07-16T20:20:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2014</time>
+<time datetime="2015-09-05T18:09:00+08:00" pubdate data-updated="true">Sep 5<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/server/'>Server</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -242,10 +290,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/07/12/goan-zhuang-protobuf/" title="Previous Post: go安装protobuf">&laquo; go安装protobuf</a>
+        <a class="basic-alignment left" href="/blog/2015/08/21/supervisorjian-ting-qi/" title="Previous Post: supervisor监听器">&laquo; supervisor监听器</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/" title="Next Post: rsyslog 接收远程日志">rsyslog 接收远程日志 &raquo;</a>
       
     </p>
   </footer>
@@ -255,7 +301,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="折腾docker"></div>
+<div class="ds-thread" data-title="Ansible的使用经验"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
