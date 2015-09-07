@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-07T22:56:40+08:00</updated>
+  <updated>2015-09-07T23:15:16+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -18,7 +18,7 @@
     <link href="http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan/"/>
     <updated>2015-09-05T18:09:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan</id>
-    <content type="html"><![CDATA[<p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择<code>Ansible</code>来做自动化批量操作。</p>
+    <content type="html"><![CDATA[<p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择 Ansible 来做自动化批量操作。</p>
 
 <p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
 
@@ -33,7 +33,7 @@
 
 <h3 id="第一节">更好地配置文件</h3>
 
-<p>我们会如下配置 <code>/etc/ansible/host</code>, 特意指明用户与 端口</p>
+<p>我们会如下配置 /etc/ansible/host, 特意指明用户与 端口</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -42,7 +42,7 @@
 </span><span class="line">&lt;node-1-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj
 </span><span class="line">&lt;node-2-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>在 <code>/etc/ansible/ansible.cfg</code> 文件里
+<p>在 /etc/ansible/ansible.cfg 文件里
 我们特意提及了 ansible-role 的配置，未来我们会使用这个东西</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
@@ -50,9 +50,7 @@
 
 <h3 id="第二节">使用 ansible role 来区分业务</h3>
 
-<p>打开 <code>ansible</code> 部署脚本的文件夹, 目录树如下</p>
-
-<p><code>cd /home/zj/my-ansible/</code></p>
+<p>打开 ansible 部署脚本的文件夹, 目录树如下</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -62,7 +60,9 @@
 <span class="line-number">6</span>
 <span class="line-number">7</span>
 <span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">haproxy
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd /home/zj/my-ansible/
+</span><span class="line">haproxy
 </span><span class="line">     - entry.yaml
 </span><span class="line">roles
 </span><span class="line">     - haproxy
@@ -72,21 +72,21 @@
 </span><span class="line">        - tasks</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>我用一个管理 haproxy 的例子来讲解这种方式。
-在 <code>roles</code> 目录下创建 <code>haproxy</code>, 如上所示，需要有四个目录;</p>
+在 roles 目录下创建 haproxy, 如上所示，需要有四个目录;</p>
 
 <ul>
-  <li><code>files</code> 目录下放置需要被传输到远端的文件;</li>
-  <li><code>vars</code>  目录下有一个 <code>main.yml</code>文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
-  <li><code>handlers</code> 目录下有一个 <code>main.yml</code>, 可以定义一些通用的操作，比如重启服务等;</li>
-  <li><code>tasks</code> 目录下是我们编写 <code>main.yml</code> 脚本，执行业务逻辑的地方;</li>
+  <li>files 目录下放置需要被传输到远端的文件;</li>
+  <li>vars  目录下有一个 main.yml 文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
+  <li>handlers 目录下有一个 main.yml, 可以定义一些通用的操作，比如重启服务等;</li>
+  <li>tasks 目录下是我们编写 main.yml 脚本，执行业务逻辑的地方;</li>
 </ul>
 
 <blockquote>
   <p>那么 ansible role 的入口在哪呢？</p>
 </blockquote>
 
-<p>在 <code>~/my-ansible/haproxy/entry.yml</code> 中，指定了roles的角色，如此一来， 
-ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备执行 <code>tasks/main.yml</code> </p>
+<p>在 ~/my-ansible/haproxy/entry.yml 中，指定了roles的角色，如此一来， 
+ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/main.yml </p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -97,7 +97,7 @@ ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备
 
 <h3 id="第三节">files 目录的路径定位</h3>
 
-<p>摘取 <code>~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+<p>摘取 ~/my-ansible/roles/haproxy/tasks/main.yml</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -106,7 +106,7 @@ ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备
 </span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
 </span><span class="line">  sudo: yes</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>这里的<code>src=haproxy.cfg</code> 意味着 <code>~/my-ansible/roles/haproxy/files/haproxy.cfg</code></p>
+<p>这里的 src=haproxy.cfg 意味着 ~/my-ansible/roles/haproxy/files/haproxy.cfg</p>
 
 <h3 id="第四节">使用 tags 区分不同操作</h3>
 
@@ -130,16 +130,16 @@ ansible-playbook 就会去 <code>/home/zj/my-ansible/roles/haproxy</code> 准备
 
 <h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
 
-<p>tasks 目录有一个主执行文件 <code>main.yml</code>, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 <code>include</code> 语法。</p>
+<p>tasks 目录有一个主执行文件 main.yml, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 include 语法。</p>
 
-<p><code>cat ~/my-ansible/roles/haproxy/tasks/main.yml</code></p>
+<p>cat ~/my-ansible/roles/haproxy/tasks/main.yml</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">- include: 'install-haproxy.yml'</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里</p>
 
-<p><code>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</code></p>
+<p>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
