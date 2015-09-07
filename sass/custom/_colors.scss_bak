@@ -37,42 +37,7 @@
 //$solar-green:     #859900;
 
 
-
-$solarized: light;
-
-html {
-    background:#E3EDCD !important;
-}
-body {
-    > div {
-        background: #E3EDCD !important;
-        > div {
-            background: #E3EDCD !important;
-        }
-    }
-}
-
-
-$main-bg: #E3EDCD !default;
-$page-bg: #E3EDCD !default;
-
-$sidebar-bg: #E3EDCD !default;
-
-$header-bg: #E3EDCD;
-$title-color: #000000 !default;
-$text-color: #333 !default;
-$text-color-light: #777 !default;
-$subtitle-color: #333; //darken($header-bg, 58);
-
-$nav-bg: #E3EDCD;
-$nav-bg-front: #eee;
-$nav-bg-back: #eee;
-$nav-color: darken($nav-bg, 78) !default;
-$nav-color-hover: darken($nav-color, 25) !default;
-$nav-border: darken($nav-bg, 50) !default;
-$nav-border-top: darken($nav-bg, 33) !default;
-$nav-border-bottom: darken($nav-bg, 33) !default;
-$nav-border-left: darken($nav-bg, 11) !default;
-$nav-border-right: lighten($nav-bg, 7) !default;
-
-
+/* Non highlighted code colors */
+//$pre-bg: $base03;
+//$pre-border: darken($base02, 5);
+//$pre-color: $base1;
