@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "supervisor监听器"
+title: "Supervisor 监听器"
 date: 2015-08-21 16:36
 comments: true
 categories: Server
