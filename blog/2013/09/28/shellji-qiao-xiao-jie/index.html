@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>shell技巧小结 - 织网</title>
+  <title>Bash Shell 技巧小结 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐 使用shell获取进程，并删除 1
+  <meta name="description" content="使用 shell 获取进程，并删除 1
 2
 3
 4
@@ -25,7 +25,7 @@
 #取得当前进程号
 current_pid=$$
 #获得特定进程号并重定向到一个临时文件中
-ps &hellip;">
+ps -aux|grep "/usr/sbin/httpd" | grep -v "grep"| awk '{ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -86,7 +86,7 @@ ps &hellip;">
   
   <header>
     
-      <h1 class="entry-title">Shell技巧小结</h1>
+      <h1 class="entry-title">Bash Shell 技巧小结</h1>
     
     
       <p class="meta">
@@ -112,10 +112,8 @@ ps &hellip;">
   </header>
 
 
-<div class="entry-content"><p>最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐</p>
-
-<ul>
-  <li>使用shell获取进程，并删除</li>
+<div class="entry-content"><ul>
+  <li>使用 shell 获取进程，并删除</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
@@ -146,7 +144,7 @@ ps &hellip;">
 </span><span class="line">rm -f /tmp/${current_pid}.txt </span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>shell的函数处理</li>
+  <li>shell 的函数处理</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
@@ -278,7 +276,7 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Shell技巧小结"></div>
+<div class="ds-thread" data-title="Bash Shell 技巧小结"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
