@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Server | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/server/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T22:35:51+08:00</updated>
+  <updated>2015-09-09T22:45:10+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -328,7 +328,7 @@ sudo service rsyslog start
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[折腾docker]]></title>
+    <title type="html"><![CDATA[折腾 Docker]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker/"/>
     <updated>2014-07-16T20:20:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker</id>

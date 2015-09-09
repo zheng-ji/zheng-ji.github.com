@@ -53,10 +53,6 @@
         <lastmod>2015-09-05T18:36:44+08:00</lastmod>
     </url>
     <url>
-        <loc>http://zheng-ji.github.com/blog/2013/02/17/redisshi-ge-hao-dong-xi/</loc>
-        <lastmod>2014-02-10T13:13:32+08:00</lastmod>
-    </url>
-    <url>
         <loc>http://zheng-ji.github.com/blog/2013/04/02/zhe-teng/</loc>
         <lastmod>2014-07-17T14:55:54+08:00</lastmod>
     </url>
@@ -186,7 +182,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go/</loc>
-        <lastmod>2015-09-09T22:26:30+08:00</lastmod>
+        <lastmod>2015-09-09T22:44:28+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py/</loc>
@@ -206,7 +202,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker/</loc>
-        <lastmod>2014-07-20T20:47:12+08:00</lastmod>
+        <lastmod>2015-09-09T22:45:05+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/07/27/rsyslog-jie-shou-yuan-cheng-ri-zhi/</loc>
@@ -230,7 +226,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/10/29/iptablezuo-natzhuan-fa/</loc>
-        <lastmod>2014-11-02T21:09:49+08:00</lastmod>
+        <lastmod>2015-09-09T22:43:56+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/</loc>
@@ -246,7 +242,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma/</loc>
-        <lastmod>2014-12-14T10:58:15+08:00</lastmod>
+        <lastmod>2015-09-09T22:42:01+08:00</lastmod>
     </url>
     <url>
         <loc>
@@ -282,7 +278,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/</loc>
-        <lastmod>2015-05-17T00:39:52+08:00</lastmod>
+        <lastmod>2015-09-09T22:40:19+08:00</lastmod>
     </url>
     <url>
         <loc>
@@ -322,11 +318,11 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/archives/</loc>
-        <lastmod>2015-09-09T22:35:40+08:00</lastmod>
+        <lastmod>2015-09-09T22:45:05+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/</loc>
-        <lastmod>2015-09-09T22:35:40+08:00</lastmod>
+        <lastmod>2015-09-09T22:45:05+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/robots.txt</loc>

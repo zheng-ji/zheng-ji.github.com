@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T22:35:51+08:00</updated>
+  <updated>2015-09-09T22:45:10+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -246,7 +246,7 @@ cat files.txt | xargs rm -rf
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[mac 安装Go]]></title>
+    <title type="html"><![CDATA[Mac 安装 Go]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go/"/>
     <updated>2014-05-03T09:32:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go</id>

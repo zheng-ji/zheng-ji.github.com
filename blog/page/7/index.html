@@ -119,132 +119,6 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/02/17/redisshi-ge-hao-dong-xi/">Redis是个好东西</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-02-17T14:10:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/02/17/redisshi-ge-hao-dong-xi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>:) 最近主动请缨做到一个关于Redis的东西，甚有收获，与大家分享：- ）</p>
-
-<p>以下选自百度百科的简介</p>
-
-<p>redis是一个key-value存储系统。和Memcached类似，它支持存储的value类型相对更多，包括string(字符串)、list(链表)、set(集合)和zset(有序集合)。这些数据类型都支持push/pop、add/remove及取交集并集和差集及更丰富的操作，而且这些操作都是原子性的。在此基础上，redis支持各种不同方式的排序。与memcached一样，为了保证效率，数据都是缓存在内存中。区别的是redis会周期性的把更新的数据写入磁盘或者把修改操作写入追加的记录文件，并且在此基础上实现了master-slave(主从)同步。Redis 是一个高性能的key-value数据库。 redis的出现，很大程度补偿了memcached这类key/value存储的不足，在部 分场合可以对关系数据库起到很好的补充作用。它提供了Python，Ruby，Erlang，PHP客户端，使用很方便。</p>
-
-<p>Redis提供了很多高级的数据结构：哈希表，列表，集合，字典，这些东西看上去很好吃的样子</p>
-
-<h4 id="section">想必你也在思考了，那这东西可以用在什么场景呢，</h4>
-
-<p>Redis作者自己是这样说的：
-+ 取最新N个数据的操作</p>
-
-<p>比如典型的取你网站的最新文章，通过下面方式，我们可以将最新的5000条评论的ID放在Redis的List集合中，并将超出集合部分从数据库获取</p>
-
-<ul>
-  <li>排行榜应用，取TOP N操作</li>
-</ul>
-
-<p>这个需求与上面需求的不同之处在于，前面操作以时间为权重，这个是以某个条件为权重，比如按顶的次数排序，这时候就需要我们的sorted set出马了，将你要排序的值设置成sorted set的score，将具体的数据设置成相应的value，每次只需要执行一条ZADD命令即可。</p>
-
-<ul>
-  <li>需要精准设定过期时间的应用</li>
-</ul>
-
-<p>比如你可以把上面说到的sorted set的score值设置成过期时间的时间戳，那么就可以简单地通过过期时间排序，定时清除过期数据了，不仅是清除Redis中的过期数据，你完全可以把Redis里这个过期时间当成是对数据库中数据的索引，用Redis来找出哪些数据需要过期删除，然后再精准地从数据库中删除相应的记录。</p>
-
-<ul>
-  <li>计数器应用</li>
-</ul>
-
-<p>Redis的命令都是原子性的，你可以轻松地利用INCR，DECR命令来构建计数器系统。</p>
-
-<ul>
-  <li>Uniq操作，获取某段时间所有数据排重值</li>
-</ul>
-
-<p>这个使用Redis的set数据结构最合适了，只需要不断地将数据往set中扔就行了，set意为集合，所以会自动排重。</p>
-
-<ul>
-  <li>实时系统，反垃圾系统</li>
-</ul>
-
-<p>通过上面说到的set功能，你可以知道一个终端用户是否进行了某个操作，可以找到其操作的集合并进行分析统计对比等。没有做不到，只有想不到。</p>
-
-<ul>
-  <li>Pub/Sub构建实时消息系统</li>
-</ul>
-
-<p>Redis的Pub/Sub系统可以构建实时的消息系统，比如很多用Pub/Sub构建的实时聊天系统的例子。</p>
-
-<ul>
-  <li>构建队列系统</li>
-</ul>
-
-<p>使用list可以构建队列系统，使用sorted set甚至可以构建有优先级的队列系统。</p>
-
-<ul>
-  <li>缓存</li>
-</ul>
-
-<p>这个不必说了，性能优于Memcached，数据结构更多样化。</p>
-
-<p>我用到的场景是
-python + redis + msgpack</p>
-
-<p>redis-py是个好东西</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">redis</span>
-</span><span class="line"><span class="c">#db是选择的数据库，Redis默认有16个库</span>
-</span><span class="line"><span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span class="line"><span class="n">keylist</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">keys</span><span class="p">(</span><span class="s">&quot;*&quot;</span><span class="p">)</span>
-</span><span class="line"><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keylist</span><span class="p">:</span>
-</span><span class="line">    <span class="n">record</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>后话:
-msgpack简介
-MessagePack是一个基于二进制高效的对象序列化Library用于跨语言通信。
-它可以像JSON那样，在许多种语言之间交换结构对象；但是它比JSON更快速也更轻巧。
-支持Python、Ruby、Java、C/C++、Javascript等众多语言。
-Happy Hacking</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
       <h1 class="entry-title"><a href="/blog/2013/02/17/nginxmo-kuai-kai-fa/">Nginx 模块开发</a></h1>
     
     
@@ -1191,6 +1065,331 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 
     </article>
   
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/05/26/trietree-zhong-wen-fen-ci/">TrieTree 中文分词</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-05-26T23:45:00+08:00" pubdate data-updated="true">May 26<span>th</span>, 2012</time>
+        
+        
+          | <a href="/blog/2012/05/26/trietree-zhong-wen-fen-ci/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><strong>Trie树</strong>，即字典树，又称单词查找树或键树，是一种树形结构，是一种哈希树的变种。典型应用是用于统计和排序大量的字符串（但不仅限于字符串），所以经常被搜索引擎系统用于文本词频统计。它的优点是：最大限度地减少无谓的字符串比较，查询效率比哈希表高。
+Trie的核心思想是空间换时间。利用字符串的公共前缀来降低查询时间的开销以达到提高效率的目的。</p>
+
+<p>它有3个基本性质：</p>
+
+<ul>
+  <li>根节点不包含字符，除根节点外每一个节点都只包含一个字符。</li>
+  <li>从根节点到某一节点，路径上经过的字符连接起来，为该节点对应的字符串。</li>
+  <li>每个节点的所有子节点包含的字符都不相同。</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+<span class="line-number">54</span>
+<span class="line-number">55</span>
+<span class="line-number">56</span>
+<span class="line-number">57</span>
+<span class="line-number">58</span>
+<span class="line-number">59</span>
+<span class="line-number">60</span>
+<span class="line-number">61</span>
+<span class="line-number">62</span>
+<span class="line-number">63</span>
+<span class="line-number">64</span>
+<span class="line-number">65</span>
+<span class="line-number">66</span>
+<span class="line-number">67</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">char</span><span class="p">,</span><span class="n">is_end</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">is_end</span> <span class="o">=</span> <span class="n">is_end</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">prefix_count</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">char</span> <span class="o">=</span> <span class="n">char</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ALPHABET_SIZE</span><span class="p">)]</span>
+</span><span class="line">
+</span><span class="line"><span class="k">class</span> <span class="nc">Trie</span><span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+</span><span class="line">        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span>
+</span><span class="line">        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
+</span><span class="line">            <span class="n">int_value</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)</span>
+</span><span class="line">            <span class="k">try</span><span class="p">:</span>
+</span><span class="line">            <span class="k">assert</span> <span class="p">(</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">int_value</span> <span class="o">&lt;=</span> <span class="mi">26</span><span class="p">)</span>
+</span><span class="line">            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span class="line">                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;invalid Word&quot;</span><span class="p">)</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class="line">               <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span>
+</span><span class="line">               <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
+</span><span class="line">               <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class="line">               <span class="n">current</span><span class="o">.</span><span class="n">prefix_count</span> <span class="o">=</span> <span class="n">count</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span> <span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
+</span><span class="line">        <span class="n">current</span><span class="o">.</span><span class="n">is_end</span> <span class="o">=</span> <span class="bp">True</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+</span><span class="line">        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
+</span><span class="line">            <span class="n">int_value</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)</span>
+</span><span class="line">            <span class="k">try</span><span class="p">:</span>
+</span><span class="line">                <span class="k">assert</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">int_value</span> <span class="o">&gt;=</span> <span class="mi">26</span><span class="p">)</span>
+</span><span class="line">            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">False</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">False</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
+</span><span class="line">        <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">is_end</span>
+</span><span class="line">
+</span><span class="line">    <span class="k">def</span> <span class="nf">count_words_with_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+</span><span class="line">        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
+</span><span class="line">            <span class="n">int_value</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)</span>
+</span><span class="line">            <span class="k">try</span><span class="p">:</span>
+</span><span class="line">                <span class="k">assert</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">int_value</span> <span class="o">&lt;=</span> <span class="mi">26</span><span class="p">)</span>
+</span><span class="line">            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">None</span>
+</span><span class="line">            <span class="k">if</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class="line">                <span class="k">return</span> <span class="bp">None</span>
+</span><span class="line">            <span class="k">else</span><span class="p">:</span>
+</span><span class="line">                <span class="n">current</span> <span class="o">=</span>  <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
+</span><span class="line">        <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">prefix_count</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="nb">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;dict-test.txt&#39;</span><span class="p">,</span><span class="s">&#39;r&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="n">dicts</span> <span class="o">=</span>  <span class="nb">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span class="line">    <span class="n">t</span> <span class="o">=</span> <span class="n">Trie</span><span class="p">()</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">dicts</span><span class="p">:</span>
+</span><span class="line">    <span class="n">t</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">t</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;c&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">t</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;love&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">t</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;c++&#39;</span><span class="p">)</span>
+</span><span class="line">    <span class="nb">raw_input</span><span class="p">(</span><span class="s">&#39;void flush&#39;</span><span class="p">)</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">char</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>附带go 语言的:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+<span class="line-number">54</span>
+<span class="line-number">55</span>
+<span class="line-number">56</span>
+<span class="line-number">57</span>
+<span class="line-number">58</span>
+<span class="line-number">59</span>
+<span class="line-number">60</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">package</span> <span class="n">main</span>
+</span><span class="line">
+</span><span class="line"><span class="kn">import</span> <span class="p">(</span><span class="s">&quot;fmt&quot;</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="nb">type</span> <span class="n">Node</span> <span class="n">struct</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">is_end</span>           <span class="nb">bool</span>
+</span><span class="line">    <span class="n">element</span>          <span class="n">byte</span>
+</span><span class="line">    <span class="n">prefix_count</span>     <span class="nb">int</span>
+</span><span class="line">    <span class="n">children</span>         <span class="p">[</span><span class="mi">26</span><span class="p">]</span><span class="o">*</span><span class="n">Node</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="nb">type</span> <span class="n">Trie</span> <span class="n">struct</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">head</span> <span class="o">*</span><span class="n">Node</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">func</span> <span class="p">(</span><span class="n">trie</span> <span class="o">*</span><span class="n">Trie</span><span class="p">)</span> <span class="n">insert</span><span class="p">(</span><span class="n">word</span> <span class="n">string</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">current</span> <span class="p">:</span><span class="o">=</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span>
+</span><span class="line">    <span class="n">count</span> <span class="p">:</span><span class="o">=</span> <span class="mi">0</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="p">:</span><span class="o">=</span> <span class="nb">range</span> <span class="n">word</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">index</span> <span class="p">:</span><span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="s">&#39;a&#39;</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">nil</span> <span class="o">==</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">Node</span><span class="p">)</span>
+</span><span class="line">            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+</span><span class="line">            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class="line">            <span class="n">current</span><span class="o">.</span><span class="n">prefix_count</span> <span class="o">=</span> <span class="n">count</span>
+</span><span class="line">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">current</span><span class="o">.</span><span class="n">is_end</span> <span class="o">=</span> <span class="n">true</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">func</span> <span class="p">(</span><span class="n">trie</span> <span class="o">*</span><span class="n">Trie</span><span class="p">)</span> <span class="n">search</span><span class="p">(</span><span class="n">word</span> <span class="n">string</span><span class="p">)</span> <span class="nb">bool</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">current</span> <span class="p">:</span><span class="o">=</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span><span class="o">=</span> <span class="nb">range</span> <span class="n">word</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">index</span> <span class="p">:</span><span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="s">&#39;a&#39;</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">nil</span> <span class="o">==</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="p">{</span>
+</span><span class="line">            <span class="k">return</span> <span class="n">false</span>
+</span><span class="line">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">is_end</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">trie</span> <span class="p">:</span><span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">Trie</span><span class="p">)</span>
+</span><span class="line">    <span class="n">trie</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">Node</span><span class="p">)</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">nil</span> <span class="o">!=</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">&quot;element is not null&quot;</span><span class="p">)</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">nil</span> <span class="o">==</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">&quot;element is null&quot;</span><span class="p">)</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">trie</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">)</span>
+</span><span class="line">    <span class="n">trie</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;world&quot;</span><span class="p">)</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">true</span> <span class="o">==</span> <span class="n">trie</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&quot;hell&quot;</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">&quot;good&quot;</span><span class="p">)</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="node">Node类：</h4>
+
+<ul>
+  <li>is_end 用于标识该结点是否是一个单词结尾，默认为False</li>
+  <li>prefix_count: 该字符前缀有几个字符</li>
+  <li>char:该节点带有字符</li>
+  <li>children:该节点的子结点集合（这里有26个默认的NONE结点）</li>
+</ul>
+
+<h4 id="trie">Trie类：</h4>
+<ul>
+  <li>head 是头结点，默认为空结点</li>
+  <li>函数：insert(self,word):插入字符，创建结点，如果该单词到达最后一个字母就设置is_end=True</li>
+  <li>search(self, word)：查询单词是否存在，是返回True</li>
+  <li>count_words_with_prefix(self, word)：查询结点的前缀</li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
+  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1242,7 +1441,7 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
       </li>
     
       <li class="post">
-        <a href="/blog/2015/05/17/da-jian-postfix/">搭建Postfix</a>
+        <a href="/blog/2015/05/17/da-jian-postfix/">搭建 Postfix</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T22:35:51+08:00</updated>
+  <updated>2015-09-09T22:45:10+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -182,7 +182,7 @@ iptables -A INPUT -i eth0 -s *.*.*.0/24 -j DROP
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[搭建Postfix]]></title>
+    <title type="html"><![CDATA[搭建 Postfix]]></title>
     <link href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/"/>
     <updated>2015-05-17T00:25:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix</id>
@@ -249,7 +249,7 @@ postmap access
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[nginx错误码]]></title>
+    <title type="html"><![CDATA[Mginx 错误码]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma/"/>
     <updated>2014-12-13T15:18:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma</id>

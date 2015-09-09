@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T22:35:51+08:00</updated>
+  <updated>2015-09-09T22:45:10+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -688,7 +688,7 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[搭建Postfix]]></title>
+    <title type="html"><![CDATA[搭建 Postfix]]></title>
     <link href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/"/>
     <updated>2015-05-17T00:25:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix</id>
@@ -1413,7 +1413,7 @@ Kibana 是一个与之配套的 web 界面。</p>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[nginx错误码]]></title>
+    <title type="html"><![CDATA[Mginx 错误码]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma/"/>
     <updated>2014-12-13T15:18:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma</id>
@@ -1731,7 +1731,7 @@ Kibana 是一个与之配套的 web 界面。</p>
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[iptable做NAT转发]]></title>
+    <title type="html"><![CDATA[iptable 之 NAT 转发]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/10/29/iptablezuo-natzhuan-fa/"/>
     <updated>2014-10-29T22:38:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/10/29/iptablezuo-natzhuan-fa</id>
