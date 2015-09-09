@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "搭建Postfix"
+title: "搭建 Postfix"
 date: 2015-05-17 00:25
 comments: true
 categories: System

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "iptable做NAT转发"
+title: "iptable 之 NAT 转发"
 date: 2014-10-29 22:38
 comments: true
 keywords: NAT iptables

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "mac 安装Go"
+title: "Mac 安装 Go"
 date: 2014-05-03 09:32
 comments: true
 categories: Programe
