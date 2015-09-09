@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "nginx 模块开发"
+title: "Nginx 模块开发"
 date: 2013-02-17 14:04
 comments: true
 categories: Server
@@ -8,7 +8,7 @@ description: nginx 模块开发
 ---
 写这篇文章的时候，参考[链接](http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html)，特此鸣谢
 
-#### Why要开发Ngnix 模块：
+#### 为何需要Ngnix 模块：
 
 >对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）
 

@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "折腾libevent"
+title: "折腾 libevent"
 date: 2012-03-22 20:25
 comments: true
 categories: NetWork
 ---
-#### 好奇折腾libeven
+### 好奇折腾libevent
 
 原理介绍转自[IBM developworks](www.ibm.com/developerworks/cn/aix/library/au-libev/)
 
@@ -29,9 +29,13 @@ categories: NetWork
 libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。
 
 创建 libevent 服务器的基本方法是:
-1. 注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。
-2. 执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；
-3. 在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。
+
+* 注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。
+
+* 执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；
+
+* 在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。
+
 流程：
 
 ```
@@ -40,8 +44,8 @@ event_add() //在事件队列机制中添加事件；
 event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。
 ```
 
-============Tips===============
+### Tips
     
 Tips:编译过程中需要 -levent
-Echo Server:用libevent库写的：代码[链接](https://github.com/zheng-ji/ToyCollection/tree/master/libevent)
+用libevent库写的EchoServer：代码[链接](https://github.com/zheng-ji/ToyCollection/tree/master/libevent)
 
