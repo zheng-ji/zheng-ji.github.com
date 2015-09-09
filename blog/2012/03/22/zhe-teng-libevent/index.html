@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>折腾libevent - 织网</title>
+  <title>折腾 libevent - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="好奇折腾libeven 原理介绍转自IBM developworks 处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。 网络连接使用的主要方法如下： 循环： 早期系统使用简单的循环选择解决方案， &hellip;">
+  <meta name="description" content="好奇折腾libevent 原理介绍转自IBM developworks 处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。 网络连接使用的主要方法如下： 循环： 早期系统使用简单的循环选择解决方案， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">折腾libevent</h1>
+      <h1 class="entry-title">折腾 Libevent</h1>
     
     
       <p class="meta">
@@ -96,7 +96,7 @@
   </header>
 
 
-<div class="entry-content"><h4 id="libeven">好奇折腾libeven</h4>
+<div class="entry-content"><h3 id="libevent">好奇折腾libevent</h3>
 
 <p>原理介绍转自<a href="www.ibm.com/developerworks/cn/aix/library/au-libev/">IBM developworks</a></p>
 
@@ -125,11 +125,21 @@
 
 <p>libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。</p>
 
-<p>创建 libevent 服务器的基本方法是:
-1. 注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。
-2. 执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；
-3. 在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。
-流程：</p>
+<p>创建 libevent 服务器的基本方法是:</p>
+
+<ul>
+  <li>
+    <p>注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。</p>
+  </li>
+  <li>
+    <p>执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；</p>
+  </li>
+  <li>
+    <p>在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。</p>
+  </li>
+</ul>
+
+<p>流程：</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -138,10 +148,10 @@
 </span><span class="line">event_add() //在事件队列机制中添加事件；
 </span><span class="line">event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>============Tips===============</p>
+<h3 id="tips">Tips</h3>
 
 <p>Tips:编译过程中需要 -levent
-Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
+用libevent库写的EchoServer：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
 
 </div>
 
@@ -199,7 +209,7 @@ Echo Server:用libevent库写的：代码<a href="https://github.com/zheng-ji/To
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="折腾libevent"></div>
+<div class="ds-thread" data-title="折腾 Libevent"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

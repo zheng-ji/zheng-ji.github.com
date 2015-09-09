@@ -147,7 +147,7 @@
 
   <div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
 
-<h4 id="whyngnix-">Why要开发Ngnix 模块：</h4>
+<h4 id="ngnix-">为何需要Ngnix 模块：</h4>
 
 <blockquote>
   <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
@@ -294,99 +294,6 @@
 
 <p>我希望接下来的日子里，与我的朋友们一起共勉，每一个看我博客的人，我知道你们会是谁，你们真的很棒，感恩与你们同在，无论怎样，开心是最佳选择 :-) 。听到一句话很想与大家分享
 &gt;岂能尽如人意，但求无愧于心，让我们把所有的不好叫做经历。 </p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/12/29/gtalkji-qi-ren/">Gtalk机器人</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-12-29T13:32:00+08:00" pubdate data-updated="true">Dec 29<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/12/29/gtalkji-qi-ren/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="section">缘起：</h4>
-<p>最近工作需要即时发送报警信息到gtalk，工作中使用gtalk作为通讯工具，所以催生了此项目开发 </p>
-
-<h4 id="section-1">所用的工具:</h4>
-<p>python-xmpp库，tornado(httpserver 框架),其实也可以自己写</p>
-
-<h4 id="xmpp">什么是xmpp</h4>
-<p>XMPP（可扩展消息处理现场协议）是基于可扩展标记语言（XML）的协议，它用于即时消息（IM）以及在线现场探测。它在促进服务器之间的准即时操作。这个协议可能最终允许因特网用户向因特网上的其他任何人发送即时消息，即使其操作系统和浏览器不同XMPP的前身是Jabber，一个开源形式组织产生的网络即时通信协议</p>
-
-<h4 id="section-2">关键代码</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#robot 开始发送消息</span>
-</span><span class="line"><span class="k">def</span> <span class="nf">chat</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
-</span><span class="line">    <span class="n">jid</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">JID</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-</span><span class="line">    <span class="n">connection</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">server</span><span class="p">,</span><span class="n">debug</span><span class="o">=</span><span class="p">[])</span>
-</span><span class="line">    <span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
-</span><span class="line">    <span class="n">result</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">auth</span><span class="p">(</span><span class="n">jid</span><span class="o">.</span><span class="n">getNode</span><span class="p">(),</span> <span class="n">password</span><span class="p">,</span><span class="s">&quot;LFY-client&quot;</span><span class="p">)</span>
-</span><span class="line">        <span class="n">connection</span><span class="o">.</span><span class="n">sendInitPresence</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line">    <span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;contactlist&quot;</span><span class="p">,</span><span class="s">&quot;r&quot;</span><span class="p">)</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
-</span><span class="line">                <span class="n">to</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span class="line">                        <span class="n">message</span> <span class="o">=</span> <span class="n">xmpp</span><span class="o">.</span><span class="n">Message</span><span class="p">(</span><span class="n">to</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
-</span><span class="line">        <span class="n">message</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;chat&#39;</span><span class="p">)</span>
-</span><span class="line">                <span class="n">connection</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-</span><span class="line">    <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;please ignore me ! i am just test&quot;</span>
-</span><span class="line">        <span class="n">chat</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就可以自动发信息给联系人了，contactlist里面为通讯录名单，在项目中把上述代码实现为http接口，让监控端调用。由于只是简单的应用，我甚至用文本替代数据库，不过这也可以试一试面向对象的编程思想.</p>
-
-<p>代码<a href="https://github.com/zheng-ji/gtalk-robot">链接</a>
-Happy Hacking!</p>
 </div>
   
   
@@ -1312,6 +1219,101 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
 <p>每天都有新的软件产品诞生，有新的版本发布，也有新的解决问题的方法出现。如果我们抽空关注下，我们很可能会有意外收获。例如今天，你看到一条消息，PHP5.3版本开始支持闭包。这个意味着什么呢？意味着你的程序写法可以进行更优美的改造。再如你看到消息说MySQL推 出了一种新的引擎，你就要看看这个引擎有什么特点，以后对我的工作有什么帮助。</p>
 
 <p>就是这样，我们在一点一滴中积累，每天坚持修炼自己的基本功，长期的坚持。我们会发现自己一天比一天快乐，因为我们每天都能够轻松的像艺术家一样说笑间就完成了自己的工作，你怎能不快乐？</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/22/zhe-teng-libevent/">折腾 Libevent</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-22T20:25:00+08:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2012</time>
+        
+        
+          | <a href="/blog/2012/03/22/zhe-teng-libevent/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="libevent">好奇折腾libevent</h3>
+
+<p>原理介绍转自<a href="www.ibm.com/developerworks/cn/aix/library/au-libev/">IBM developworks</a></p>
+
+<p>处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。</p>
+
+<p>网络连接使用的主要方法如下：</p>
+
+<ul>
+  <li>循环：</li>
+</ul>
+
+<p>早期系统使用简单的循环选择解决方案，即循环遍历打开的网络连接的列表，判断是否有要读取的数据。这种方法既缓慢（尤其是随着连接数量增加越来越慢),又低效（因为在处理当前连接时其他连接可能正在发送请求并等待响应）。在系统循环遍历每个连接时，其他连接不得不等待。如果有100 个连接，其中只有一个有数据，那么仍然必须处理其他 99 个连接，才能轮到真正需要处理的连接。</p>
+
+<ul>
+  <li>poll、epoll 和变体：</li>
+</ul>
+
+<p>这是对循环方法的改进，它用一个结构保存要监视的每个连接的数组，当在网络套接字上发现数据时，通过回调机制调用处理函数。poll 的问题是这个结构会非常大，在列表中添加新的网络连接时，修改结构会增加负载并影响性能。
+选择：</p>
+
+<ul>
+  <li>select() 函数调用使用一个静态结构，它事先被硬编码为相当小的数量（1024 个连接），因此不适用于非常大的部署。</li>
+</ul>
+
+<p>上面的所有解决方案都用简单的循环等待并处理请求，然后把请求分派给另一个函数以处理实际的网络交互。关键在于循环和网络套接字需要大量管理代码，这样才能监听、更新和控制不同的连接和接口。</p>
+
+<p>libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。</p>
+
+<p>创建 libevent 服务器的基本方法是:</p>
+
+<ul>
+  <li>
+    <p>注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。</p>
+  </li>
+  <li>
+    <p>执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；</p>
+  </li>
+  <li>
+    <p>在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。</p>
+  </li>
+</ul>
+
+<p>流程：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">event_set() //函数创建新的事件结构
+</span><span class="line">event_add() //在事件队列机制中添加事件；
+</span><span class="line">event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="tips">Tips</h3>
+
+<p>Tips:编译过程中需要 -levent
+用libevent库写的EchoServer：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
+
 </div>
   
   
