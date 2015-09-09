@@ -75,4 +75,14 @@ $nav-border-bottom: darken($nav-bg, 33) !default;
 $nav-border-left: darken($nav-bg, 11) !default;
 $nav-border-right: lighten($nav-bg, 7) !default;
 
-
+$footer-color: #E3EDCD !default;
+$footer-bg: #E3EDCD !default;
+$footer-bg-front: #eee !default;
+$footer-bg-back: #eee !default;
+$footer-color: darken($footer-bg, 38) !default;
+$footer-color-hover: darken($footer-color, 10) !default;
+$footer-border-top: lighten($footer-bg, 15) !default;
+$footer-border-bottom: darken($footer-bg, 15) !default;
+$footer-link-color: darken($footer-bg, 38) !default;
+$footer-link-color-hover: darken($footer-color, 25) !default;
+$page-border-bottom: darken($footer-bg, 5) !default;

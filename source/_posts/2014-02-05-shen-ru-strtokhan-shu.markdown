@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "深入strtok函数"
+title: "深入 strtok 函数"
 date: 2014-02-05 16:35
 comments: true
 categories: Programe 
@@ -15,9 +15,9 @@ description: strtok源码
 strtok的函数原型为:
 char *strtok(char *s, char *delim)
 ```
-功能以包含在delim中的字符为分界符，将s切分成一个个子串；
-如果s为空值NULL，则函数保存的指针 SAVE_PTR在下一次调用中将作为起始位置，
-这里说到的save_ptr是啥？还未知，
+功能以包含在 delim 中的字符为分界符，将s切分成一个个子串；
+如果s为空值NULL，则函数保存的指针 SAVE_PTR 在下一次调用中将作为起始位置，
+这里说到的 save_ptr 是啥？还未知，
 但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
 之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束
 
@@ -42,7 +42,7 @@ so
 stupid
 ```
 
-###探究save_ptr的获得的结论
+### 探究save_ptr
 
 ```c
 static char *olds;

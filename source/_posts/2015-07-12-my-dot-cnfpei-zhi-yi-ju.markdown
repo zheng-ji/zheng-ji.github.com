@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "my.cnf配置依据"
+title: "my.cnf 配置依据"
 date: 2015-07-12 08:35
 comments: true
 categories: DataBase

@@ -7,8 +7,6 @@ description: Mysql 主从
 categories: DataBase
 ---
 
-数据库做主从，这个过程是需要很耐心的。
-
 数据库做主从目的:
 
 + 故障恢复， 柔性可用
@@ -43,7 +41,9 @@ sudo chown mysql:mysql  -R /data/mysql
 + 使用快照或备份：需要知道二进制日志坐标，就可以使用主库的快照和备份来初始化备库，只需要把备份或快照恢复到备库，然后使用 CHANGE MASTER TO 指定二进制日志的坐标.
 + 用`Percona Xtrabackup`  个人推荐  [链接](http://www.percona.com/doc/percona-xtrabackup/2.1/howtos/setting_up_replication.html)
 
-======= 实际的步骤如下 ====
+----
+
+### 实际的步骤如下
 
 + 备份主库的数据
 
@@ -93,10 +93,9 @@ mysql> START SLAVE;
 mysql> SHOW SLAVE STATUS \G
  ```
 
-
 -----
 
+系统学习的书籍 
 
-系统学习的书籍，感谢杨先生推荐 : )
-[高性能mysql](http://book.douban.com/subject/23008813/)
+[《高性能 mysql》](http://book.douban.com/subject/23008813/)
  

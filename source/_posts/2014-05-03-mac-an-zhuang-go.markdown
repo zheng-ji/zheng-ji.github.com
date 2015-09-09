@@ -7,26 +7,22 @@ categories: Programe
 keywords: mac golang
 description: mac golang
 ---
----
-之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。
 
-修改 `~.zshrc`,添加以下环境变量
+修改 `~.zshrc`, 添加以下环境变量
 
 ```
 export GOROOT=$HOME/go
 export GOBIN=$GOROOT/bin
 export PATH=$PATH:$GOBIN
+export GOPATH=/Users/zj/workspace/gocode
 ```
 
 
 开始安装,耗时有点久
-保证你的电脑安装有 hg, 如果没有,请执行 
+保证你的电脑安装有 hg, 如果没有, 请执行 
 
 ```
 sudo easy_install mercurial
-```
-
-```
 hg clone -u release https://code.google.com/p/go
 cd go/src
 ./all.bash
