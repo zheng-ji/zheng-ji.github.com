@@ -131,7 +131,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/">最近用到的mysql</a></h1>
+      <h1 class="entry-title"><a href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/">最近用到的 MySql 语句</a></h1>
     
     
       <p class="meta">
@@ -159,7 +159,7 @@
 
   <div class="entry-content"><p>该文章没有什么创造性营养，也没有什么技术沉淀，各位看官轻轻带过，仅仅经验之谈，看过用过的人都会，简单的事情就平滑地带过。怎么让索然无味的文章更好地被他人深入阅读,要么就是实用，要么就是深刻，不扯淡, 直奔主题。</p>
 
-<h4 id="section">查看表结构</h4>
+<h3 id="section">查看表结构</h3>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -171,7 +171,7 @@
 <p>如果表有很多分区，导致很多打点刷屏，那么可以用</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">desc  Tbl/G</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">desc Tbl/G;</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>表太多的话，我的场景是2000张表,:(</p>
 
@@ -231,7 +231,7 @@
 </span><span class="line">select distinct(iUin) from TableA where dtEventTime &gt;= '2013-05-05' 
 </span><span class="line">" &gt; records.txt;</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="mysql--">mysql 排除重复记录 使用</h4>
+<h4 id="section-8">排除重复记录</h4>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -244,12 +244,12 @@
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">load data infile "/home/Order txt" into table Orders(Order_Number, Order_Date, Customer_ID) terminated by',';</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="mysqldump-access-denied-for-user-when-using-lock-tables">mysqldump中解决 报”Access denied for user when using LOCK TABLES”</h4>
+<h4 id="mysqldump--access-denied-for-user-when-using-lock-tables">mysqldump 中解决 报”Access denied for user when using LOCK TABLES”</h4>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">mysqldump -udbuser -p dbname --skip-lock-tables &gt; dbname.sql</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="section-8">监控数据库磁盘增长量</h4>
+<h4 id="section-9">监控数据库磁盘增长量</h4>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -258,7 +258,7 @@
 </span><span class="line">#库的大小
 </span><span class="line">select concat(round(sum(DATA_LENGTH/1024/1024),2),'MB') as data  from TABLES where table_schema='db1';</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="section-9">时间函数</h4>
+<h4 id="section-10">时间函数</h4>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -318,7 +318,7 @@
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">select * From tableA group by (round(field1/100,0));</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="section-10">格式化字符串类型</h4>
+<h4 id="section-11">格式化字符串类型</h4>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">concat('a','b')</span></code></pre></td></tr></table></div></figure></notextile></div>
@@ -341,7 +341,7 @@
 </span><span class="line">) c
 </span><span class="line">where tno&lt;=10 order by iRoleLevel asc</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="section-11">其他</h4>
+<h4 id="section-12">其他</h4>
 <p>union all 效率会比union高,因为union有去重功能,会耗时 </p>
 </div>
   
@@ -1723,7 +1723,7 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible的使用经验</a>
+        <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible 使用经验</a>
       </li>
     
       <li class="post">
@@ -1731,7 +1731,7 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/08/16/twemproxy/">twemproxy 一个redis代理</a>
+        <a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a>
       </li>
     
       <li class="post">
@@ -1739,7 +1739,7 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的btmp文件</a>
+        <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 btmp 文件</a>
       </li>
     
       <li class="post">

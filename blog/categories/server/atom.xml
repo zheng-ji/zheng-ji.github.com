@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Server | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/server/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T22:49:20+08:00</updated>
+  <updated>2015-09-09T22:55:12+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[twemproxy 一个redis代理]]></title>
+    <title type="html"><![CDATA[Twemproxy 一个 Redis 代理]]></title>
     <link href="http://zheng-ji.github.com/blog/2015/08/16/twemproxy/"/>
     <updated>2015-08-16T12:11:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2015/08/16/twemproxy</id>
