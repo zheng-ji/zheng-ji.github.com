@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "twemproxy 一个redis代理"
+title: "Twemproxy 一个 Redis 代理"
 date: 2015-08-16 12:11
 comments: true
 categories: Server

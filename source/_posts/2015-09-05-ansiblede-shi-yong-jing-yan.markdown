@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Ansible的使用经验"
+title: "Ansible 使用经验"
 date: 2015-09-05 18:09
 comments: true
 categories: System

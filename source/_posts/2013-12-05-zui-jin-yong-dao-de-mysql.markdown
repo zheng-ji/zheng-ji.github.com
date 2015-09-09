@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "最近用到的mysql"
+title: "最近用到的 MySql 语句"
 date: 2013-12-05 23:01
 comments: true
 categories: DataBase
@@ -9,7 +9,7 @@ description: mysql优化
 ---
 该文章没有什么创造性营养，也没有什么技术沉淀，各位看官轻轻带过，仅仅经验之谈，看过用过的人都会，简单的事情就平滑地带过。怎么让索然无味的文章更好地被他人深入阅读,要么就是实用，要么就是深刻，不扯淡, 直奔主题。
 
-####查看表结构
+### 查看表结构
 
 ```
 desc Tbl;
@@ -20,7 +20,7 @@ show full fields table Tbl;
 如果表有很多分区，导致很多打点刷屏，那么可以用
 
 ```
-desc  Tbl/G
+desc Tbl/G;
 ```
 
 表太多的话，我的场景是2000张表,:(
@@ -87,7 +87,7 @@ select distinct(iUin) from TableA where dtEventTime >= '2013-05-05'
 " > records.txt;
 ```
 
-####mysql 排除重复记录 使用
+#### 排除重复记录
 
 ```
 INSERT IGNORE into
@@ -101,7 +101,7 @@ Replace Into 是为了让主键替换原有的记录
 load data infile "/home/Order txt" into table Orders(Order_Number, Order_Date, Customer_ID) terminated by',';
 ```
 
-####mysqldump中解决 报"Access denied for user when using LOCK TABLES"
+#### mysqldump 中解决 报"Access denied for user when using LOCK TABLES"
 
 ```
 mysqldump -udbuser -p dbname --skip-lock-tables > dbname.sql

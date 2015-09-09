@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "记录错误登陆的btmp文件"
+title: "记录错误登陆的 btmp 文件"
 date: 2015-07-24 23:06
 comments: true
 categories: System

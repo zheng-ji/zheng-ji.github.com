@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Mginx 错误码"
+title: "Nginx 错误码"
 date: 2014-12-13 15:18
 comments: true
 categories: System
