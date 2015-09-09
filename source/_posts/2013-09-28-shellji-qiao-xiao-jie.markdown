@@ -1,13 +1,12 @@
 ---
 layout: post
-title: "shell技巧小结"
+title: "Bash Shell 技巧小结"
 date: 2013-09-28 22:52
 comments: true
 categories: Programe
 ---
-最近在工作上需要使用shell处理一些有趣的事情，觉得很好玩，希望这文章能一直后向积累,更新 ：） 分享快乐
 
-* 使用shell获取进程，并删除
+* 使用 shell 获取进程，并删除
 
 ```
 #取得当前进程号
@@ -25,7 +24,7 @@ done
 rm -f /tmp/${current_pid}.txt 
 ```
 
-* shell的函数处理
+* shell 的函数处理
 
 ```
 func()
