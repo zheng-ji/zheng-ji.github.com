@@ -96,28 +96,26 @@
   </header>
 
 
-<div class="entry-content"><hr />
-<p>之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。</p>
-
-<p>修改 <code>~.zshrc</code>,添加以下环境变量</p>
+<div class="entry-content"><p>修改 <code>~.zshrc</code>, 添加以下环境变量</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
+<span class="line-number">4</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">export GOROOT=$HOME/go
 </span><span class="line">export GOBIN=$GOROOT/bin
-</span><span class="line">export PATH=$PATH:$GOBIN</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">export PATH=$PATH:$GOBIN
+</span><span class="line">export GOPATH=/Users/zj/workspace/gocode</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>开始安装,耗时有点久
-保证你的电脑安装有 hg, 如果没有,请执行 </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo easy_install mercurial</span></code></pre></td></tr></table></div></figure></notextile></div>
+保证你的电脑安装有 hg, 如果没有, 请执行 </p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hg clone -u release https://code.google.com/p/go
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo easy_install mercurial
+</span><span class="line">hg clone -u release https://code.google.com/p/go
 </span><span class="line">cd go/src
 </span><span class="line">./all.bash</span></code></pre></td></tr></table></div></figure></notextile></div>
 
@@ -169,7 +167,7 @@
         <a class="basic-alignment left" href="/blog/2014/04/28/wei-wen-yi-lu/" title="Previous Post: 伪文青">&laquo; 伪文青</a>
       
       
-        <a class="basic-alignment right" href="/blog/2014/05/03/make-setup-dot-py/" title="Next Post: 制作setup.py">制作setup.py &raquo;</a>
+        <a class="basic-alignment right" href="/blog/2014/05/03/make-setup-dot-py/" title="Next Post: 制作 setup.py">制作 setup.py &raquo;</a>
       
     </p>
   </footer>
@@ -231,7 +229,7 @@
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
+        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
       <li class="post">

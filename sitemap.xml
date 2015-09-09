@@ -166,7 +166,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/02/05/shen-ru-strtokhan-shu/</loc>
-        <lastmod>2014-02-22T01:38:25+08:00</lastmod>
+        <lastmod>2015-09-09T22:35:40+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/02/24/socketnian-bao/</loc>
@@ -186,11 +186,11 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go/</loc>
-        <lastmod>2014-05-13T22:33:21+08:00</lastmod>
+        <lastmod>2015-09-09T22:26:30+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py/</loc>
-        <lastmod>2014-05-13T22:32:12+08:00</lastmod>
+        <lastmod>2015-09-09T22:24:12+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/05/13/nginx-pitfall/</loc>
@@ -202,7 +202,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf/</loc>
-        <lastmod>2014-07-15T09:56:23+08:00</lastmod>
+        <lastmod>2015-09-09T22:34:22+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/07/16/zhe-teng-docker/</loc>
@@ -214,7 +214,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/09/07/percona-server-zuo-zhu-cong/</loc>
-        <lastmod>2014-09-07T16:00:09+08:00</lastmod>
+        <lastmod>2015-09-09T22:30:17+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/10/04/redisre-bei/</loc>
@@ -223,10 +223,6 @@
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/10/13/nei-cun-du-qu-na-er-la/</loc>
         <lastmod>2014-10-29T22:40:59+08:00</lastmod>
-    </url>
-    <url>
-        <loc>http://zheng-ji.github.com/blog/2014/10/21/mysqlde-na-xie-dong-tai-bian-liang/</loc>
-        <lastmod>2014-10-26T21:35:34+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2014/10/23/mysql-unique-index/</loc>
@@ -296,7 +292,7 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/</loc>
-        <lastmod>2015-07-12T09:00:48+08:00</lastmod>
+        <lastmod>2015-09-09T22:32:25+08:00</lastmod>
     </url>
     <url>
         <loc>
@@ -326,11 +322,11 @@
     </url>
     <url>
         <loc>http://zheng-ji.github.com/blog/archives/</loc>
-        <lastmod>2015-09-07T23:15:04+08:00</lastmod>
+        <lastmod>2015-09-09T22:35:40+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/</loc>
-        <lastmod>2015-09-07T23:15:04+08:00</lastmod>
+        <lastmod>2015-09-09T22:35:40+08:00</lastmod>
     </url>
     <url>
         <loc>http://zheng-ji.github.com/robots.txt</loc>

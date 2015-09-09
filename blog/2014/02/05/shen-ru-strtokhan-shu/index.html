@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>深入strtok函数 - 织网</title>
+  <title>深入 strtok 函数 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">深入strtok函数</h1>
+      <h1 class="entry-title">深入 Strtok 函数</h1>
     
     
       <p class="meta">
@@ -104,9 +104,9 @@
 </pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">strtok</span><span class="err">的函数原型为</span><span class="o">:</span>
 </span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">strtok</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="p">)</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>功能以包含在delim中的字符为分界符，将s切分成一个个子串；
-如果s为空值NULL，则函数保存的指针 SAVE_PTR在下一次调用中将作为起始位置，
-这里说到的save_ptr是啥？还未知，
+<p>功能以包含在 delim 中的字符为分界符，将s切分成一个个子串；
+如果s为空值NULL，则函数保存的指针 SAVE_PTR 在下一次调用中将作为起始位置，
+这里说到的 save_ptr 是啥？还未知，
 但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
 之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束</p>
 
@@ -141,7 +141,7 @@
 </span><span class="line"><span class="n">stupid</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h3 id="saveptr">探究save_ptr的获得的结论</h3>
+<h3 id="saveptr">探究save_ptr</h3>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -254,7 +254,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="深入strtok函数"></div>
+<div class="ds-thread" data-title="深入 Strtok 函数"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
@@ -306,7 +306,7 @@
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
+        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
       <li class="post">

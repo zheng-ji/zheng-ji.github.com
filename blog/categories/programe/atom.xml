@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-07T23:15:16+08:00</updated>
+  <updated>2015-09-09T22:35:51+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -149,11 +149,11 @@ fmt: [231 188 150 231 168 139]
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[go安装protobuf]]></title>
+    <title type="html"><![CDATA[Go Protobuf]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf/"/>
     <updated>2014-07-12T17:39:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf</id>
-    <content type="html"><![CDATA[<p>protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
+    <content type="html"><![CDATA[<p>protobuf 是谷歌出品的，质量就无需质疑了，广泛运用于工业界
 优点简而言之是：</p>
 
 <ul>
@@ -163,9 +163,9 @@ fmt: [231 188 150 231 168 139]
 
 <p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
 
-<p>关于 <code>protobuf</code> 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西</p>
+<h3 id="section">安装</h3>
 
-<p>安装, 比较蛋疼,折腾一小段时间。</p>
+<p>比较蛋疼,折腾一小段时间。</p>
 
 <p>```
 go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}</p>
@@ -175,7 +175,9 @@ go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}</p>
 <p>sudo apt-get install protobuf-compiler
 ```</p>
 
-<p>使用的时, 是在项目内部新建一个proto.文件, 然后执行</p>
+<h3 id="section-1">使用</h3>
+
+<p>是在项目内部新建一个proto.文件, 然后执行</p>
 
 <p><code>
 protoc --go_out=. xxx.proto
@@ -185,11 +187,13 @@ protoc --go_out=. xxx.proto
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[制作setup.py]]></title>
+    <title type="html"><![CDATA[制作 setup.py]]></title>
     <link href="http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py/"/>
     <updated>2014-05-03T11:52:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/05/03/make-setup-dot-py</id>
-    <content type="html"><![CDATA[<p>做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
+    <content type="html"><![CDATA[<p>做好一个 Python Module 之后，可以把源代码包含进项目中。但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
+
+<h3 id="section">制作与安装</h3>
 
 <p>以下给出一个 demo </p>
 
@@ -198,7 +202,7 @@ mkdir hacker
 vim foo.py
 </code></p>
 
-<p>编辑以下内容</p>
+<p>编辑 foo.py </p>
 
 <p><code>python
 class Hacker():
@@ -231,7 +235,12 @@ sudo python setup.py install
 
 <p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
 
-<p>删除的话，就得蛋疼去 <code>/usr/lib/python2.7/</code> 手动删除,在 mac 里面是 <code>/Library/Python/2.7/site-packages</code></p>
+<h3 id="section-1">删除</h3>
+
+<p><code>
+python setup.py install --record files.txt
+cat files.txt | xargs rm -rf
+</code></p>
 
 ]]></content>
   </entry>
@@ -241,25 +250,20 @@ sudo python setup.py install
     <link href="http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go/"/>
     <updated>2014-05-03T09:32:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2014/05/03/mac-an-zhuang-go</id>
-    <content type="html"><![CDATA[<hr />
-<p>之前是在 Ubuntu 配置Go 的环境，换了 Mac 后，也来折腾一番，其实很简单。</p>
-
-<p>修改 <code>~.zshrc</code>,添加以下环境变量</p>
+    <content type="html"><![CDATA[<p>修改 <code>~.zshrc</code>, 添加以下环境变量</p>
 
 <p><code>
 export GOROOT=$HOME/go
 export GOBIN=$GOROOT/bin
 export PATH=$PATH:$GOBIN
+export GOPATH=/Users/zj/workspace/gocode
 </code></p>
 
 <p>开始安装,耗时有点久
-保证你的电脑安装有 hg, 如果没有,请执行 </p>
+保证你的电脑安装有 hg, 如果没有, 请执行 </p>
 
 <p><code>
 sudo easy_install mercurial
-</code></p>
-
-<p><code>
 hg clone -u release https://code.google.com/p/go
 cd go/src
 ./all.bash

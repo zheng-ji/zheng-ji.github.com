@@ -5,12 +5,17 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>go安装protobuf - 织网</title>
+  <title>Go Protobuf - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
-优点简而言之是： 二进制，速度快，便于拓展； 自动生成代码接口，支持多语言 对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。 关于 protobuf 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西 &hellip;">
+  <meta name="description" content="protobuf 是谷歌出品的，质量就无需质疑了，广泛运用于工业界
+优点简而言之是： 二进制，速度快，便于拓展； 自动生成代码接口，支持多语言 对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。 安装 比较蛋疼,折腾一小段时间。 1
+2
+3
+4
+5
+go get code.google. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,7 +76,7 @@
   
   <header>
     
-      <h1 class="entry-title">Go安装protobuf</h1>
+      <h1 class="entry-title">Go Protobuf</h1>
     
     
       <p class="meta">
@@ -97,7 +102,7 @@
   </header>
 
 
-<div class="entry-content"><p>protobuf是谷歌出品的，质量就无需质疑了，广泛运用于工业界
+<div class="entry-content"><p>protobuf 是谷歌出品的，质量就无需质疑了，广泛运用于工业界
 优点简而言之是：</p>
 
 <ul>
@@ -107,9 +112,9 @@
 
 <p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
 
-<p>关于 <code>protobuf</code> 的使用方法网上资料丰富。记录下使用 golang 玩protobuf的东西</p>
+<h3 id="section">安装</h3>
 
-<p>安装, 比较蛋疼,折腾一小段时间。</p>
+<p>比较蛋疼,折腾一小段时间。</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -122,7 +127,9 @@
 </span><span class="line">
 </span><span class="line">sudo apt-get install protobuf-compiler</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>使用的时, 是在项目内部新建一个proto.文件, 然后执行</p>
+<h3 id="section-1">使用</h3>
+
+<p>是在项目内部新建一个proto.文件, 然后执行</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">protoc --go_out=. xxx.proto</span></code></pre></td></tr></table></div></figure></notextile></div>
@@ -183,7 +190,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Go安装protobuf"></div>
+<div class="ds-thread" data-title="Go Protobuf"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
@@ -235,7 +242,7 @@
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
+        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
       <li class="post">

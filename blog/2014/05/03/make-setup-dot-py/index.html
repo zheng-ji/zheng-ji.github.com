@@ -5,7 +5,7 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>制作setup.py - 织网</title>
+  <title>制作 setup.py - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">制作setup.py</h1>
+      <h1 class="entry-title">制作 setup.py</h1>
     
     
       <p class="meta">
@@ -96,7 +96,9 @@
   </header>
 
 
-<div class="entry-content"><p>做好一个python module 之后，可以把源代码包含进项目中。OK，但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
+<div class="entry-content"><p>做好一个 Python Module 之后，可以把源代码包含进项目中。但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
+
+<h3 id="section">制作与安装</h3>
 
 <p>以下给出一个 demo </p>
 
@@ -105,7 +107,7 @@
 </pre></td><td class="code"><pre><code class=""><span class="line">mkdir hacker
 </span><span class="line">vim foo.py</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>编辑以下内容</p>
+<p>编辑 foo.py </p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -151,7 +153,13 @@
 
 <p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
 
-<p>删除的话，就得蛋疼去 <code>/usr/lib/python2.7/</code> 手动删除,在 mac 里面是 <code>/Library/Python/2.7/site-packages</code></p>
+<h3 id="section-1">删除</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span> <span class="o">--</span><span class="n">record</span> <span class="n">files</span><span class="o">.</span><span class="n">txt</span>
+</span><span class="line"><span class="n">cat</span> <span class="n">files</span><span class="o">.</span><span class="n">txt</span> <span class="o">|</span> <span class="n">xargs</span> <span class="n">rm</span> <span class="o">-</span><span class="n">rf</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 </div>
 
@@ -209,7 +217,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="制作setup.py"></div>
+<div class="ds-thread" data-title="制作 setup.py"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
@@ -261,7 +269,7 @@
       </li>
     
       <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf配置依据</a>
+        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
       <li class="post">
