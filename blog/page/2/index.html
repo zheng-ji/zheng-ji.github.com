@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="知乎上面有一个有趣而且严肃的问题, 再次引起我对代码质量的思考。 如知乎所言，代码质量低下如： 文件关系混乱 注释过期、不明确或者没有 文档过期、不明确或者没有 架构乱设计 过度设计 不检查用户输入的错误情况 不检查API或者函数返回的errorcode或者exception &hellip;">
+  <meta name="description" content="耗了3个夜晚出来的东西. 先上图吧： 是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。 起因: 在公司GitLab看到有这人对内部管理系统提出了这个需求，但是一直没有被close, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,69 +67,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/03/09/tui-dao-zi-ji/">推倒自己</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-03-09T23:45:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/03/09/tui-dao-zi-ji/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>知乎上面有一个有趣而且严肃的<a href="http://www.zhihu.com/question/24665029/answer/28567915?from=singlemessage&amp;isappinstalled=0">问题</a>, 再次引起我对代码质量的思考。</p>
-
-<p>如知乎所言，代码质量低下如：</p>
-
-<ul>
-  <li>文件关系混乱</li>
-  <li>注释过期、不明确或者没有</li>
-  <li>文档过期、不明确或者没有</li>
-  <li>架构乱设计</li>
-  <li>过度设计</li>
-  <li>不检查用户输入的错误情况</li>
-  <li>不检查API或者函数返回的errorcode或者exception</li>
-  <li>没有单元测试等自动化测试过程</li>
-  <li>编译起来很难</li>
-  <li>到处复制代码，公用的部分不整理成内部库</li>
-</ul>
-
-<p>垃圾代码存在的客观因素有很多, 包括时间压力，业务留坑，绕开技术难点等。回头发现自己生产出坏代码的时候，除了羞愧，我是带有深深的污点强迫症。就好比一个工匠毕其一生修炼雕塑，却留下令自己鄙视的雕纹, 说道关乎尊严或许也不为过的。</p>
-
-<p>于是我愿意，且习惯性推倒自己的过去，希望用每一个顿悟的今天取代往日无知的自我。</p>
-
-<p>春节的时候学习了 flask, 发现以前写过的一些 Web 项目实现不够优雅，在 flask 对比实现下更是丑陋, 同样的功能，如果换一种方法, 可以感受到简洁，编码组织的顺畅， 更好地部署方式。 遂用了2个晚上推倒了以前写过的一个短地址服务。加上了一些提升用户体验的前端代码, 我想这样或许能给使用这个系统的人带来工作效率的提高吧。</p>
-
-<p>那晚回去的路上, 我是开心的，好比闻到洗好晒干的被子发出的芬芳。我想我应该，也会一直记住这种感觉，并践行着。</p>
-
-</div>
-  
-  
-
-
-    </article>
   
   
     <article>
@@ -1107,6 +1044,121 @@ Kibana 是一个与之配套的 web 界面。</p>
 <p><code>
 sudo ifdown eth0; sudo ifup eth0</code> 
 ServerB 就可以连接外网了。</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-23T23:18:00+08:00" pubdate data-updated="true">Oct 23<span>rd</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/10/23/mysql-unique-index/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 <code>Duplicated Key entry Error</code>,</p>
+
+<h3 id="section">回放事件</h3>
+
+<p>我们的数据表，之前是有 <code>UNIQUE INDEX(cuid, aid)</code>, 因为去掉索引，服务持续写入，导致有重复记录，所幸的是，这是一个统计表, 不影响功能，所以需要找出重复的记录</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select cuid,aid from (
+</span><span class="line">    select cuid, aid,count(1) as num
+</span><span class="line">    from register_chn 
+</span><span class="line">    group by cuid,aid having num &gt; 1
+</span><span class="line">) t;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>显示有8条记录,如果手动删除,是很慢且愚蠢的做法,还是用 SQL 执行,镇定之后执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">delete from register_chn where (cuid,aid) in (
+</span><span class="line">    select cuid,aid from (
+</span><span class="line">        select cuid, aid,count(1) as num
+</span><span class="line">        from register_chn
+</span><span class="line">        group by cuid,aid having num &gt; 1
+</span><span class="line">    ) t
+</span><span class="line">);</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>影响了８条记录.然后瞬间加上索引.所幸是成功了, 事实上当时的合理操作应该是用事务。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">BEGIN;
+</span><span class="line">delete from register_chn where (cuid,aid) in (
+</span><span class="line">    select cuid,aid from (
+</span><span class="line">        select cuid, aid,count(1) as num
+</span><span class="line">        from register_chn
+</span><span class="line">        group by cuid,aid having num &gt; 1
+</span><span class="line">    ) t
+</span><span class="line">);
+</span><span class="line">alter table register_chn add unique index(cuid, aid);
+</span><span class="line">COMMINT;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">引发的思考</h3>
+
+<p>后来想想, 上述方法虽然解决问题了, 但是有点碰运气成分。如果频繁快速地产生重复记录,也许就没那么好运了,事实上可以执行以下 SQL:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter ignore table register_chn add unique index(cuid, aid)；</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果你以为很简单,那就错了。这个方法在 MySQL 5.0 上使用是没问题的，但是在5.6 之前是有bug的，亲自测试Percona 版本5.5, 的确会失败
+官方的解决方法是：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">set session old_alter_table = on;
+</span><span class="line">alter ignore table register_chn add unique index(cuid, aid);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在有主备的情况,记得执行前设置一下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">set session sql_log_bin=off. </span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>以免备库报错。同样还需要在备库重复一下主库的操作, 这也算是一个不太完美的解决思路。</p>
+
 </div>
   
   
