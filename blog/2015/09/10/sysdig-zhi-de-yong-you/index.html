@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Nginx 模块开发 - 织网</title>
+  <title>Sysdig 值得拥有 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="nginx 模块开发">
+  <meta name="description" content="sysdig">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/02/17/nginxmo-kuai-kai-fa">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/09/10/sysdig-zhi-de-yong-you">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Nginx 模块开发</h1>
+      <h1 class="entry-title">Sysdig 值得拥有</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+<time datetime="2015-09-10T23:10:00+08:00" pubdate data-updated="true">Sep 10<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,101 +96,143 @@
   </header>
 
 
-<div class="entry-content"><p>写这篇文章的时候，参考<a href="http://blog.codinglabs.org/articles/intro-of-nginx-module-development.html">链接</a>，特此鸣谢</p>
+<div class="entry-content"><p>定位服务器问题时,  我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言, 就是一把瑞士军刀, 灵活小巧, 武艺多端.</p>
 
-<h4 id="ngnix-">为何需要Ngnix 模块：</h4>
+<ul>
+  <li><a href="#第一节">安装</a></li>
+  <li><a href="#第二节">常用操作</a></li>
+  <li><a href="#第三节">高效的实战</a></li>
+</ul>
 
-<blockquote>
-  <p>对于一些访问量特别大，业务逻辑也相对简单的Web调用来说，通过一个nginx module来实现是一种比较好的优化方法。实现一个nginx module实际上比较简单。（@TimYang）</p>
-</blockquote>
-
-<h4 id="nginx-">Nginx 配置结构了解</h4>
-<p>Nginx的配置文件是以block的形式组织的，一个block通常使用大括号“{}”表示。block分为几个层级，整个配置文件为main层级，这 是最大的层级；在main层级下可以有event、http等层级，而http中又会有server block，server block中可以包含location block</p>
-
-<h4 id="nginx">Nginx模块工作原理概述</h4>
-<p>Nginx本身做的工作实际很少，当它接到一个HTTP请求时，它仅仅是通过查找配置文件将此次请求映射到一个location block，而此location中所配置的各个指令则会启动不同的模块去完成工作，因此模块可以看做Nginx真正的劳动工作者。通常一个 location中的指令会涉及一个handler模块和多个filter模块（当然，多个location可以复用同一个模块）。handler模块负 责处理请求，完成响应内容的生成，而filter模块对响应内容进行处理。因此Nginx模块开发分为handler开发和filter开发</p>
-
-<h4 id="nginx-1">展示一个简单的Nginx模块开发全过程</h4>
-<p>我们开发一个叫echo的handler模块，这个模块功能非常简单，它接收“echo”指令，指令可指定一个字符串参数，模块会输出这个字符串作为HTTP响应。例如，做如下配置：</p>
+<h3 id="第一节">安装</h3>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
-</span><span class="line">    echo "hello nginx";
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+</span><span class="line">curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/stable/deb/draios.list
+</span><span class="line">apt-get update
+</span><span class="line">apt-get -y install sysdig</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<table>
-  <tbody>
-    <tr>
-      <td>首先我们需要一个结构用于存储从配置文件中读进来的相关指令参数，即模块配置信息结构。根据Nginx模块开发规则这个结构的命名规则为ngx_http<em>[module-name]</em>[main</td>
-      <td>srv</td>
-      <td>loc]_conf_t</td>
-    </tr>
-  </tbody>
-</table>
+<h3 id="第二节">常用操作</h3>
 
-<p>实现这个功能需要三步：
-+ 读入配置文件中echo指令及其参数；
-+ 进行HTTP包装（添加HTTP头等工作）；
-+ 将结果返回给客户端。</p>
-
-<h4 id="nginx-2">Nginx模块的安装</h4>
-<p>Nginx不支持动态链接模块，所以安装模块需要将模块代码与Nginx源代码进行重新编译。安装模块的步骤如下：</p>
+<p>sysdig 有很多 chisel, chisel 意为 铲子, 可以理解为定位某类问题的工具, sysdig 采用 Lua 编写的。</p>
 
 <ul>
-  <li>编写模块config文件，这个文件需要放在和模块源代码文件放在同一目录下。文件内容如下：</li>
+  <li>查看 chisel 列表</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -cl  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看具体某个 chisel 的提示</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -i spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用某个 chisel</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>过滤器可以帮助我们从各种输出信息中, 筛选出我们需要的, 比如 
+<code>proc.name=foo</code> , 
+如果你记住不了太多过滤器也无妨,  我们可以借助如下命令查看过滤器</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -l</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>记录定位信息到文本, 以及从文本读取信息</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=模块完整名称
-</span><span class="line">HTTP_MODULES=”$HTTP_MODULES 模块完整名称”
-</span><span class="line">NGX_ADDON_SRCS=”$NGX_ADDON_SRCS $ngx_addon_dir/源代码文件名”</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -w tracefile.cap
+</span><span class="line">sysdig -r tracefile.dump proc.name=sshd</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">高效的实战</h3>
 
 <ul>
-  <li>进入Nginx源代码，使用下面命令编译安装</li>
+  <li>服务器上经常需要查看哪个服务带宽占用使用较高, 特别是被 DDOS 的时候。</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=安装目录 --add-module=模块源代码文件目录
-</span><span class="line">make
-</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c topprocs_net</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>这样就完成安装了，例如，我的源代码文件放在/home/zj/tmp/ngx/ngx_http_echo下，我的config文件为：</p>
+<ul>
+  <li>查看某个IP的通讯数据,并以ASCII 码输出</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_addon_name=ngx_http_echo_module
-</span><span class="line">HTTP_MODULES="$HTTP_MODULES ngx_http_echo_module"
-</span><span class="line">NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_echo_module.c"</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s2000 -A -c echo_fds fd.cip=127.0.0.1</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h4 id="section">编译安装命令为：</h4>
+<ul>
+  <li>查看非请求 redis-server 的其他请求进程和句柄</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/usr/local/nginx --add-module=/home/zj/tmp/ngx/ngx_http_echo
-</span><span class="line">make
-</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -p"%proc.name %fd.name" "evt.type=accept and proc.name!=redis-server"</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>这样echo模块就被安装在我的Nginx上了，下面测试一下，修改配置文件，增加以下一项配置：</p>
+<ul>
+  <li>查看访问该服务器的所有 GET 请求数据</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {
-</span><span class="line">    echo "This is my first nginx module!!!";
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds fd.port=80 and evt.buffer contains GET</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>然后用curl测试一下：</p>
+<ul>
+  <li>查看访问该服务器的 SQL 语句</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -i http://localhost/echo</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds evt.buffer contains SELECT</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看磁盘读写最高的进程</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topprocs_file</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看延迟最大的系统调用</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topscalls_time</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看具体文件的操作细节</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -A -c echo_fds "fd.filename=syslog"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看 IO 延迟大于 1ms 的文件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c fileslower 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>监视某个文件是否被操作, 从安全出发想象空间很大哦</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig evt.type=open and fd.name contains /etc</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p><a href="http://www.sysdig.org/wiki/">Sysdig 官网</a></p>
 </div>
 
 
@@ -213,12 +255,12 @@
   
 
 
-<time datetime="2013-02-17T14:04:00+08:00" pubdate data-updated="true">Feb 17<span>th</span>, 2013</time>
+<time datetime="2015-09-10T23:10:00+08:00" pubdate data-updated="true">Sep 10<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/server/'>Server</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -234,10 +276,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/02/12/zai-lu-shang/" title="Previous Post: 在路上">&laquo; 在路上</a>
+        <a class="basic-alignment left" href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/" title="Previous Post: Ansible 使用经验">&laquo; Ansible 使用经验</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/04/02/zhe-teng/" title="Next Post: 折腾">折腾 &raquo;</a>
       
     </p>
   </footer>
@@ -247,7 +287,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Nginx 模块开发"></div>
+<div class="ds-thread" data-title="Sysdig 值得拥有"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

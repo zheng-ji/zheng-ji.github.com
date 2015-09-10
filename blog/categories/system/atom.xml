@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T23:16:51+08:00</updated>
+  <updated>2015-09-10T23:31:35+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,163 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Sysdig 值得拥有]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/09/10/sysdig-zhi-de-yong-you/"/>
+    <updated>2015-09-10T23:10:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/09/10/sysdig-zhi-de-yong-you</id>
+    <content type="html"><![CDATA[<p>定位服务器问题时,  我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言, 就是一把瑞士军刀, 灵活小巧, 武艺多端.</p>
+
+<ul>
+  <li><a href="#第一节">安装</a></li>
+  <li><a href="#第二节">常用操作</a></li>
+  <li><a href="#第三节">高效的实战</a></li>
+</ul>
+
+<h3 id="第一节">安装</h3>
+
+<p><code>
+curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/stable/deb/draios.list
+apt-get update
+apt-get -y install sysdig
+</code></p>
+
+<h3 id="第二节">常用操作</h3>
+
+<p>sysdig 有很多 chisel, chisel 意为 铲子, 可以理解为定位某类问题的工具, sysdig 采用 Lua 编写的。</p>
+
+<ul>
+  <li>查看 chisel 列表</li>
+</ul>
+
+<p><code>
+sysdig -cl  
+</code></p>
+
+<ul>
+  <li>查看具体某个 chisel 的提示</li>
+</ul>
+
+<p><code>
+sysdig -i spy_logs
+</code></p>
+
+<ul>
+  <li>使用某个 chisel</li>
+</ul>
+
+<p><code>
+sysdig -c spy_logs
+</code></p>
+
+<ul>
+  <li>过滤器可以帮助我们从各种输出信息中, 筛选出我们需要的, 比如 
+<code>proc.name=foo</code> , 
+如果你记住不了太多过滤器也无妨,  我们可以借助如下命令查看过滤器</li>
+</ul>
+
+<p><code>
+sysdig -l
+</code></p>
+
+<ul>
+  <li>记录定位信息到文本, 以及从文本读取信息</li>
+</ul>
+
+<p><code>
+sysdig -w tracefile.cap
+sysdig -r tracefile.dump proc.name=sshd
+</code></p>
+
+<h3 id="第三节">高效的实战</h3>
+
+<ul>
+  <li>服务器上经常需要查看哪个服务带宽占用使用较高, 特别是被 DDOS 的时候。</li>
+</ul>
+
+<p><code>
+sudo sysdig -c topprocs_net
+</code></p>
+
+<ul>
+  <li>查看某个IP的通讯数据,并以ASCII 码输出</li>
+</ul>
+
+<p><code>
+sudo sysdig -s2000 -A -c echo_fds fd.cip=127.0.0.1
+</code></p>
+
+<ul>
+  <li>查看非请求 redis-server 的其他请求进程和句柄</li>
+</ul>
+
+<p><code>
+sudo sysdig -p"%proc.name %fd.name" "evt.type=accept and proc.name!=redis-server"
+</code></p>
+
+<ul>
+  <li>查看访问该服务器的所有 GET 请求数据</li>
+</ul>
+
+<p><code>
+sudo sysdig -s 2000 -A -c echo_fds fd.port=80 and evt.buffer contains GET
+</code></p>
+
+<ul>
+  <li>查看访问该服务器的 SQL 语句</li>
+</ul>
+
+<p><code>
+sudo sysdig -s 2000 -A -c echo_fds evt.buffer contains SELECT
+</code></p>
+
+<ul>
+  <li>查看磁盘读写最高的进程</li>
+</ul>
+
+<p><code>
+sysdig -c topprocs_file
+</code></p>
+
+<ul>
+  <li>查看延迟最大的系统调用</li>
+</ul>
+
+<p><code>
+sysdig -c topscalls_time
+</code></p>
+
+<ul>
+  <li>查看具体文件的操作细节</li>
+</ul>
+
+<p><code>
+sysdig -A -c echo_fds "fd.filename=syslog"
+</code></p>
+
+<ul>
+  <li>查看 IO 延迟大于 1ms 的文件</li>
+</ul>
+
+<p><code>
+sudo sysdig -c fileslower 1
+</code></p>
+
+<ul>
+  <li>监视某个文件是否被操作, 从安全出发想象空间很大哦</li>
+</ul>
+
+<p><code>
+sudo sysdig evt.type=open and fd.name contains /etc
+</code></p>
+
+<hr />
+
+<p><a href="http://www.sysdig.org/wiki/">Sysdig 官网</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Ansible 使用经验]]></title>
@@ -408,43 +565,6 @@ postmap access
 <blockquote>
   <p>ssl_session_cache 大小不够等原因造成</p>
 </blockquote>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[用到的Tcpdump]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump/"/>
-    <updated>2014-11-29T14:15:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump</id>
-    <content type="html"><![CDATA[<p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
-简单说下我常用的 TcpDump的方法</p>
-
-<p><code>
-tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 
-</code></p>
-
-<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
-
-<p><code>
--i 指定网卡
--Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
--s 0 表示整包抓取
--c 1024 表示包得大小
-</code></p>
-
-<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
-这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
-
-<p>Tcpdump 中的 flag 有必要提下：</p>
-
-<ul>
-  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
-  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
-  <li>SYNC 表示主动连接到对方，建立连接</li>
-  <li>FIN 表示传送结束，发送方等待对方响应</li>
-</ul>
-
-<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
 ]]></content>
   </entry>
   

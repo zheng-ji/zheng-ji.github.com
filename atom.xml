@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-09-09T23:16:51+08:00</updated>
+  <updated>2015-09-10T23:31:35+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,151 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Sysdig 值得拥有]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/09/10/sysdig-zhi-de-yong-you/"/>
+    <updated>2015-09-10T23:10:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/09/10/sysdig-zhi-de-yong-you</id>
+    <content type="html"><![CDATA[<p>定位服务器问题时,  我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言, 就是一把瑞士军刀, 灵活小巧, 武艺多端.</p>
+
+<ul>
+  <li><a href="#第一节">安装</a></li>
+  <li><a href="#第二节">常用操作</a></li>
+  <li><a href="#第三节">高效的实战</a></li>
+</ul>
+
+<h3 id="第一节">安装</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+</span><span class="line">curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/stable/deb/draios.list
+</span><span class="line">apt-get update
+</span><span class="line">apt-get -y install sysdig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">常用操作</h3>
+
+<p>sysdig 有很多 chisel, chisel 意为 铲子, 可以理解为定位某类问题的工具, sysdig 采用 Lua 编写的。</p>
+
+<ul>
+  <li>查看 chisel 列表</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -cl  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看具体某个 chisel 的提示</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -i spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用某个 chisel</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>过滤器可以帮助我们从各种输出信息中, 筛选出我们需要的, 比如 
+<code>proc.name=foo</code> , 
+如果你记住不了太多过滤器也无妨,  我们可以借助如下命令查看过滤器</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -l</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>记录定位信息到文本, 以及从文本读取信息</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -w tracefile.cap
+</span><span class="line">sysdig -r tracefile.dump proc.name=sshd</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">高效的实战</h3>
+
+<ul>
+  <li>服务器上经常需要查看哪个服务带宽占用使用较高, 特别是被 DDOS 的时候。</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c topprocs_net</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看某个IP的通讯数据,并以ASCII 码输出</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s2000 -A -c echo_fds fd.cip=127.0.0.1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看非请求 redis-server 的其他请求进程和句柄</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -p"%proc.name %fd.name" "evt.type=accept and proc.name!=redis-server"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看访问该服务器的所有 GET 请求数据</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds fd.port=80 and evt.buffer contains GET</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看访问该服务器的 SQL 语句</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds evt.buffer contains SELECT</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看磁盘读写最高的进程</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topprocs_file</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看延迟最大的系统调用</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topscalls_time</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看具体文件的操作细节</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -A -c echo_fds "fd.filename=syslog"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看 IO 延迟大于 1ms 的文件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c fileslower 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>监视某个文件是否被操作, 从安全出发想象空间很大哦</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig evt.type=open and fd.name contains /etc</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p><a href="http://www.sysdig.org/wiki/">Sysdig 官网</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Ansible 使用经验]]></title>
@@ -1725,91 +1870,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 <p><code>
 sudo ifdown eth0; sudo ifup eth0</code> 
 ServerB 就可以连接外网了。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[唯一索引引发的思考]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/10/23/mysql-unique-index/"/>
-    <updated>2014-10-23T23:18:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/10/23/mysql-unique-index</id>
-    <content type="html"><![CDATA[<p>最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 <code>Duplicated Key entry Error</code>,</p>
-
-<h3 id="section">回放事件</h3>
-
-<p>我们的数据表，之前是有 <code>UNIQUE INDEX(cuid, aid)</code>, 因为去掉索引，服务持续写入，导致有重复记录，所幸的是，这是一个统计表, 不影响功能，所以需要找出重复的记录</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">select cuid,aid from (
-</span><span class="line">    select cuid, aid,count(1) as num
-</span><span class="line">    from register_chn 
-</span><span class="line">    group by cuid,aid having num &gt; 1
-</span><span class="line">) t;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>显示有8条记录,如果手动删除,是很慢且愚蠢的做法,还是用 SQL 执行,镇定之后执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">delete from register_chn where (cuid,aid) in (
-</span><span class="line">    select cuid,aid from (
-</span><span class="line">        select cuid, aid,count(1) as num
-</span><span class="line">        from register_chn
-</span><span class="line">        group by cuid,aid having num &gt; 1
-</span><span class="line">    ) t
-</span><span class="line">);</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>影响了８条记录.然后瞬间加上索引.所幸是成功了, 事实上当时的合理操作应该是用事务。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">BEGIN;
-</span><span class="line">delete from register_chn where (cuid,aid) in (
-</span><span class="line">    select cuid,aid from (
-</span><span class="line">        select cuid, aid,count(1) as num
-</span><span class="line">        from register_chn
-</span><span class="line">        group by cuid,aid having num &gt; 1
-</span><span class="line">    ) t
-</span><span class="line">);
-</span><span class="line">alter table register_chn add unique index(cuid, aid);
-</span><span class="line">COMMINT;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">引发的思考</h3>
-
-<p>后来想想, 上述方法虽然解决问题了, 但是有点碰运气成分。如果频繁快速地产生重复记录,也许就没那么好运了,事实上可以执行以下 SQL:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">alter ignore table register_chn add unique index(cuid, aid)；</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果你以为很简单,那就错了。这个方法在 MySQL 5.0 上使用是没问题的，但是在5.6 之前是有bug的，亲自测试Percona 版本5.5, 的确会失败
-官方的解决方法是：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set session old_alter_table = on;
-</span><span class="line">alter ignore table register_chn add unique index(cuid, aid);</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>在有主备的情况,记得执行前设置一下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set session sql_log_bin=off. </span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>以免备库报错。同样还需要在备库重复一下主库的操作, 这也算是一个不太完美的解决思路。</p>
-
 ]]></content>
   </entry>
   

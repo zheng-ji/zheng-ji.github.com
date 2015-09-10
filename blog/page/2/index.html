@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="耗了3个夜晚出来的东西. 先上图吧： 是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。 起因: 在公司GitLab看到有这人对内部管理系统提出了这个需求，但是一直没有被close, &hellip;">
+  <meta name="description" content="Docker 的优点自从问世就一直被工业界热论。 平时工作中，所部署的大多数Python项目都会用上 virtualenv, 沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 Golang C++ 的项目
+同样能使用上沙箱环境。得益于Docker，我们仍然可以做到。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +68,194 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建 Docker</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-04-05T20:24:00+08:00" pubdate data-updated="true">Apr 5<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/04/05/yong-bao-docker/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Docker 的优点自从问世就一直被工业界热论。</p>
+
+<p>平时工作中，所部署的大多数<code>Python</code>项目都会用上 <a href="http://wiki.zheng-ji.info/Python/virtualenv-py.html">virtualenv</a>, 
+沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 <code>Golang</code> <code>C++</code> 的项目
+同样能使用上沙箱环境。得益于<code>Docker</code>，我们仍然可以做到。</p>
+
+<p>这个过程没有想象中的简单，需要一番折腾，我以最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础. 或许这不是最好的方法。</p>
+
+<h3 id="docker-">一览该 Docker 项目</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~/workspace/gocode/src/kafconsumer/docker$ tree
+</span><span class="line">.
+</span><span class="line">├── Dockerfile
+</span><span class="line">├── kafConsumer
+</span><span class="line">│   ├── consumer
+</span><span class="line">│   ├── etc
+</span><span class="line">│   │   ├── config.yml
+</span><span class="line">│   │   └── logger.xml
+</span><span class="line">│   └── script
+</span><span class="line">│       └── start.sh
+</span><span class="line">└── kafConsumer.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以上的截图，是一个完整的 <code>Docker</code> 项目，包含了：</p>
+
+<ul>
+  <li><code>Dockerfile</code>,</li>
+  <li><code>kafCounsumer</code>(服务端程序，里面附带的启动脚本，配置程序，以及二进制文件)，</li>
+  <li>还有它被压缩而成的 <code>kafConsumer.tar.gz</code></li>
+</ul>
+
+<hr />
+
+<h3 id="dockerfile-">Dockerfile 的内容</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">FROM ubuntu:14.04                                                         
+</span><span class="line">MAINTAINER zheng-ji &lt;zheng-ji.info&gt;                                     
+</span><span class="line">RUN echo Asia/Shanghai &gt; /etc/timezone                   
+</span><span class="line">RUN sed -i "s/archive\.ubuntu/mirrors.163/" /etc/apt/sources.list          
+</span><span class="line">RUN apt-get update                                                         
+</span><span class="line">COPY kafConsumer.tar.gz /                                                  
+</span><span class="line">RUN tar xvf kafConsumer.tar.gz                                         
+</span><span class="line">VOLUME /data                   
+</span><span class="line">WORKDIR /kafConsumer                                                   
+</span><span class="line">ENTRYPOINT ["./script/start.sh"]</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p><code>Dockerfile</code> 可以理解为<code>makefile</code> 之类的文件，Docker 可以依照文件中的内容，构建镜像.</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker -t build Server/KafConsumer .</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这样就生成了<code>Tag</code> 为 <code>Server/KafConsumer</code> 的镜像，待会儿我们会使用它</p>
+
+<p>以上 <code>Dockerfile</code> 的具体内容的意义是:</p>
+
+<blockquote>
+
+  <ul>
+    <li>第一行：拉取ubuntu 14:04的镜像源</li>
+    <li>第二行：维护者</li>
+    <li>第三行：调整时区</li>
+    <li>第四行：更新源地址</li>
+    <li>第五行：更新源</li>
+    <li>第六行：复制项目下的压缩包到虚拟机根目录</li>
+    <li>第七行：解压</li>
+    <li>第八行：项目中使用/data数据卷</li>
+    <li>第九行：进入工作目录</li>
+    <li>第十行：Docker的入口执行文件是start.sh</li>
+  </ul>
+</blockquote>
+
+<hr />
+
+<h3 id="section">入口文件的内容</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#!/bin/bash
+</span><span class="line">ulimit -a
+</span><span class="line">if [ ! -d /data/ad ];  then
+</span><span class="line">    mkdir /data/ad
+</span><span class="line">fi
+</span><span class="line">exec ./consumer -c=etc/config.yml</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash, 使用exec 执行程序</p>
+
+<hr />
+
+<h3 id="section-1">启动镜像</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker run -i -t  -v /path/to/data:/data Server/kafConsumer</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>这样就执行了，-v 可以映射你的本地文件到虚拟机的某个数据卷，这样我们就能从外面看到程序产生的文件.</p>
+
+<h3 id="section-2">如果你想关闭或者重启该服务的怎么办</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps -a
+</span><span class="line">
+</span><span class="line">找到你的 Docker 容器
+</span><span class="line">
+</span><span class="line">CONTAINER ID    IMAGE           COMMAND                CREATED        STATUS        PORTS    NAMES
+</span><span class="line">5b39d0d5cb85    Server/kafkaconsumer:latest   "./script/start.sh"    3 hours ago    tender_bohr </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>启动或者关闭</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker start tender_bohr
+</span><span class="line">sudo docker stop tender_bohr</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<h3 id="daocloud--">Daocloud  加速</h3>
+
+<p>功夫墙的原因，国外很多镜像被墙，因此构建镜像很慢，使用 Daocloud 服务可以加速,注册后就有该服务了</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cat /etc/default/docker
+</span><span class="line">DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://xxxxxx.m.daocloud.io"</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1051,121 +1240,6 @@ ServerB 就可以连接外网了。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-23T23:18:00+08:00" pubdate data-updated="true">Oct 23<span>rd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/10/23/mysql-unique-index/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 <code>Duplicated Key entry Error</code>,</p>
-
-<h3 id="section">回放事件</h3>
-
-<p>我们的数据表，之前是有 <code>UNIQUE INDEX(cuid, aid)</code>, 因为去掉索引，服务持续写入，导致有重复记录，所幸的是，这是一个统计表, 不影响功能，所以需要找出重复的记录</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">select cuid,aid from (
-</span><span class="line">    select cuid, aid,count(1) as num
-</span><span class="line">    from register_chn 
-</span><span class="line">    group by cuid,aid having num &gt; 1
-</span><span class="line">) t;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>显示有8条记录,如果手动删除,是很慢且愚蠢的做法,还是用 SQL 执行,镇定之后执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">delete from register_chn where (cuid,aid) in (
-</span><span class="line">    select cuid,aid from (
-</span><span class="line">        select cuid, aid,count(1) as num
-</span><span class="line">        from register_chn
-</span><span class="line">        group by cuid,aid having num &gt; 1
-</span><span class="line">    ) t
-</span><span class="line">);</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>影响了８条记录.然后瞬间加上索引.所幸是成功了, 事实上当时的合理操作应该是用事务。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">BEGIN;
-</span><span class="line">delete from register_chn where (cuid,aid) in (
-</span><span class="line">    select cuid,aid from (
-</span><span class="line">        select cuid, aid,count(1) as num
-</span><span class="line">        from register_chn
-</span><span class="line">        group by cuid,aid having num &gt; 1
-</span><span class="line">    ) t
-</span><span class="line">);
-</span><span class="line">alter table register_chn add unique index(cuid, aid);
-</span><span class="line">COMMINT;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">引发的思考</h3>
-
-<p>后来想想, 上述方法虽然解决问题了, 但是有点碰运气成分。如果频繁快速地产生重复记录,也许就没那么好运了,事实上可以执行以下 SQL:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">alter ignore table register_chn add unique index(cuid, aid)；</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果你以为很简单,那就错了。这个方法在 MySQL 5.0 上使用是没问题的，但是在5.6 之前是有bug的，亲自测试Percona 版本5.5, 的确会失败
-官方的解决方法是：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set session old_alter_table = on;
-</span><span class="line">alter ignore table register_chn add unique index(cuid, aid);</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>在有主备的情况,记得执行前设置一下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">set session sql_log_bin=off. </span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>以免备库报错。同样还需要在备库重复一下主库的操作, 这也算是一个不太完美的解决思路。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1187,6 +1261,10 @@ ServerB 就可以连接外网了。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible 使用经验</a>
@@ -1214,10 +1292,6 @@ ServerB 就可以连接外网了。</p>
     
       <li class="post">
         <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/05/17/da-jian-postfix/">搭建 Postfix</a>
       </li>
     
   </ul>
