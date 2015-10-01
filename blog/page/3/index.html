@@ -9,7 +9,11 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 Duplicated Key entry Error, &hellip;">
+  <meta name="description" content="简单简述下我遇到的问题: 现在局域网有2台机器, 其中一台机器(下文我们称之为ServerA)可以访问外网,有独立IP,而另外一台机器(ServerB)访问不了外网, 需要想办法让 ServerB 也能上网。 ServerA 操作 1
+2
+3
+vi /etc/sysctl.conf
+net. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +71,67 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/">Iptable 之 NAT 转发</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-29T22:38:00+08:00" pubdate data-updated="true">Oct 29<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/10/29/iptablezuo-natzhuan-fa/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>简单简述下我遇到的问题:</p>
+
+<p>现在局域网有2台机器, 其中一台机器(下文我们称之为ServerA)可以访问外网,有独立IP,而另外一台机器(ServerB)访问不了外网, 需要想办法让 ServerB 也能上网。</p>
+
+<ul>
+  <li>ServerA 操作</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf
+</span><span class="line">net.ipv4.ip_forward = 1
+</span><span class="line">iptables -t nat -A POSTROUTING -s 10.4.0.0/16 -j MASQUERADE</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>ServerB</p>
+
+<p>编辑 /etc/network/interface
+主要是修改gateway 参数，指向 ServerA 的 IP</p>
+
+<p><code>
+sudo ifdown eth0; sudo ifup eth0</code> 
+ServerB 就可以连接外网了。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1406,109 +1471,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/03/make-setup-dot-py/">制作 setup.py</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-05-03T11:52:00+08:00" pubdate data-updated="true">May 3<span>rd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/05/03/make-setup-dot-py/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>做好一个 Python Module 之后，可以把源代码包含进项目中。但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。</p>
-
-<h3 id="section">制作与安装</h3>
-
-<p>以下给出一个 demo </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mkdir hacker
-</span><span class="line">vim foo.py</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 foo.py </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">Hacker</span><span class="p">():</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">motto</span> <span class="o">=</span> <span class="s">&quot;No evil, Be Hacker&quot;</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">printMotto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">motto</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>开始编写 setup.py, 也许是为了知识产权保护，里面按照规矩会让作者填上资料。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">from</span> <span class="nn">distutils.core</span> <span class="kn">import</span> <span class="n">setup</span>
-</span><span class="line"><span class="n">setup</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Hacker&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">version</span><span class="o">=</span><span class="s">&#39;1.0&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">description</span><span class="o">=</span><span class="s">&#39;be hake or be hacked&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">author</span><span class="o">=</span><span class="s">&#39;zheng-ji&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">author_email</span><span class="o">=</span><span class="s">&#39;zhengji91@gmail.com&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">url</span><span class="o">=</span><span class="s">&#39;http://zheng-ji.info&#39;</span><span class="p">,</span>
-</span><span class="line">        <span class="n">py_modules</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">],</span>
-</span><span class="line">        <span class="n">install_requires</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;requests&quot;</span><span class="p">]</span>
-</span><span class="line">     <span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>好了，这个时候执行,</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">sudo</span> <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>该命令，会把模块复制到 <code>/usr/lib/python2.7/</code> 下面. 之后可以直接 import foo, 使用该模块。</p>
-
-<h3 id="section-1">删除</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span> <span class="o">--</span><span class="n">record</span> <span class="n">files</span><span class="o">.</span><span class="n">txt</span>
-</span><span class="line"><span class="n">cat</span> <span class="n">files</span><span class="o">.</span><span class="n">txt</span> <span class="o">|</span> <span class="n">xargs</span> <span class="n">rm</span> <span class="o">-</span><span class="n">rf</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1524,12 +1486,16 @@ mysql&gt; SHOW SLAVE STATUS \G
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
@@ -1557,10 +1523,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
       </li>
     
   </ul>

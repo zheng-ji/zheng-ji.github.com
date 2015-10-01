@@ -9,9 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="服务端编程的挑战很美
-Socket编程的服务器模型类型: 循环服务器模型 并发服务器模型 IO复用服务器模型 循环服务器模型: 使用循环方法去逐个处理客户端连接和请求 并发服务器的简单模型:
-使用进程处理客户端的连接和请求 并发服务器的TCP分类: &hellip;">
+  <meta name="description" content="好奇折腾libevent 原理介绍转自IBM developworks 处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。 网络连接使用的主要方法如下： 循环： 早期系统使用简单的循环选择解决方案， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +67,101 @@ Socket编程的服务器模型类型: 循环服务器模型 并发服务器模�
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2012/03/22/zhe-teng-libevent/">折腾 Libevent</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-03-22T20:25:00+08:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2012</time>
+        
+        
+          | <a href="/blog/2012/03/22/zhe-teng-libevent/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="libevent">好奇折腾libevent</h3>
+
+<p>原理介绍转自<a href="www.ibm.com/developerworks/cn/aix/library/au-libev/">IBM developworks</a></p>
+
+<p>处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。</p>
+
+<p>网络连接使用的主要方法如下：</p>
+
+<ul>
+  <li>循环：</li>
+</ul>
+
+<p>早期系统使用简单的循环选择解决方案，即循环遍历打开的网络连接的列表，判断是否有要读取的数据。这种方法既缓慢（尤其是随着连接数量增加越来越慢),又低效（因为在处理当前连接时其他连接可能正在发送请求并等待响应）。在系统循环遍历每个连接时，其他连接不得不等待。如果有100 个连接，其中只有一个有数据，那么仍然必须处理其他 99 个连接，才能轮到真正需要处理的连接。</p>
+
+<ul>
+  <li>poll、epoll 和变体：</li>
+</ul>
+
+<p>这是对循环方法的改进，它用一个结构保存要监视的每个连接的数组，当在网络套接字上发现数据时，通过回调机制调用处理函数。poll 的问题是这个结构会非常大，在列表中添加新的网络连接时，修改结构会增加负载并影响性能。
+选择：</p>
+
+<ul>
+  <li>select() 函数调用使用一个静态结构，它事先被硬编码为相当小的数量（1024 个连接），因此不适用于非常大的部署。</li>
+</ul>
+
+<p>上面的所有解决方案都用简单的循环等待并处理请求，然后把请求分派给另一个函数以处理实际的网络交互。关键在于循环和网络套接字需要大量管理代码，这样才能监听、更新和控制不同的连接和接口。</p>
+
+<p>libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。</p>
+
+<p>创建 libevent 服务器的基本方法是:</p>
+
+<ul>
+  <li>
+    <p>注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。</p>
+  </li>
+  <li>
+    <p>执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；</p>
+  </li>
+  <li>
+    <p>在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。</p>
+  </li>
+</ul>
+
+<p>流程：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">event_set() //函数创建新的事件结构
+</span><span class="line">event_add() //在事件队列机制中添加事件；
+</span><span class="line">event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="tips">Tips</h3>
+
+<p>Tips:编译过程中需要 -levent
+用libevent库写的EchoServer：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -154,12 +247,16 @@ Socket编程的服务器模型类型:</p>
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
@@ -187,10 +284,6 @@ Socket编程的服务器模型类型:</p>
     
       <li class="post">
         <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
       </li>
     
   </ul>

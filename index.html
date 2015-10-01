@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="定位服务器问题时, 我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言 &hellip;">
+  <meta name="description" content="写在开头 过去的两个多星期，酣畅淋漓地撸码。值得欣慰的是，几位小伙伴同心协力完成一个自研的，类似pushover的产品。感谢 Leader 的信任，让我在负责开发的同时也兼顾了一把项目经理。谢谢 IOS, Android 客户端的兄弟，设计师的支持，还有一位实习生，开心看到他的点滴成长。 提下背景 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,104 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-01T09:49:00+08:00" pubdate data-updated="true">Oct 1<span>st</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/10/01/python-shi-yong-ldap/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2 id="section">写在开头</h2>
+
+<p>过去的两个多星期，酣畅淋漓地撸码。值得欣慰的是，几位小伙伴同心协力完成一个自研的，类似<a href="http://pushover.net">pushover</a>的产品。感谢 Leader 的信任，让我在负责开发的同时也兼顾了一把项目经理。谢谢 IOS, Android 客户端的兄弟，设计师的支持，还有一位实习生，开心看到他的点滴成长。</p>
+
+<p>提下背景，我们之前使用 <code>pushover</code> 来做报警推送，但是它对天朝用户不友好，Android 用户需要翻墙使用，有时候不稳定，体现为会收不到信息，pushove 限制推送上限，需要付费。我们的受众不仅有程序汪，还有运营产品汪，他们需要一款更容易上手的推送软件，至少不需要番羽墙。于是自己开发一个很有必要。</p>
+
+<p>为最大程度降低用户使用门槛，同时保证用户信息的安全，我们用了 LDAP 账户登陆，严格控制权限，以及 HTTPS 协议开发。下面提一提 LDAP 这个东西。</p>
+
+<h2 id="ldap-">LDAP 是什么</h2>
+
+<p><a href="https://zh.wikipedia.org/wiki/%E8%BD%BB%E5%9E%8B%E7%9B%AE%E5%BD%95%E8%AE%BF%E9%97%AE%E5%8D%8F%E8%AE%AE">LDAP维基百科</a></p>
+
+<p>简单地讲，它是以目录树的方式存放账户信息。</p>
+
+<p>这次项目中，我们不希望用户重新注册账户，而是采用原有的用户体系，这样对单点登录以及权限控制的好处不严而喻, LDAP 协议呼之欲出。</p>
+
+<h2 id="virtualenv--python-ldap">virtualenv 下安装 python-ldap</h2>
+
+<p>我们采用 Python 开发，这就需要 python-ldap 的帮助了, 记下安装笔记的好处是下次不用在此纠结太长时间。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
+</span><span class="line">pip install python-ldap</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-1">身份验证</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># LDAP 服务的域名和端口
+</span><span class="line">SERVER_NAME = 'xxxx'
+</span><span class="line">SERVER_PORT = xxx
+</span><span class="line">try:
+</span><span class="line">    conn = ldap.open(SERVER_NAME, SERVER_PORT)  
+</span><span class="line">    conn.protocol_version = ldap.VERSION3 #设置ldap协议版本 
+</span><span class="line">    username = "user=xxx,dc=company,dc=com" #身份信息
+</span><span class="line">    password = "xxx" #访问密码
+</span><span class="line">    conn.simple_bind_s(username,password) # 开始绑定，验证成功的话不会抛出异常
+</span><span class="line">except ldap.LDAPError, e: #捕获出错信息
+</span><span class="line">    print e</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-2">一点感悟</h2>
+
+<p>鄙人觉得，技术领导要带领项目成长, 除了有责任把控项目风险，推进项目进度。
+还必须要花很多的心血在驾驭技术上,  身先士卒去调研可行性, 以及做技术攻关，
+而非命令式地分配任务，让同事干活, 只问责结果。
+否则很容易导致凝聚力不足,团队技术氛围不足，这样的团队易消极，也易滋生失败的项目。
+然而在天朝, 很多人存在一个潜意识:写好代码是为了以后不写代码，这种阶级思想让我反感。</p>
+
+<p>以前看过一个新闻, 硅谷在面试技术 VP ，仍然要求其在各位工程师面前手写代码，以此作为面试的重要环节, 不得不点赞。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1239,124 +1337,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/">MySQL Slave Relay Log Corrupt 恢复</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-05-10T20:02:00+08:00" pubdate data-updated="true">May 10<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/05/10/mysql-slave-relay-log-corrupt-chu-li-he-hui-fu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h3 id="section">现象</h3>
-<p>周日早晨收到 <code>ganglia</code> 报警, 内容是：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">MySQL_Slave_SQL is 0.00</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>意味着从库同步有问题了。这时候进入从库看看状态</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show slave status\G;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>看到</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">Slave_IO_State: Waiting for master to send event
-</span><span class="line">   Master_Host: xxx.xxx.xxx
-</span><span class="line">   Master_User: replication
-</span><span class="line">   Master_Port: 3306
-</span><span class="line">   Connect_Retry: 60
-</span><span class="line">   Master_Log_File: mysql-bin.000028
-</span><span class="line">   ad_Master_Log_Pos: 982714864
-</span><span class="line">   Relay_Log_File: relay-bin.000143
-</span><span class="line">   Relay_Master_Log_File: mysql-bin.000028
-</span><span class="line">   Slave_IO_Running: Yes
-</span><span class="line">   Slave_SQL_Running: No
-</span><span class="line">   Replicate_Do_DB:
-</span><span class="line"> Replicate_Ignore_DB:
-</span><span class="line"> Replicate_Do_Table:
-</span><span class="line"> Replicate_Ignore_Table:
-</span><span class="line"> Replicate_Wild_Do_Table:
-</span><span class="line"> Replicate_Wild_Ignore_Table:
-</span><span class="line"> Last_Errno: 1594
-</span><span class="line"> Last_Error: Relay log read failure: Could not parse relay log event entry. The possible reasons are: the master's binary log is corrupted (you can check this by running 'mysqlbinlog' on the binary log), the slave's relay log is corrupted (you can check this by running 'mysqlbinlog' on the relay log), a network problem, or a bug in the master's or slave's MySQL code. If you want to check the master's binary log or slave's relay log, you will be able to know their names by issuing 'SHOW SLAVE STATUS' on this slave.
-</span><span class="line"> Skip_Counter: 3
-</span><span class="line"> Exec_Master_Log_Pos: 974999870
-</span><span class="line"> Relay_Log_Space: 399910514
-</span><span class="line"> Until_Condition: None</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>是因为从库的 relay log 损坏导致的从库停止执行同步, 后面从 MySQL 的错误日志发现是由几个没经过优化的大查询导致从库内存使用较大，mysqld_safe 被迫重启了。</p>
-
-<h3 id="section-1">解决方法</h3>
-
-<p>找到：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">Relay_Master_Log_File: mysql-bin.000028
-</span><span class="line">Exec_Master_Log_Pos: 974999870</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mysql&gt; stop slave ;
-</span><span class="line">mysql&gt; change master to master_log_file='mysql-bin.000028',master_log_pos=974999870;
-</span><span class="line">mysql&gt; start slave;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就重新追上了。以后还是要提高周围同事使用 MySQL 的优化意识啊。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1370,12 +1350,16 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
@@ -1403,10 +1387,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     
       <li class="post">
         <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
       </li>
     
   </ul>

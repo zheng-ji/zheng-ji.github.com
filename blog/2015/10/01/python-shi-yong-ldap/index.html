@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>回顾 ZeroMQ - 织网</title>
+  <title>Python 使用 LDAP - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些后端服务。当时用Go语言实现 源代码,使用的便是gozmq库.这个消息通信框架库的文章有很多，比较著名的当属一淘的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档 优点： 高度封装。 &hellip;">
+  <meta name="description" content="python-ldap">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/06/29/hui-gu-zeromq">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/10/01/python-shi-yong-ldap">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">回顾 ZeroMQ</h1>
+      <h1 class="entry-title">Python 使用 LDAP</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
+<time datetime="2015-10-01T09:49:00+08:00" pubdate data-updated="true">Oct 1<span>st</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,31 +96,65 @@
   </header>
 
 
-<div class="entry-content"><p>今日在整理曾经的学习笔记，看到了ZeroMQ，号称史上最快消息内核。曾经在一创业公司用其开发过一些<a href="https://github.com/zheng-ji/log2aws">后端服务</a>。当时用Go语言实现 源代码,使用的便是<a href="https://github.com/alecthomas/gozmq">gozmq库</a>.这个消息通信框架库的文章有很多，比较著名的当属<a href="www.searchtb.com/2012/08/zeromq-primer.html">一淘</a>的，（技术文章这样写，的确是让读者舒服 ：））还有官方文档</p>
+<div class="entry-content"><h2 id="section">写在开头</h2>
 
-<h4 id="section">优点：</h4>
-<ul>
-  <li>
-    <p>高度封装。
-它处于会话层之上，应用层之下，你不需要自己写一行的socket函数调用就能完成复杂的网络通信工作。</p>
-  </li>
-  <li>
-    <p>点对点的消息传输上。
-传统的消息队列都需要一个消息服务器来存储转发消息。而ZeroMQ则把侧重点放在了点对点的消息传输上。ZeroMQ能缓存消息，但是是在发送端缓存。ZeroMQ里有水位设置的相关接口来控制缓存量。当然，ZeroMQ也支持传统的消息队列（通过zmq_device来实现）。这样使得客户端在重启的时候可以重新发送上次未发送成功的消息</p>
-  </li>
-  <li>
-    <p>灵活的收发模式。
-REQ-REP 请求响应模式，PUSH-PULL： 推拉模式， PUB-SUB： 发布订阅模式 等。 其中任何一方都可以作为服务端</p>
-  </li>
-  <li>
-    <p>以统一接口支持多种底层通信方式
-支持线程间通信，进程间通信，跨主机通信，假如你想把本机多进程的软件放到跨主机的环境里去执行，通常要将IPC接口用套接字重写一遍。非常麻烦。而有了ZeroMQ就方便多了，只要把通信协议从”ipc:///xxx”改为”tcp://<em>.</em>.<em>.</em>:<em>**</em>”就可以了，其他代码通通不需要改，如果这个是从配置文件里读的话，那么程序就完全不要动了，直接复制到其他机器上就可以了。</p>
-  </li>
-  <li>
-    <p>异步高效。
-ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模式，通过单独出一个IO线程来实现，要把资源释放函数交给ZeroMQ让ZeroMQ发完消息自己释放，所以消息发送调用之后不要立刻释放相关资源。</p>
-  </li>
-</ul>
+<p>过去的两个多星期，酣畅淋漓地撸码。值得欣慰的是，几位小伙伴同心协力完成一个自研的，类似<a href="http://pushover.net">pushover</a>的产品。感谢 Leader 的信任，让我在负责开发的同时也兼顾了一把项目经理。谢谢 IOS, Android 客户端的兄弟，设计师的支持，还有一位实习生，开心看到他的点滴成长。</p>
+
+<p>提下背景，我们之前使用 <code>pushover</code> 来做报警推送，但是它对天朝用户不友好，Android 用户需要翻墙使用，有时候不稳定，体现为会收不到信息，pushove 限制推送上限，需要付费。我们的受众不仅有程序汪，还有运营产品汪，他们需要一款更容易上手的推送软件，至少不需要番羽墙。于是自己开发一个很有必要。</p>
+
+<p>为最大程度降低用户使用门槛，同时保证用户信息的安全，我们用了 LDAP 账户登陆，严格控制权限，以及 HTTPS 协议开发。下面提一提 LDAP 这个东西。</p>
+
+<h2 id="ldap-">LDAP 是什么</h2>
+
+<p><a href="https://zh.wikipedia.org/wiki/%E8%BD%BB%E5%9E%8B%E7%9B%AE%E5%BD%95%E8%AE%BF%E9%97%AE%E5%8D%8F%E8%AE%AE">LDAP维基百科</a></p>
+
+<p>简单地讲，它是以目录树的方式存放账户信息。</p>
+
+<p>这次项目中，我们不希望用户重新注册账户，而是采用原有的用户体系，这样对单点登录以及权限控制的好处不严而喻, LDAP 协议呼之欲出。</p>
+
+<h2 id="virtualenv--python-ldap">virtualenv 下安装 python-ldap</h2>
+
+<p>我们采用 Python 开发，这就需要 python-ldap 的帮助了, 记下安装笔记的好处是下次不用在此纠结太长时间。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
+</span><span class="line">pip install python-ldap</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-1">身份验证</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># LDAP 服务的域名和端口
+</span><span class="line">SERVER_NAME = 'xxxx'
+</span><span class="line">SERVER_PORT = xxx
+</span><span class="line">try:
+</span><span class="line">    conn = ldap.open(SERVER_NAME, SERVER_PORT)  
+</span><span class="line">    conn.protocol_version = ldap.VERSION3 #设置ldap协议版本 
+</span><span class="line">    username = "user=xxx,dc=company,dc=com" #身份信息
+</span><span class="line">    password = "xxx" #访问密码
+</span><span class="line">    conn.simple_bind_s(username,password) # 开始绑定，验证成功的话不会抛出异常
+</span><span class="line">except ldap.LDAPError, e: #捕获出错信息
+</span><span class="line">    print e</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-2">一点感悟</h2>
+
+<p>鄙人觉得，技术领导要带领项目成长, 除了有责任把控项目风险，推进项目进度。
+还必须要花很多的心血在驾驭技术上,  身先士卒去调研可行性, 以及做技术攻关，
+而非命令式地分配任务，让同事干活, 只问责结果。
+否则很容易导致凝聚力不足,团队技术氛围不足，这样的团队易消极，也易滋生失败的项目。
+然而在天朝, 很多人存在一个潜意识:写好代码是为了以后不写代码，这种阶级思想让我反感。</p>
+
+<p>以前看过一个新闻, 硅谷在面试技术 VP ，仍然要求其在各位工程师面前手写代码，以此作为面试的重要环节, 不得不点赞。</p>
 
 </div>
 
@@ -144,12 +178,12 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
   
 
 
-<time datetime="2013-06-29T23:25:00+08:00" pubdate data-updated="true">Jun 29<span>th</span>, 2013</time>
+<time datetime="2015-10-01T09:49:00+08:00" pubdate data-updated="true">Oct 1<span>st</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/network/'>NetWork</a>, <a class='category' href='/blog/categories/server/'>Server</a>
+    <a class='category' href='/blog/categories/program/'>Program</a>
   
 </span>
 
@@ -165,10 +199,8 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/06/20/fen-bu-shi-chu-li-kuang-jia-gearman/" title="Previous Post: 分布式处理框架-Gearman">&laquo; 分布式处理框架-Gearman</a>
+        <a class="basic-alignment left" href="/blog/2015/09/10/sysdig-zhi-de-yong-you/" title="Previous Post: Sysdig 值得拥有">&laquo; Sysdig 值得拥有</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/07/15/feng-pei-zhi-lu/" title="Next Post: 封培之旅">封培之旅 &raquo;</a>
       
     </p>
   </footer>
@@ -178,7 +210,7 @@ ZeroMQ为了高性能的消息发送而服务的，它发送消息是异步模�
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="回顾 ZeroMQ"></div>
+<div class="ds-thread" data-title="Python 使用 LDAP"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

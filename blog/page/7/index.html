@@ -9,7 +9,47 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content=" 这天我被折腾疯了 开始博客迁移，从 http:innerbrilliant.sinaapp.com 迁移至 zheng-ji.info 文档式编程的感觉爽 ：） ">
+  <meta name="description" content="在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来： 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +107,155 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/">返回值的透彻理解</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-04-20T23:06:00+08:00" pubdate data-updated="true">Apr 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">swap</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="n">a</span><span class="p">;</span>
+</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line"><span class="kt">int</span> <span class="nf">get_ini</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span>  <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">a</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">i</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory0</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">20</span><span class="p">);</span>
+</span><span class="line">    <span class="n">strcpy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="s">&quot;hello world&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory1</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory2</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="n">p</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+</span><span class="line">    <span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">);</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">;</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题1</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">z</span> <span class="o">=</span> <span class="n">get_ini</span><span class="p">(</span><span class="n">z</span><span class="p">);</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题2</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c0</span> <span class="o">=</span> <span class="n">get_memory0</span><span class="p">();</span><span class="c1">//问题3</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c0 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c1</span> <span class="o">=</span> <span class="n">get_memory1</span><span class="p">();</span><span class="c1">//问题4</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c1</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c2</span> <span class="o">=</span> <span class="n">get_memory2</span><span class="p">();</span><span class="c1">//问题5</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c2</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">问题1：</h4>
+<p>a,b没有发生交换，所有函数会在程序运行的时候程序栈上分配一块存储区，这块栈的函数存储区随函数开始而开始，随着函数结束而结束，函数结束后， 这块存储区自动释放，以供其他用途，栈的默认大小是1M,swap(int a, int b)是一个参数传值的函数，函数内部的a,b是参数int a 和 int b的局部拷贝，所以a，b实际可以看成局部变量，他们的值由int a ,int b实参复制而来，只在函数内部有效，当函数体内的a,b离开函数作用域时候，a,b变量就销毁了.函数实参值没有发生改变。</p>
+
+<h4 id="section-1">问题2：</h4>
+<p>返回值i是一个局部变量，函数的返回参数怎么可能是局部变量？函数的返回值由传值和传址两种，传值会在返回处生成一个临时对象，
+用于存放局部变量i的一份拷贝。临时对象没有名称。虽然i被销毁了，但是他的拷贝仍然存在。并在函数返回处赋值给z.c0 = “hello world”</p>
+
+<h4 id="section-2">问题3：</h4>
+<p>程序运行期间堆的内存一直都在。返回的p是会被销毁，但是在返回处有p的拷贝对象，指向堆的地址。c1 = “hello world”</p>
+
+<h4 id="section-3">问题4:</h4>
+<p>常量存储区：”hello world”在程序运行期间都在</p>
+
+<h4 id="section-4">问题5：</h4>
+<p>p[]不是指针，是一个数组变量，函数返回时左值拷贝只想的是局部变量的p[12]的首地址，当局部数组p[12]离开作用域后会自动销毁，
+这时，函数返回的左值，拷贝指向的是一个被销毁的局部变量地址。所以c2 = 未知</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1226,101 +1415,6 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/03/22/zhe-teng-libevent/">折腾 Libevent</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-03-22T20:25:00+08:00" pubdate data-updated="true">Mar 22<span>nd</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/03/22/zhe-teng-libevent/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h3 id="libevent">好奇折腾libevent</h3>
-
-<p>原理介绍转自<a href="www.ibm.com/developerworks/cn/aix/library/au-libev/">IBM developworks</a></p>
-
-<p>处理多个连接有许多不同的传统方法，但是在处理大量连接时它们往往会产生问题，因为它们使用的内存或 CPU 太多，或者达到了某个操作系统限制。</p>
-
-<p>网络连接使用的主要方法如下：</p>
-
-<ul>
-  <li>循环：</li>
-</ul>
-
-<p>早期系统使用简单的循环选择解决方案，即循环遍历打开的网络连接的列表，判断是否有要读取的数据。这种方法既缓慢（尤其是随着连接数量增加越来越慢),又低效（因为在处理当前连接时其他连接可能正在发送请求并等待响应）。在系统循环遍历每个连接时，其他连接不得不等待。如果有100 个连接，其中只有一个有数据，那么仍然必须处理其他 99 个连接，才能轮到真正需要处理的连接。</p>
-
-<ul>
-  <li>poll、epoll 和变体：</li>
-</ul>
-
-<p>这是对循环方法的改进，它用一个结构保存要监视的每个连接的数组，当在网络套接字上发现数据时，通过回调机制调用处理函数。poll 的问题是这个结构会非常大，在列表中添加新的网络连接时，修改结构会增加负载并影响性能。
-选择：</p>
-
-<ul>
-  <li>select() 函数调用使用一个静态结构，它事先被硬编码为相当小的数量（1024 个连接），因此不适用于非常大的部署。</li>
-</ul>
-
-<p>上面的所有解决方案都用简单的循环等待并处理请求，然后把请求分派给另一个函数以处理实际的网络交互。关键在于循环和网络套接字需要大量管理代码，这样才能监听、更新和控制不同的连接和接口。</p>
-
-<p>libevent 库实际上没有更换 select()、poll() 或其他机制的基础。而是使用对于每个平台最高效的高性能解决方案在实现外加上一个包装器。为了实际处理每个请求，libevent 库提供一种事件机制，它作为底层网络后端的包装器。事件系统让为连接添加处理函数变得非常简便，同时降低了底层 I/O 复杂性。这是 libevent 系统的核心。</p>
-
-<p>创建 libevent 服务器的基本方法是:</p>
-
-<ul>
-  <li>
-    <p>注册当发生某一操作（比如接受来自客户端的连接）时应该执行的函数，然后调用主事件循环 event_dispatch()。</p>
-  </li>
-  <li>
-    <p>执行过程的控制现在由 libevent 系统处理。注册事件和将调用的函数之后，事件系统开始自治；</p>
-  </li>
-  <li>
-    <p>在应用程序运行时，可以在事件队列中添加（注册）或删除（取消注册）事件。事件注册非常方便，可以通过它添加新事件以处理新打开的连接，从而构建灵活的网络处理系统。</p>
-  </li>
-</ul>
-
-<p>流程：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">event_set() //函数创建新的事件结构
-</span><span class="line">event_add() //在事件队列机制中添加事件；
-</span><span class="line">event_dispatch() // 启动事件队列系统，开始监听（并接受）请求。</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="tips">Tips</h3>
-
-<p>Tips:编译过程中需要 -levent
-用libevent库写的EchoServer：代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/libevent">链接</a></p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1336,12 +1430,16 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
@@ -1369,10 +1467,6 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
     
       <li class="post">
         <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a>
       </li>
     
   </ul>
