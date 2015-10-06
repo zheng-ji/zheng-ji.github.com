@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-10-06T11:08:48+08:00</updated>
+  <updated>2015-10-06T13:50:43+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,253 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[记录使用 Flask 的点滴]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/"/>
+    <updated>2015-10-06T13:21:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di</id>
+    <content type="html"><![CDATA[<p>喜欢 Flask 经典的 RestFul 设计风格，以及它与 Gevent 的优雅结合，可以帮助我们轻松构建异步非阻塞应用，烂笔头记下一些较好的实践。</p>
+
+<ul>
+  <li><a href="#第一节">消息反馈</a></li>
+  <li><a href="#第二节">Flask 上下文</a></li>
+  <li><a href="#第三节">注册 JinJia 模板过滤器</a></li>
+  <li><a href="#第四节">itsdangerous 生成过期时间 Json 签名</a></li>
+  <li><a href="#第五节">一种较好的项目组织方式</a></li>
+  <li><a href="#第六节">BluePrint 的好</a></li>
+  <li><a href="#第七节">Json 返回</a></li>
+  <li><a href="#第八节">自定义出错页面</a></li>
+  <li><a href="#第九节">WTF 跨站脚本防御</a></li>
+</ul>
+
+<h3 id="第一节">消息反馈</h3>
+
+<p>Flask 提供了一个非常简单的方法来使用闪现系统向用户反馈信息。
+闪现系统使得在一个请求结束的时候记录一个信息，然后在且仅仅在下一个请求中访问这个数据。这通常配合一个布局模板实现</p>
+
+<p><a href="http://docs.jinkan.org/docs/flask/patterns/flashing.html">文档链接</a></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># 视图函数需要调用
+</span><span class="line">flash('your response message for user')
+</span><span class="line">
+</span><span class="line"># 前端页面调用
+</span><span class="line">for message in get_flashed_messages()
+</span><span class="line">就可以输出反馈信息</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">Flask 上下文</h3>
+
+<p>有两种上下文：程序上下文，请求上下文</p>
+
+<ul>
+  <li>current_app： 程序级别上下文，当前激活程序的实例。</li>
+  <li>g: 请求级别的上下文</li>
+  <li>request: 是请求级别的上下文，封装了客户端发出的 Http 请求中的内容</li>
+  <li>session: 用户会话，用于存储请求之间需要记住的键值对</li>
+</ul>
+
+<h3 id="第三节">注册 JinJia 模板过滤</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">def reverse_filter(s):
+</span><span class="line">    return s[::-1]
+</span><span class="line">
+</span><span class="line">app.jinja_env.filters['reverse'] = reverse_filter</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第四节">itsdangerous 生成过期时间 Json 签名</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">serialaizer = Serializer(SECRET_KEY, expires_in=EXPIRES)
+</span><span class="line">info = {'id':'xxx'}
+</span><span class="line">session = serialaizer.dumps(info)
+</span><span class="line">
+</span><span class="line"># 判断 session 时间
+</span><span class="line">info = None
+</span><span class="line">try:
+</span><span class="line">    info = serialaizer.loads(session)
+</span><span class="line">except Exception:
+</span><span class="line">    return jsonify(ERR_SESS_TIMEOUT)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用途：生成一个有时间限制的签名，用于API 访问的验证码，如果过期，提醒用户重新登录</p>
+
+<h3 id="第五节">一种较好的项目组织方式</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">▾ app/
+</span><span class="line">    ▾ controlers/
+</span><span class="line">        ▾ admin/                    #管理后台的蓝图控制器
+</span><span class="line">            ▾ forms/                #表单限制文件
+</span><span class="line">                __init__.py　　　　　
+</span><span class="line">                xx.py　　　         # blueprint 文件
+</span><span class="line">            __init__.py
+</span><span class="line">            administrator.py
+</span><span class="line">        ▾ api/                      # API 控制器
+</span><span class="line">            __init__.py
+</span><span class="line">        ▾ site/                     # 站点控制器
+</span><span class="line">            __init__.py             # blueprint 文件
+</span><span class="line">            xx.py
+</span><span class="line">        __init__.py
+</span><span class="line">        error.py
+</span><span class="line">    ▸ models/         # SQLAlchemy 的各类模型
+</span><span class="line">    ▸ static/         # 需要的静态资源，css, js, imgs
+</span><span class="line">    ▾ templates/　　　# 前端页面，跟 controller 分类一一对应
+</span><span class="line">        ▸ admin/
+</span><span class="line">        ▸ error/
+</span><span class="line">        ▸ site/
+</span><span class="line">    ▸ utilities/　　　　#  功能函数
+</span><span class="line">      __init__.py       #　初始化app需要的各种插件，比如 redis, db, 注册蓝图
+</span><span class="line">run.py                  #　相当于 main 函数,创建 app, 执行app.run() 函数
+</span><span class="line">settings.py             #　配置文件</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第六节">BluePrint 的好 </h3>
+
+<p>每个 Blueprint 就像独立的 Application, 可以管理自己的模板, 路由, 反向路由url_for, 甚至是静态文件，最后统一挂载到 Application 下。从头到尾都是 RestFul。</p>
+
+<p>在创建 app (app/<strong>init</strong>.py) 的时候调用如下:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">from app.controllers.site.console import console 
+</span><span class="line">app.register_blueprint(console, url_prefix='/console')</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>视图文件 (app/controllers/site/console.py):</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">console = BLueprint('console', __name__)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第七节">Json 返回</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">from flask import jsonify
+</span><span class="line">return jsonify({'code': 0})</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第八节">自定义出错页面</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">@app.errorhandler(404)
+</span><span class="line">def not_found(error):
+</span><span class="line">    return render_template('404.html'), 404
+</span><span class="line">
+</span><span class="line">@app.errorhandler(500)
+</span><span class="line">def crash(error):
+</span><span class="line">    return render_template('5xx.html'), 500</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第九节">WTF 跨站脚本防御</h3>
+
+<p>Flask-WTF 能保护表单免受跨站请求伪造的攻击,恶意网站把请求发送到被攻击者已经登录的其他玩战会引发 CSRF 攻击</p>
+
+<ul>
+  <li>app config 文件中，开启 CSRF 开关并配置密钥</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">CSRF_ENABLED = True
+</span><span class="line">SECRET_KEY = 'you-will-never-guess'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>表单的定义</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">from flask.ext.wtf import Form, TextField, BooleanField
+</span><span class="line">from flask.ext.wtf import Required
+</span><span class="line">class LoginForm(Form):
+</span><span class="line">    openid = TextField('openid', validators = [Required()])
+</span><span class="line">    remember_me = BooleanField('remember_me', default = False)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>页面渲染</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;form action="" method="post" name="login"&gt;
+</span><span class="line">    form.hidden_tag()
+</span><span class="line">    &lt;p&gt; Please enter your OpenID:form.openid(size=80)&lt;br&gt;&lt;/p&gt;
+</span><span class="line">    &lt;p&gt;form.remember_me &lt;/p&gt;
+</span><span class="line">    &lt;p&gt;&lt;input type="submit" value="Sign In"&gt;&lt;/p&gt;
+</span><span class="line">&lt;/form&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>控制器函数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">@app.route('/login', methods = ['GET', 'POST'])
+</span><span class="line">def login():
+</span><span class="line">    form = LoginForm()
+</span><span class="line">    if form.validate_on_submit():
+</span><span class="line">        flash('Login requested for OpenID="' + form.openid.data))
+</span><span class="line">        return redirect('/index')
+</span><span class="line">    return render_template('login.html', title = 'Sign In',form = form)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我们在配置中开启了CSRF(跨站伪造请求)功能，模板参数 form.hidden_tag() 会被替换成一个具有防止CSRF功能的隐藏表单字段。 在开启了CSRF功能后，所有模板的表单中都需要添加这个模板参数</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Python 使用 LDAP]]></title>
@@ -1809,104 +2056,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 <p>感谢 Everet 一直以来给我的信念, 我们也都在《感谢你让我上场》获得共鸣。我也坚信这位青年会是我们这届的骄傲。</p>
 
 <p>我想让生活慢下来，做一些重要不紧急的事。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Nginx与php-fpm系统参数配置]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/"/>
-    <updated>2014-11-02T15:46:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi</id>
-    <content type="html"><![CDATA[<p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
-
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
-
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
-</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
-</span><span class="line">pm = static # 使用静态进程管理
-</span><span class="line">pm.max_children = 128
-</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
-
-<ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
-</span><span class="line">shell&gt; service irqbalance start
-</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>为nginx 绑定 cpu</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">worker_processes  8;
-</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>连接数调整，</li>
-</ul>
-
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
-</span><span class="line">fs.file-max = 6553600
-</span><span class="line">
-</span><span class="line">vim /etc/security/limits.conf
-</span><span class="line">* soft nofile 655360
-</span><span class="line">* hard nofile 655360
-</span><span class="line">
-</span><span class="line">vim /etc/nginx/nginx.conf
-</span><span class="line">
-</span><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">events {
-</span><span class="line">    worker_connections 300000;
-</span><span class="line">    use epoll;
-</span><span class="line">}
-</span><span class="line">http {
-</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
 ]]></content>
   </entry>
   

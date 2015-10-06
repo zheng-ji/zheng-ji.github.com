@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话: 当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过, &hellip;">
+  <meta name="description" content="微信公众账号开发 话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
+&gt; 人生苦短,我爱python 至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面 现在注册一个微信的服务号的成本很高了, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +68,184 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/">微信公众号开发</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-07T18:47:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="section">微信公众账号开发</h3>
+
+<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
+&gt; 人生苦短,我爱python</p>
+
+<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
+
+<p><img src="/images/2013/12/nba.jpg" /></p>
+
+<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
+
+<h5 id="section-1">注册</h5>
+<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
+
+<h5 id="section-2">微信认证</h5>
+<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
+
+<p>加密/校验流程如下：</p>
+
+<ul>
+  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
+  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
+  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">BaseHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="c">#基类,实现基本认证，子类只需要继承就可以完成微信认证</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;timestamp&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="n">nonce</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;nonce&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="n">signature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;signature&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&#39;request:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+</span><span class="line">            <span class="k">print</span> <span class="s">&quot;=========validate failed =====&quot;</span>
+</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">):</span>
+</span><span class="line">    <span class="k">print</span> <span class="s">&#39;validate:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">nonce</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">signature</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class="line">        <span class="k">return</span> <span class="bp">False</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">TOKEN</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">]</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tmparr</span><span class="p">)</span>
+</span><span class="line">    <span class="n">tmpStr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+</span><span class="line">    <span class="n">hashStr</span> <span class="o">=</span> <span class="n">sha1</span><span class="p">(</span><span class="n">tmpStr</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span class="line">    <span class="k">return</span> <span class="p">(</span><span class="n">hashStr</span> <span class="o">==</span> <span class="n">signature</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">serverHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">echostr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&#39;echostr&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">echostr</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="section-3">. 菜单订制</h5>
+<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">UIHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;menu.json&#39;</span><span class="p">)</span>
+</span><span class="line">        <span class="n">createMenu</span><span class="p">(</span><span class="n">menu</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h5 id="section-4">. 响应用户按键输入</h5>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">xml</span> <span class="o">=</span> <span class="n">uni</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>        <span class="c">#获取微信服务器发送过来的xml,转化为unicode</span>
+</span><span class="line"><span class="n">dic</span> <span class="o">=</span> <span class="n">xml2dict</span><span class="p">(</span><span class="n">xml</span><span class="p">)</span>                 <span class="c">#将xml解析成dict</span>
+</span><span class="line"><span class="k">if</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;MsgType&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;event&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">event</span> <span class="o">=</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;Event&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;subscribe&#39;</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_subscribe</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>     <span class="c">#订阅逻辑</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span><span class="line">    <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;click&#39;</span><span class="p">:</span>
+</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_click</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>         <span class="c">#点击逻辑</span>
+</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
+
+<h4 id="section-5">相关链接</h4>
+<ul>
+  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
+  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
+</ul>
+
+<h4 id="section-6">开发中用到的库</h4>
+<ul>
+  <li><code>tornado</code></li>
+  <li><code>virtualenv</code></li>
+  <li><code>pyquery(做爬虫)</code></li>
+  <li><code>pymongo</code></li>
+  <li><code>lxml</code></li>
+  <li><code>urllib2</code></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1476,220 +1655,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/12/nginx-plus-luaying-dui-zai-xian-zhuang-tai-fu-wu/">Nginx+lua应对在线状态服务</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-09-12T23:12:00+08:00" pubdate data-updated="true">Sep 12<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/09/12/nginx-plus-luaying-dui-zai-xian-zhuang-tai-fu-wu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>几天前在@ideawu的博客上看到了其一篇文章中讲到的技术题.
-<a href="http://www.ideawu.net/blog/archives/732.html">《在线状态服务在网站系统中的应用》</a> 。于是内心折腾的火焰便熊熊燃烧起来，连续几天晚上折腾到凌晨1点。感谢@agentzh 春哥与阿里巴巴的技术贡献,让我可以安心睡觉 :) </p>
-
-<p>在线状态服务这样的场景在互联网应用上比比皆是</p>
-
-<ul>
-  <li>聊天系统中同时在线的人数</li>
-  <li>游戏中同时在线玩家等</li>
-</ul>
-
-<p>文中所言,现实的在线状态应用场景是:
-网页中用JavaScript启动一个定时器, 定期报告在线状态, 也就是向在线状态服务器发送心跳包.对某个同时在线100万人, 每天1亿PV的网站来说, 在线状态服务器一天接收到的心跳包大概是10亿个, 也即每秒10000个请求(10000qps).要实现这样的在线状态服务器, 也是一个挑战.</p>
-
-<p>好了，我当时真的很兴奋，感觉自己像接到了任务，立马打起了鸡血研究. 脑海中涌现出来的直觉是，使用tornado + Redis，这样的高并发组合应对这样的场景应该是无压力的，但是因为这样的事情我做过，想挑战自己非舒适的区域，挖掘新的知识大陆。
-我们一直都说，没有经过打磨的想法一般都是廉价的。后来我想到的是Ngnix这样的服务器来抗如此高的请求，那么我们就自己写个拓展，查询内存数据库，这里我选择用redis来做kv内存数据库，</p>
-
-<p>文中谈到的自己设计精巧的kv数据库，甚至用C++写针对性的http服务，来提升通用服务器的性能。曾经写过一个KV数据库，其性能真的是渣渣。<a href="https://github.com/zheng-ji/KvDb">源码链接</a>。欢迎吐槽.
-一直以来听闻春哥的nginx lua模块拓展，可以为nginx定制业务。想想以前用c语言实现，简直就是痛苦,这一次可以使用lua，甚为欢悦，没有什么比探索新东西带来的乐趣更令人振奋了</p>
-
-<p>首先要有lua的运行环境。他是一种胶水粘合剂 ：） 还必须安装<strong>luajit</strong></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">#设置环境变量，后续安装需要
-</span><span class="line">shell&gt; export LUAJIT_LIB=/usr/local/lib
-</span><span class="line">shell&gt; export LUAJIT_INC=/usr/local/include/luajit-&lt;VERSION&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="nginx-">需要安装的nginx 插件</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ngx_devel_kit https://github.com/simpl/ngx_devel_kit
-</span><span class="line">set-misc-nginx-module https://github.com/agentzh/set-misc-nginx-module
-</span><span class="line">memc-nginx-module https://github.com/agentzh/memc-nginx-module 
-</span><span class="line">lua-nginx-module https://github.com/chaoslawful/lua-nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="nginx">下载之后，安装nginx插件</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">./configure --prefix=/path/to/nginx_src --add-module=/path/to/ngx_devel_kit --add-module=set-misc-nginx-module \
-</span><span class="line">--add-module=/path/to/lua-nginx-module -add-module=ngx_devel_kit 
-</span><span class="line">make 
-</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>nginx.conf 文件                 </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /echo {  
-</span><span class="line">    default_type 'text/plain';  
-</span><span class="line">    echo 'hello echo';  
-</span><span class="line">}  
-</span><span class="line">
-</span><span class="line">location /lua {  
-</span><span class="line">    default_type 'text/plain';  
-</span><span class="line">    content_by_lua 'ngx.say("hello, lua")';  
-</span><span class="line">}  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>也许你会遇到一些麻烦,执行如下命令</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
-</span><span class="line">shell&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>重启服务器之后，应该就可以看到hello,lua :) (到这里仅仅是开始，折腾了有点久)</p>
-
-<h3 id="ideawu-">好了，来完成ideawu的作业 ：）</h3>
-
-<blockquote>
-  <p>在线状态服务, 是这样的一个服务, 它维护了网站当前的在线用户列表, 接受其它模块的查询. 是实现统计网站同时在线人数, 维护在线用户列表等功能的基础服务. 在Facebook的聊天系统中, 在线状态是为聊天系统服务的, 所以在线状态是一种”强”在线, 也即用户保持着和Comet服务器的连接, 可随时接受服务器推送(push)的消息.在高并发请求的情况下如何完成该需求呢</p>
-</blockquote>
-
-<p>使用 Lua 脚本语言操作 Redis。这里使用 content_by_lua_file （nginx_lua_module 模块具有）来引入 Lua 脚本文件。
-agentzh 提供了一个很方便的开发包，如下：<a href="https://github.com/agentzh/lua-resty-redis.git">lua-resty-redis</a></p>
-
-<p>该包中，有一个 lib 目录，将 lib 目录下的文件和子目录拷贝至目录 /home/zj/soft/data/www/lua/
-在 Nginx 配置文件中，需要加一行代码，以便引入 redis.lua。
-注：加在 http 段里。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">lua_package_path "/home/zj/soft/data/www/lua//?.lua;;";  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>为了使得 lua 脚本的修改能及时生效，需要加入一行代码，如下：注：在 server 段里，加入代码，如果不加此代码或者设置为 on 时，则需要重启 Nginx。 不过nginx 会报警</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache off;  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>nginx.conf 里</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">location /getolNum {
-</span><span class="line">    content_by_lua_file /conf/online.lua;  
-</span><span class="line">} </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h5 id="onlinelua-">online.lua 源码</h5>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-</pre></td><td class="code"><pre><code class="lua"><span class="line"><span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">&quot;</span><span class="s">redis&quot;</span>
-</span><span class="line"><span class="kd">local</span> <span class="n">cache</span> <span class="o">=</span> <span class="n">redis</span><span class="p">.</span><span class="n">new</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="s1">&#39;</span><span class="s">127.0.0.1&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="s">6379&#39;</span><span class="p">)</span>
-</span><span class="line"><span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
-</span><span class="line">    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">&quot;</span><span class="s">failed to connect:&quot;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
-</span><span class="line">    <span class="k">return</span>
-</span><span class="line"><span class="k">end</span>
-</span><span class="line">
-</span><span class="line"><span class="n">cache</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">30000</span><span class="p">)</span>
-</span><span class="line"><span class="n">args</span> <span class="o">=</span> <span class="n">ngx</span><span class="p">.</span><span class="n">req</span><span class="p">.</span><span class="n">get_uri_args</span><span class="p">()</span>
-</span><span class="line"><span class="n">user</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;</span><span class="s">user&quot;</span><span class="p">]</span>
-</span><span class="line"><span class="c1">--设置用户 3 min 过期</span>
-</span><span class="line"><span class="n">cache</span><span class="p">:</span><span class="n">setex</span><span class="p">(</span><span class="n">user</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="mi">23</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="kd">local</span> <span class="n">res</span><span class="p">,</span><span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">:</span><span class="n">keys</span><span class="p">(</span><span class="s1">&#39;</span><span class="s">*&#39;</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="c1">--count res num</span>
-</span><span class="line"><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span class="line"><span class="k">for</span> <span class="n">_</span> <span class="k">in</span> <span class="nb">pairs</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="k">do</span>
-</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span class="line"><span class="k">end</span>
-</span><span class="line"><span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
-</span><span class="line"><span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">cache</span><span class="p">:</span><span class="n">close</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>结果</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="lua"><span class="line"><span class="n">curl</span> <span class="n">localhost</span><span class="o">/</span><span class="n">getOlnum</span><span class="err">?</span><span class="n">user</span><span class="o">=</span><span class="n">zj</span>
-</span><span class="line"><span class="err">返回：</span><span class="mi">1</span>
-</span><span class="line"><span class="n">curl</span> <span class="n">localhost</span><span class="o">/</span><span class="n">getOlnum</span><span class="err">?</span><span class="n">user</span><span class="o">=</span><span class="n">zhengji</span>
-</span><span class="line"><span class="err">返回：</span><span class="mi">2</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>Happy Hacking :)</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -1705,12 +1670,16 @@ agentzh 提供了一个很方便的开发包，如下：<a href="https://github.
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
@@ -1738,10 +1707,6 @@ agentzh 提供了一个很方便的开发包，如下：<a href="https://github.
     
       <li class="post">
         <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 btmp 文件</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
   </ul>

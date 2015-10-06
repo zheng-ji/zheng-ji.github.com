@@ -9,47 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来： 1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
-35
-36
-37
-38
-39
-40
-41 &hellip;">
+  <meta name="description" content="阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。 有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: _H 能用前置声明的地方尽量不使用 #include &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -107,6 +67,123 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/11/google-c-plus-plus-style/">Google C++ Style</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-11T23:12:00+08:00" pubdate data-updated="true">May 11<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/05/11/google-c-plus-plus-style/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。</p>
+
+<ul>
+  <li>有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: <strong>_H</strong></li>
+  <li>
+    <p>能用前置声明的地方尽量不使用 #include
+前置声明是为了降低编译依赖，防止修改一个头文件引发多米诺效应; 举例说明: 如果头文件中用到类 File, 但不需要访问 File 类的声明, 头文件中只需前置声明 class File; 而无须 #include “file/base/file.h”.</p>
+  </li>
+  <li>
+    <p>只有当函数只有 10 行甚至更少时才将其定义为内联函数.
+当函数被声明为内联函数之后, 编译器会将其内联展开, 而不是按通常的函数调用机制进行调用.优点:当函数体比较小的时候, 内联该函数可以令目标代码更加高效. 对于存取函数以及其它函数体比较短, 性能关键的函数</p>
+  </li>
+  <li>
+    <p>义函数时, 参数顺序依次为: 输入参数, 然后是输出参数。
+标准化函数参数顺序可以提高可读性和易维护性</p>
+  </li>
+  <li>
+    <p>造函数体中进行初始化操作
+如果对象需要进行有意义的 (non-trivial) 初始化, 考虑使用明确的 Init() 方法并 (或) 增加一个成员标记用于指示对象是否已经初始化成功.</p>
+  </li>
+  <li>单个参数的构造函数使用 C++ 关键字 explicit.
+  大部分类并不需要可拷贝, 也不需要一个拷贝构造函数或重载赋值运算符. 不幸的是, 如果你不主动声明它们, 编译器会为你自动生成, 而且是 public 的.可以考虑在类的 private: 中添加拷贝构造函数和赋值操作的空实现, 只有声明, 没有定义. 由于这些空函数声明为 private, 当其他代码试图使用它们的时候, 编译器将报错. 方便起见, 我们可以使用 DISALLOW_COPY_AND_ASSIGN 宏:</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">
+</span><span class="line">#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+</span><span class="line">    TypeName(const TypeName&amp;); \
+</span><span class="line">void operator=(const TypeName&amp;)
+</span><span class="line">class Foo {
+</span><span class="line">    public:
+</span><span class="line">        Foo(int f);
+</span><span class="line">        ~Foo();
+</span><span class="line">
+</span><span class="line">    private:
+</span><span class="line">        DISALLOW_COPY_AND_ASSIGN(Foo);
+</span><span class="line">};</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>仅当只有数据时使用 struct, 其它一概使用 class.</li>
+  <li>
+    <p>编写简短函数
+如果函数超过 40 行, 可以思索一下能不能在不影响程序结构的前提下对其进行分割.</p>
+  </li>
+  <li>存取控制</li>
+</ul>
+
+<p>将所有数据成员声明为 private, 并根据需要提供相应的存取函数. 例如, 某个名为 foo_ 的变量, 其取值函数是 foo(). 还可能需要一个赋值函数 set_foo().一般在头文件中把存取函数定义成内联函数.
+* 声明顺序</p>
+
+<p>在类中使用特定的声明顺序: public: 在 private: 之前, 成员函数在数据成员 (变量) 前;</p>
+
+<p>通常是：
++ public -&gt; protected -&gt; private;
++ typedefs 和枚举
++ 常量
++ 构造函数
++ 析构函数
++ 成员函数, 含静态成员函数
++ 数据成员, 含静态数据成员
++ 类型转换</p>
+
+<p>使用 C++ 的类型转换, 如 static_cast&lt;&gt;(). 不要使用 int y = (int)x 或 int y = int(x) 等转换方式;
+不要使用 C 风格类型转换. 而应该使用 C++ 风格.
+* 对于迭代器和其他模板对象使用前缀形式 (++i) 的自增, 自减运算符.</p>
+
+<p>不考虑返回值的话, 前置自增 (++i) 通常要比后置自增 (i++) 效率更高. 因为后置自增 (或自减) 需要对表达式的值 i 进行一次拷贝. 如果 i 是迭代器或其他非数值类型, 拷贝的代价是比较大的.
+* 尽可能用 sizeof(varname) 代替 sizeof(type).</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1318,103 +1395,6 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/07/zuo-kuai-le-de-cheng-xu-yuan/">做快乐的程序员</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-05-07T13:23:00+08:00" pubdate data-updated="true">May 7<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/05/07/zuo-kuai-le-de-cheng-xu-yuan/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>看了一篇很不错的文章，忍不住转了，原文<a href="http://www.nowamagic.net/php/php_BeHappyProgrammer.php">链接</a></p>
-
-<h3 id="section">什么是程序员的基本功？</h3>
-
-<p>广义来说就比较多了，抛开数据结构、算法、编程思想、设计模式等不说，丰富的想象力，缜密的逻辑思维、学习能力、恒心和毅力、沟通能力….太多了，这些都算是基本功。</p>
-
-<p>所谓基本功，就是说抽空都要练习的。就像一个学武之人一样，每天早上要跑步、扎马步，也像一个京剧演员样，一大早就要吼几嗓子，我们程序员也得每天练习基本功。</p>
-
-<p>广义的基本功涉及到生活的方方面面，时时刻刻都能练习。这里着重强调下狭义的基本功：数据结构，基本算法、编程思想和设计模式、至少精通一门语言等。</p>
-
-<p>程序员都知道程序=数据结构+算法，可见数据结构和算方法对我我们程序员来说是何等重要。</p>
-
-<p>编程通俗一点说就是，想个办法把一堆旧数据按照要求整理整理变成另一堆新数据。首先要想好的就是把旧数据放好，你可以把计算机的存储设备想象成一个大的盒子。我们要想办法占用尽量小的空间（少用内存），把这些旧的数据放好。（当然还要考虑整理这些数据的方便性，比方说移除掉，或者新增数据等。）放好了旧的数据，现在就要开动大脑，想出个好方法—–如何操作才能使得整理的时间尽量的短（少用CPU）。编程其实就是这个目的，所以我们程序员常常思考的问题就是这两个了：1、如何放置数据 2、用什么方法处理速度快。</p>
-
-<p>一般来说，我们不需要太苛求占用尽量少的内存和CPU。毕竟现在的机器性能不是制约我们的主导因素，现在制约我们的主导因素是，“用尽量少的时间把需求合理的完成”。可以说，绝大部分企业对程序员的要求并不高，他们仅仅要求你按照需求在规定的时间做出来即可，并不是非常关心你占用多少计算机资源，硬盘不够，买，内存不足，补。但是这个并不意味着我们可以肆无忌惮的滥用计算机资源。</p>
-
-<p>举个实际的例子，假如浏览一个网页，本来需要1秒的时间能够打开，结果由于程序员的失误或粗心，或者说基本功力不足，使得整个过程变成2秒，你可能认为这个无所谓，不就是多了一秒么，应该没什么大不了的。如果你真这么想就大错特错了。</p>
-
-<p>就拿个一般的网站举例，每天1W PV，那么浪费的时间就是每天166.67分钟，1年就浪费60834.55分钟。约等于42个昼夜。你说这42个昼夜的时间干什么不好，非要浪费在计算机上，而且这个对计算机的损耗，以及浪费的电能等都还没有计算。</p>
-
-<p>可能有人说，对于这种普通的站点，一年42个昼夜也算不了什么，但是请注意我的例子只是说系统的一个地方，假如一个系统有不止一个这样的地方那就更夸张了。</p>
-
-<p>对于大型的互联网网站，这个就更夸张了，类似百度和google这样的企业，一天都有上亿的PV。就按1亿计算。大约是3年2月1.4天！</p>
-
-<p>对于我们做开源程序的程序员来说，这个尤其值得关注。要知道并不是每个HDWiki系统都是可以随意使用计算机资源的。</p>
-
-<h3 id="section-1">重视解决问题的思路和事物的本质</h3>
-
-<p>重视思想、重视问题的本质，不要浮在表面看待问题。例如我面试人的时候常常问一个 web 开发的基础问题：说说 session 的原理。这个对于搞 web 开发的人来说，是个很基本的问题。如果连 session 的原理都搞不清楚，说明这个人不是很喜欢思考。平时开发肯定都用别人说的，别人怎么说，他就怎么做。至于为什么一个用户能够登录成功，他始终是不清楚的。当然，不明白 session 的原理不是说就不能搞程序开发，一个项目也需要一些纯的coder。纯的coder就是按照要求填写代码的，基本不需要思考。我相信每个有追求的程序员都不会甘愿成为一个纯的 coder，那么，请在遇到实际问题的时候，多深入思考思考，多问几个为什么，一直深入到问题的本质。这样坚持下去，你绝对是一个有思想的程序员。碰到问题就很容易拿出一个靠谱的方案。</p>
-
-<p>可能会有人说，我怎么感觉平时没什么问题好问的，好像自己什么都知道了。知识就像是车轮，学得越多，这个车轮就越大，转一周所需要的行程就越长，而你会发现，车轮变大的同时，所接触的东西也是越来越多了，然后猛然发现，不会的东西变得更多了。如果一个人没有问题问，只能说明知道的太少了。</p>
-
-<p>在我们的日常工作中，需要问的东西太多了。为何我们要用框架？hibernate有什么用，用了有什么好处，用了有什么坏处？java为何是编程第一流行语言？Ruby 为何突然火爆起来了？PHP还能火多少年？HDWiki 能超过Discuz么？Lucene这个东西为何命名为Lucene？丁磊为何要养猪？……</p>
-
-<p>重视思想和本质带给我们什么好处呢？首先，作为一个了解本质的程序员，心里就很踏实，和其他技术人员交流，不会被鄙视。第二，能够让我们能够知其所以然，而不至于内心痛苦。例如数据库索引，大家都知道，建立了索引后，SQL查询条件”=”的时候，速度就提高很多。如果我们把这个当作经验背诵下来，你会马上碰到一个反例。例如当你的表有个标识字段，1表示有效，0表示无效。这时候如果在这个字段上建立了索引，按照经验，我们肯定认为速度会提高很多，但是实际上，基本没有变化。这个时候自己就很郁闷了。如果想做一个快乐的程序员，就一定要搞清楚索引的本质，为何索引建立后就快了。如果明白这个本质，就不会有这样的疑虑了。第三，能够让我们提高工作效率。第四，让自己更加清醒，不会被表象所迷惑。</p>
-
-<h3 id="section-2">简单就是美，我们都是艺术家</h3>
-
-<p>什么是美？我想是事物给人无论是哪种感官上的体验都还不错，这就是美了。比如夕阳柔和的余辉洒在眼中，呼吸带着草味儿的空气，要做的事情做好了，静坐着享 受美好的一刻。简单的东西不会使人厌烦，就好象天边几片单调的云彩，徐徐清风拂面，带来的是心情舒畅，头脑冷静，能给自己一个澄澈的思维空间。</p>
-
-<p>在程序的世界里，同样遵循这一原理。一个程序如果写的漂亮，很容易让别人看懂。程序不是写给机器看的，程序是写给人看的。当一个程序出问题了，我们希望迅速解决问题。如果程序写的很美，随便一个技术人员都能够看的懂，那么就非常有利于我们解决问题。</p>
-
-<p>有 百度知道，就有腾讯爱问，有浩方对战平台，就有QQ对战平台，有土豆网，就有了QQ视频，….马化腾自己也说：模仿也是一种成功！现在他用铁的事实来证实了这一点。</p>
-
-<p>对程序员来说，模仿能力也很重要。比方说我们要做一个弹出式DIV，这个时候你千万不要自己去从头开始去做。首先，我们要想办法找找看，看看是否有适合我们的已经存在的。如果有，我们直接下载，然后就可以用了。如果没有，可以找找类似的，然后再改改，还是可以为我所用。这样的话，可以为我们节省不少时间。 项目的进度有可能会提前。</p>
-
-<p>一个程序员刚进入一个公司的时候，短时间内还难以了解系统的整体构架。这个时候也不要发怵。怎么办呢？咱模仿项目组的其他老同学，模仿别人的开发流程、模仿别人的代码结构，模仿别人的命令规则……只要你模仿能力强，肯定把大家怔住了。给你的评价就很不错。为什么会这样呢，因为项目组的老同学正用的 肯定是目前比较合理的，只要你模仿着做，基本就不会有问题，你说你过试用期还会有问题？</p>
-
-<p>模仿能力就类似于段誉的“吸星大法”。吸星大法修炼起来的难处有两点：难处一，是要散去全身内力；难处二，散功之后，又须吸取旁人的真气。模仿和这个不同的地方就是，模仿只是复制，并不需要毁灭别人。从这个角度来说，模仿应该比吸星大法更加人道主义些。模仿有时候也得暂时忘掉或者放弃自己的然后再学习别人的。只有敞开心扉才能容纳万物！</p>
-
-<p>总之，模仿不仅能给我们节省不少的时间，还能够让我们迅速找到解决问题的正确思路和方法，正如牛顿所说“我之所以站得高，是因为我站在巨人的肩上”，模仿也是站在别人的肩膀上，能够省却我们不少的体力，何乐而不为呢？</p>
-
-<h3 id="section-3">关注技术趋势，热爱学习</h3>
-
-<p>作为专业的程序员，技术趋势不能不关注。IT行业发展迅猛，新的思想和新的东西不断涌现。如果我们不睁大双眼去观察，去了解，我们就会被逐渐淘汰。</p>
-
-<p>每天都有新的软件产品诞生，有新的版本发布，也有新的解决问题的方法出现。如果我们抽空关注下，我们很可能会有意外收获。例如今天，你看到一条消息，PHP5.3版本开始支持闭包。这个意味着什么呢？意味着你的程序写法可以进行更优美的改造。再如你看到消息说MySQL推 出了一种新的引擎，你就要看看这个引擎有什么特点，以后对我的工作有什么帮助。</p>
-
-<p>就是这样，我们在一点一滴中积累，每天坚持修炼自己的基本功，长期的坚持。我们会发现自己一天比一天快乐，因为我们每天都能够轻松的像艺术家一样说笑间就完成了自己的工作，你怎能不快乐？</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1430,12 +1410,16 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
@@ -1463,10 +1447,6 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
     
       <li class="post">
         <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 btmp 文件</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
   </ul>

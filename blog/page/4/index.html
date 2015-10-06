@@ -9,13 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="做好一个 Python Module 之后，可以把源代码包含进项目中。但是如果有很多依赖项目的话就不好管理了，这个时候我们用 setuptools 工具来安装到系统的包。 制作与安装 以下给出一个 demo 1
-2
-mkdir hacker
-vim foo.py 编辑 foo.py 1
-2
-3
-4 &hellip;">
+  <meta name="description" content="今天看完Nginx Pitfall,热血用了一个下午翻译了的，以下是正文 Nginx 陷阱 无论你是nginx的新用户还是老用户都会遇到nginx的一些陷阱，下面我们着重描述这些陷阱，以及如何避免犯错。这些问题多次出现在 #nginx channel on Freenode#上 [ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -73,6 +67,581 @@ vim foo.py 编辑 foo.py 1
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/05/13/nginx-pitfall/">[译]nginx Pitfall</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-13T22:26:00+08:00" pubdate data-updated="true">May 13<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/05/13/nginx-pitfall/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天看完<a href="http://wiki.nginx.org/Pitfalls">Nginx Pitfall</a>,热血用了一个下午翻译了的，以下是正文</p>
+
+<h2 id="nginx-">Nginx 陷阱</h2>
+
+<p>无论你是nginx的新用户还是老用户都会遇到nginx的一些陷阱，下面我们着重描述这些陷阱，以及如何避免犯错。这些问题多次出现在 #nginx channel on Freenode#上</p>
+
+<h3 id="section">[是指南教我这么做的]</h3>
+
+<p>不要轻易相信网上其他的配置指引，除非你知道这样做的真正意义，并且知道怎么清除它们。很多配置其实写的很糟糕，我们根据互联网上的错误配置收集到的陷阱，它们并非来自刻意搜索，而是来自网络上的疑惑问答，这些问题收到的共同回复是，他们因为看了一些错误配置指引所以不同意我们的方法。写此文的目的是为了阐述我们的观点，如果你也遇到如下问题，该文章正好为你准备。</p>
+
+<h3 id="root-location">[Root 放置在Location块内]</h3>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">  server_name www.domain.com;
+</span><span class="line">  location / <span class="o">{</span>
+</span><span class="line">    root /var/www/nginx-default/;
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line">  location /foo <span class="o">{</span>
+</span><span class="line">    root /var/www/nginx-default/;
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line">  location /bar <span class="o">{</span>
+</span><span class="line">    root /var/www/nginx-default/;
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>该配置可以正常工作，把 root 放在 location块内可以完美的运行，但是当你开始添加location快，你就发现问题了。如果你给每个loaction 块添加 root，一旦有一个 location 块没有匹配到,那么他就失去了 root ,让我们来看看正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">  server_name www.domain.com;
+</span><span class="line">  root /var/www/nginx-default/;
+</span><span class="line">  location / <span class="o">{</span>
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line">  location /foo <span class="o">{</span>
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line">  location /bar <span class="o">{</span>
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="index-">[多条 index 指令]</h3>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">http <span class="o">{</span>
+</span><span class="line">  index index.php index.htm index.html;
+</span><span class="line">  server <span class="o">{</span>
+</span><span class="line">    server_name www.domain.com;
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">      index index.php index.htm index.html;
+</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line">  server <span class="o">{</span>
+</span><span class="line">    server_name domain.com;
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">      index index.php index.htm index.html;
+</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">    location /foo <span class="o">{</span>
+</span><span class="line">      index index.php;
+</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>为什么要重复多条不需要的 index 指令？事实上只需要用一次，它仅仅需要放置在 <code>http{}</code> 块内，后面的配置会继承它。</p>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">http <span class="o">{</span>
+</span><span class="line">  index index.php index.htm index.html;
+</span><span class="line">  server <span class="o">{</span>
+</span><span class="line">    server_name www.domain.com;
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line">  server <span class="o">{</span>
+</span><span class="line">    server_name domain.com;
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">    location /foo <span class="o">{</span>
+</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="if">[使用if]</h3>
+<p>这里有小段篇幅是关于使用<code>if</code> 表达式，我们需要检查所谓的 “是否有害”，让我们看看那些错误的配置</p>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">  server_name domain.com *.domain.com;
+</span><span class="line">  <span class="k">if</span> <span class="o">(</span><span class="nv">$host</span> ~* ^www<span class="se">\.</span><span class="o">(</span>.+<span class="o">))</span> <span class="o">{</span>
+</span><span class="line">    <span class="nb">set</span> <span class="nv">$raw_domain</span> <span class="nv">$1</span>;
+</span><span class="line">    rewrite ^/<span class="o">(</span>.*<span class="o">)</span><span class="nv">$ $raw_domain</span>/<span class="nv">$1</span> permanent;
+</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>这里明显有问题，第一条 <code>if</code> 指令就引起我们的注意，为什么是不好的配置呢, 你是否阅读过 <a href="http://wiki.nginx.org/IfIsEvil">是否有害</a>。</p>
+
+<p>使用if 指令，nginx 会强制检查所有到来的请求，检测每一条指令是否有危害，这是极度低效的。使用两个 server 配置可以避免上述问题。</p>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">  server_name www.domain.com;
+</span><span class="line">  <span class="k">return </span>301 <span class="nv">$scheme</span>://domain.com<span class="nv">$request_uri</span>;
+</span><span class="line"><span class="o">}</span>
+</span><span class="line">server <span class="o">{</span>
+</span><span class="line">  server_name domain.com;
+</span><span class="line">  <span class="o">[</span>...<span class="o">]</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这种方法不仅是配置易读，而且降低了 nginx 的处理负担。我们摆脱了<code>if</code>指令的陷阱，我们也使用了 <code>$scheme</code> 代替了 URI scheme 是 http 还是 https 的硬编码.</p>
+
+<h3 id="section-1">[判断文件是否存在]</h3>
+
+<p>使用 <code>if</code> 指令确保文件是否存在，是糟糕的实践，如果你有机会接触较新的 nginx 版本，查看下<code>try_files</code> 指令，该指令更适合做该事情。</p>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">  root /var/www/domain.com;
+</span><span class="line">  location / <span class="o">{</span>
+</span><span class="line">    <span class="k">if</span> <span class="o">(</span>!-f <span class="nv">$request_filename</span><span class="o">)</span> <span class="o">{</span>
+</span><span class="line">      <span class="nb">break</span>;
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">  root /var/www/domain.com;
+</span><span class="line">  location / <span class="o">{</span>
+</span><span class="line">    try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.html;
+</span><span class="line">  <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我们做的改变是，我们不使用<code>if</code>指令，而是使用 <code>try_files</code>,如果<code>$uri</code>不存在，尝试 <code>$uri/</code> 如果不存在，就使用默认的文件 <code>index.html</code></p>
+
+<p>这个场景中，将会测试$uri是否存在，如果存在调用该服务，反之则会测试该目录是否存在，如果不存在就会调用 <code>index.html</code>，前提是<code>index.html</code>是存在的。这时候仅仅是简单的加载该页面。</p>
+
+<h3 id="section-2">[包的前端控制器模式]</h3>
+
+<p>“前端控制器模式”的设计很流行并广泛应用于 PHP 软件包，不乏很多比它更复杂的例子，使用 Drupal, Joomla 等，你只需要使用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php?q<span class="o">=</span><span class="nv">$uri</span>&amp;<span class="nv">$args</span>;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>注意： - 参数名会依据你所使用的包不同而做相应的改变</p>
+
+<ul>
+  <li><code>q</code>用于Drupal, Joomla, WordPress</li>
+  <li><code>page</code> 用于CMS Made Simple</li>
+</ul>
+
+<p>一些软件甚至不需要查询字符串，可以通过<code>REQUEST_URI</code>获取（比如WordPress就支持）</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>当然，你的情况可能有所不一样，你可能需要更复杂的配置。对于简单的站点，该配置已经完美的支持，通常我们都是由浅入深地学习一样东西 。</p>
+
+<p>如果你不关心目录是否存在，你可以决定跳过该目录检查,并且移 <code>$uri/</code></p>
+
+<h3 id="php">[传递不受控制的请求给PHP]</h3>
+<p>很多 PHP web 站点的 Nginx 配置要求，每一个URI需要附带<code>.php</code>给 PHP 解释器，注意到这里有一个关于PHP设置的严重安全隐患，因为它允许第三方执行任意代码。</p>
+
+<p>比如</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
+</span><span class="line">  fastcgi_pass backend;
+</span><span class="line">  ...
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这里每一个关于.php的请求将会传给 <code>FastCGI</code> 后端，这是PHP默认配置，在不知道文件的具体路径下,试图通过该配置执行该文件。</p>
+
+<p>举个例子，如果请求 <code>/forum/avatar/1232.jpg/file.php</code>不存在， PHP 解释器将会返回 <code>forum/avatar/1232.jpg</code>，如果该文件有内嵌php代码，就会相应地被执行了。</p>
+
+<p>避免上述情况的配置选项是：</p>
+
+<ul>
+  <li>设置 php.ini 里的 <code>cgi.fix_pathinfo=0</code>，该配置使得 php 解释器仅仅执行具体制定的文件，停止执行不存在的文件。</li>
+  <li>确保 nginx 指定具体的php可执行文件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="o">(</span>file_a|file_b|file_c<span class="o">)</span><span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
+</span><span class="line">  fastcgi_pass backend;
+</span><span class="line">  ...
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<ul>
+  <li>禁止执行用户上传目录中的php文件 </li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">location /uploaddir <span class="o">{</span>
+</span><span class="line">  location ~ <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span><span class="k">return </span>403;<span class="o">}</span>
+</span><span class="line">  ...
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用 <code>try_files</code>指令，过滤掉有问题的条件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
+</span><span class="line">  try_files <span class="nv">$uri</span> <span class="o">=</span>404;
+</span><span class="line">  fastcgi_pass backend;
+</span><span class="line">  ...
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用嵌套块过滤有问题的条件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
+</span><span class="line">  location ~ <span class="se">\.</span>.*/.*<span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span><span class="k">return </span>404;<span class="o">}</span>
+</span><span class="line">  fastcgi_pass backend;
+</span><span class="line">  ...
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="fastcgi-">[脚本文件名中的 FastCGI 路径]</h3>
+<p>外界很多配置指引依靠绝对路径来获取你的信息，在PHP配置块内经常存在，当你从软件仓库中安装 nginx,他的配置文件中会有 “include fastcgi_params”,该文件在 nginx 文件夹 /etc/nginx 的目录下。</p>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">fastcgi_param  SCRIPT_FILENAME    <span class="nv">$document_root$fastcgi_script_name</span>;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">fastcgi_param  SCRIPT_FILENAME    /var/www/yoursite.com/<span class="nv">$fastcgi_script_name</span>;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p><code>$document_root</code> 在哪里呢？他在<code>server</code>块中<code>root</code>指令，如果你的<code>root</code> 指令配置不存在， 请回头看看 <code>第一个陷阱</code>。</p>
+
+<h3 id="section-3">[麻烦的重写]</h3>
+<p>不要感到沮丧，你很容易被正则表达式迷糊住。事实上，我们可以努力让配置干净简洁不添加毫不相干的东西。</p>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">rewrite ^/<span class="o">(</span>.*<span class="o">)</span><span class="nv">$ </span>http://domain.com/<span class="nv">$1</span> permanent;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">rewrite ^ http://domain.com<span class="nv">$request_uri</span>? permanent;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line"><span class="k">return </span>301 http://domain.com<span class="nv">$request_uri</span>;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>反复看这几个例子，OK，第一个重写捕获斜线前完整的URI。通过使用内置的变量 <code>$request_uri</code> 我们可以有效地避免做任何捕获或匹配,并通过返回指令,我们可以完全避免对正则表达式的使用。</p>
+
+<h3 id="http">[重写时丢失<code>http://</code>]</h3>
+<p>很简单，重写都是相互关联的，除非你特意设置nginx。重写规则挺简单的，仅仅添加一条规则。</p>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line"> rewrite ^/blog<span class="o">(</span>/.*<span class="o">)</span><span class="nv">$ </span>blog.domain.com<span class="nv">$1</span> permanent;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">rewrite ^/blog<span class="o">(</span>/.*<span class="o">)</span><span class="nv">$ </span>http://blog.domain.com<span class="nv">$1</span> permanent;
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>上述看到的例子，我们仅仅是给该条规则添加了<code>http://</code>，便实现了重写，很简单，也很实用。</p>
+
+<h3 id="section-4">[代理一切]</h3>
+
+<p>不好的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">    server_name example.org;
+</span><span class="line">    root /var/www/site;
+</span><span class="line">
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">        include fastcgi_params;
+</span><span class="line">        fastcgi_param SCRIPT_FILENAME <span class="nv">$document_root$fastcgi_script_name</span>;
+</span><span class="line">        fastcgi_pass unix:/tmp/phpcgi.socket;
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>这个例子中，你转发请求给php,如果是 apache 服务器会这么干。但是 nginx 服务器不需要这样做，<code>try_files</code>指令会按顺序检测文件。这意味着nginx可以首先寻找需要测试的静态文件，如果找不到才返回用户指定的文件。通过这样的方式，php解释器不会执行任意php文件，除非你拥有该请求路径的php文件，而且能帮你节约资源，特别是当你直接通过php请求一个大小为1MB的图片1千次。</p>
+
+<p>正确的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">    server_name example.org;
+</span><span class="line">    root /var/www/site;
+</span><span class="line">
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">        try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ @proxy;
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">
+</span><span class="line">    location @proxy <span class="o">{</span>
+</span><span class="line">        include fastcgi.conf;
+</span><span class="line">        fastcgi_pass unix:/tmp/php-fpm.sock;
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>或者</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
+</span><span class="line">    server_name example.org;
+</span><span class="line">    root /var/www/site;
+</span><span class="line">
+</span><span class="line">    location / <span class="o">{</span>
+</span><span class="line">        try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php;
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line">
+</span><span class="line">    location ~ <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
+</span><span class="line">        include fastcgi.conf;
+</span><span class="line">        fastcgi_pass unix:/tmp/php-fpm.sock;
+</span><span class="line">    <span class="o">}</span>
+</span><span class="line"><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果被请求的 URI 存在就可以被 nginx 返回，如果不存在，那么是否存在一个具有index文件的目录里，同时，我们是否已经为该请求配置上了 index 指令。如果仍然不存在，重写规则将发送<code>index.php</code>到你的后端，只有当nginx前端不能处理你的请求，才会让后端服务参与进来。</p>
+
+<p>想想有你的请求中有多少是静态资源，比如图片，css，javascript,我们可以通过上述方式的配置来节约这些资源。</p>
+
+<h3 id="section-5">[配置改变，并没有生效]</h3>
+
+<p>你的配置很完美，但是你依然捶胸顿足。问题出现在你的浏览器缓存上，当你加载一些东西，浏览器会保存下来，也会记住了它是如何请求服务的，如果你使用 <code>types{}</code>块，你会遇到如下问题。</p>
+
+<p>修复</p>
+
+<p>[选项1] 在火狐中按下 <code>Ctrl+Shift+Delet</code> ,检测缓存，并且清空。其他的浏览器自行搜索清空缓存的方法，每一次修改配置，记得清空缓存，除非你确认不需要这么做，这一步骤会帮你避免很多头痛。</p>
+
+<p>在火狐中，你也可以选择一个更长久的解决方法，在URI搜索条内，输入<code>about:config</code>,然后搜索 <code>browser.cache.check_doc_frequency</code> ，设置其值为1，这样没加载一次包就会检测。</p>
+
+<p>[选项2] 使用 <code>curl</code>
+如果还行不通，而且你是在<code>vritualbox</code> 虚拟机里面运行 nginx,那么，可能是 <code>sendfile()</code> 惹得祸，你只需要注释掉 sendfile 指令，或者将其设置为 <code>off</code>,这个指令在<code>nginx.conf</code>里。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line">sendfile off
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="http-1">[HTTP头部丢失]</h3>
+
+<p>如果你没有显性设置 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="bash"><span class="line"> underscores_in_headers on
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>nginx 将会默认用下划线去掉http头部（这符合http标准），这么做是为了防止在映射CGI头信息时候有歧义。这个过程中破折号和下划线都被映射成了下划线。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1336,184 +1905,6 @@ Happy Hacking :-)</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/">微信公众号开发</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-01-07T18:47:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/01/07/wei-xin-gong-zhong-hao-kai-fa/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h3 id="section">微信公众账号开发</h3>
-
-<p>话说2013年的最后几分钟和2014的最开始几分钟我都是献给这货的.BTW,纯属个人折腾
-&gt; 人生苦短,我爱python</p>
-
-<p>至于做的具体东西就在此略过了,以下是截图.主要是分享开发过程中的经验,我的代码是部署在自己的VPS上面</p>
-
-<p><img src="/images/2013/12/nba.jpg" /></p>
-
-<p>现在注册一个微信的服务号的成本很高了,一次人工审批不过的话就需要300元, 我用的是微信公众平台测试号.只要填写手机号和验证码。其限制条件是,只能有20个订阅粉丝.没关系,我要的是调通整个通讯以及业务化定制.</p>
-
-<h5 id="section-1">注册</h5>
-<p>会给你一个 <code>APPID</code>, <code>APPSeceret</code>,这个步骤需要你填写自己 Server 的 URL,以及填写 <code>TOKEN</code>,这些是未来完成通讯的许可证明</p>
-
-<h5 id="section-2">微信认证</h5>
-<p>Server 端应该对每个请求进行验证，确认是来自微信服务器的请求才做出相应</p>
-
-<p>加密/校验流程如下：</p>
-
-<ul>
-  <li>将 <code>token</code>、<code>timestamp</code>、<code>nonce</code> 三个参数进行字典序排序</li>
-  <li>将三个参数字符串拼接成一个字符串进行sha1加密</li>
-  <li>开发者获得加密后的字符串可与 <code>signature</code> 对比，标识该请求来源于微信</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">BaseHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
-</span><span class="line">    <span class="c">#基类,实现基本认证，子类只需要继承就可以完成微信认证</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;timestamp&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-</span><span class="line">        <span class="n">nonce</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;nonce&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-</span><span class="line">        <span class="n">signature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&quot;signature&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-</span><span class="line">        <span class="k">print</span> <span class="s">&#39;request:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
-</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
-</span><span class="line">            <span class="k">print</span> <span class="s">&quot;=========validate failed =====&quot;</span>
-</span><span class="line">            <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
-</span><span class="line">
-</span><span class="line"><span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span><span class="p">):</span>
-</span><span class="line">    <span class="k">print</span> <span class="s">&#39;validate:&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">signature</span>
-</span><span class="line">    <span class="k">if</span> <span class="n">timestamp</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">nonce</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">signature</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-</span><span class="line">        <span class="k">return</span> <span class="bp">False</span>
-</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">TOKEN</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">nonce</span><span class="p">]</span>
-</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tmparr</span><span class="p">)</span>
-</span><span class="line">    <span class="n">tmpStr</span> <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
-</span><span class="line">    <span class="n">hashStr</span> <span class="o">=</span> <span class="n">sha1</span><span class="p">(</span><span class="n">tmpStr</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-</span><span class="line">    <span class="k">return</span> <span class="p">(</span><span class="n">hashStr</span> <span class="o">==</span> <span class="n">signature</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>验证成功之后，才能进入业务逻辑,当我们在微信公众号填写自己服务的URL的时候，weixin会向该URL发起Get请求.做为首次验证,根据文档，需要将接收到的字符串原文返回</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">serverHandler</span><span class="p">(</span><span class="n">BaseHandler</span><span class="p">):</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="n">echostr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_argument</span><span class="p">(</span><span class="s">&#39;echostr&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">echostr</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h5 id="section-3">. 菜单订制</h5>
-<p>为了支持微信通信过程中不允许使用”/u” 字符编码，这里用到了tornado的render_string,一开始我是直接生成一个json.dump(menu)然后post过去,但一直存在编码问题， 使用render_string就解决了。感谢@ihao提醒</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">UIHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;menu.json&#39;</span><span class="p">)</span>
-</span><span class="line">        <span class="n">createMenu</span><span class="p">(</span><span class="n">menu</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h5 id="section-4">. 响应用户按键输入</h5>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">xml</span> <span class="o">=</span> <span class="n">uni</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>        <span class="c">#获取微信服务器发送过来的xml,转化为unicode</span>
-</span><span class="line"><span class="n">dic</span> <span class="o">=</span> <span class="n">xml2dict</span><span class="p">(</span><span class="n">xml</span><span class="p">)</span>                 <span class="c">#将xml解析成dict</span>
-</span><span class="line"><span class="k">if</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;MsgType&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;event&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="n">event</span> <span class="o">=</span> <span class="n">dic</span><span class="p">[</span><span class="s">&#39;Event&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-</span><span class="line">    <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;subscribe&#39;</span><span class="p">:</span>
-</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_subscribe</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>     <span class="c">#订阅逻辑</span>
-</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-</span><span class="line">    <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;click&#39;</span><span class="p">:</span>
-</span><span class="line">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">do_click</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span>         <span class="c">#点击逻辑</span>
-</span><span class="line">        <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">render_string</span><span class="p">(</span><span class="s">&#39;text_resp.xml&#39;</span><span class="p">,</span> <span class="n">dic</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>self.write(msg)是将要发给用户的信息返回给微信服务器，之后微信服务器会将信息发送给用户</p>
-
-<h4 id="section-5">相关链接</h4>
-<ul>
-  <li><a href="http://mp.weixin.qq.com/wiki/index.php">开发者文档</a></li>
-  <li><a href="http://mp.weixin.qq.com/debug/">接口调试</a></li>
-</ul>
-
-<h4 id="section-6">开发中用到的库</h4>
-<ul>
-  <li><code>tornado</code></li>
-  <li><code>virtualenv</code></li>
-  <li><code>pyquery(做爬虫)</code></li>
-  <li><code>pymongo</code></li>
-  <li><code>lxml</code></li>
-  <li><code>urllib2</code></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1529,12 +1920,16 @@ Happy Hacking :-)</p>
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/program'>Program</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
@@ -1562,10 +1957,6 @@ Happy Hacking :-)</p>
     
       <li class="post">
         <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 btmp 文件</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a>
       </li>
     
   </ul>

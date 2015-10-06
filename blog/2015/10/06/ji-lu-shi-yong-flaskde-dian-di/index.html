@@ -1,0 +1,521 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>记录使用 Flask 的点滴 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="flask 经验">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">记录使用 Flask 的点滴</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-06T13:21:00+08:00" pubdate data-updated="true">Oct 6<span>th</span>, 2015</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>喜欢 Flask 经典的 RestFul 设计风格，以及它与 Gevent 的优雅结合，可以帮助我们轻松构建异步非阻塞应用，烂笔头记下一些较好的实践。</p>
+
+<ul>
+  <li><a href="#第一节">消息反馈</a></li>
+  <li><a href="#第二节">Flask 上下文</a></li>
+  <li><a href="#第三节">注册 JinJia 模板过滤器</a></li>
+  <li><a href="#第四节">itsdangerous 生成过期时间 Json 签名</a></li>
+  <li><a href="#第五节">一种较好的项目组织方式</a></li>
+  <li><a href="#第六节">BluePrint 的好</a></li>
+  <li><a href="#第七节">Json 返回</a></li>
+  <li><a href="#第八节">自定义出错页面</a></li>
+  <li><a href="#第九节">WTF 跨站脚本防御</a></li>
+</ul>
+
+<h3 id="第一节">消息反馈</h3>
+
+<p>Flask 提供了一个非常简单的方法来使用闪现系统向用户反馈信息。
+闪现系统使得在一个请求结束的时候记录一个信息，然后在且仅仅在下一个请求中访问这个数据。这通常配合一个布局模板实现</p>
+
+<p><a href="http://docs.jinkan.org/docs/flask/patterns/flashing.html">文档链接</a></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># 视图函数需要调用
+</span><span class="line">flash('your response message for user')
+</span><span class="line">
+</span><span class="line"># 前端页面调用
+</span><span class="line">for message in get_flashed_messages()
+</span><span class="line">就可以输出反馈信息</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">Flask 上下文</h3>
+
+<p>有两种上下文：程序上下文，请求上下文</p>
+
+<ul>
+  <li>current_app： 程序级别上下文，当前激活程序的实例。</li>
+  <li>g: 请求级别的上下文</li>
+  <li>request: 是请求级别的上下文，封装了客户端发出的 Http 请求中的内容</li>
+  <li>session: 用户会话，用于存储请求之间需要记住的键值对</li>
+</ul>
+
+<h3 id="第三节">注册 JinJia 模板过滤</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">def reverse_filter(s):
+</span><span class="line">    return s[::-1]
+</span><span class="line">
+</span><span class="line">app.jinja_env.filters['reverse'] = reverse_filter</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第四节">itsdangerous 生成过期时间 Json 签名</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">serialaizer = Serializer(SECRET_KEY, expires_in=EXPIRES)
+</span><span class="line">info = {'id':'xxx'}
+</span><span class="line">session = serialaizer.dumps(info)
+</span><span class="line">
+</span><span class="line"># 判断 session 时间
+</span><span class="line">info = None
+</span><span class="line">try:
+</span><span class="line">    info = serialaizer.loads(session)
+</span><span class="line">except Exception:
+</span><span class="line">    return jsonify(ERR_SESS_TIMEOUT)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>用途：生成一个有时间限制的签名，用于API 访问的验证码，如果过期，提醒用户重新登录</p>
+
+<h3 id="第五节">一种较好的项目组织方式</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">▾ app/
+</span><span class="line">    ▾ controlers/
+</span><span class="line">        ▾ admin/                    #管理后台的蓝图控制器
+</span><span class="line">            ▾ forms/                #表单限制文件
+</span><span class="line">                __init__.py　　　　　
+</span><span class="line">                xx.py　　　         # blueprint 文件
+</span><span class="line">            __init__.py
+</span><span class="line">            administrator.py
+</span><span class="line">        ▾ api/                      # API 控制器
+</span><span class="line">            __init__.py
+</span><span class="line">        ▾ site/                     # 站点控制器
+</span><span class="line">            __init__.py             # blueprint 文件
+</span><span class="line">            xx.py
+</span><span class="line">        __init__.py
+</span><span class="line">        error.py
+</span><span class="line">    ▸ models/         # SQLAlchemy 的各类模型
+</span><span class="line">    ▸ static/         # 需要的静态资源，css, js, imgs
+</span><span class="line">    ▾ templates/　　　# 前端页面，跟 controller 分类一一对应
+</span><span class="line">        ▸ admin/
+</span><span class="line">        ▸ error/
+</span><span class="line">        ▸ site/
+</span><span class="line">    ▸ utilities/　　　　#  功能函数
+</span><span class="line">      __init__.py       #　初始化app需要的各种插件，比如 redis, db, 注册蓝图
+</span><span class="line">run.py                  #　相当于 main 函数,创建 app, 执行app.run() 函数
+</span><span class="line">settings.py             #　配置文件</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第六节">BluePrint 的好 </h3>
+
+<p>每个 Blueprint 就像独立的 Application, 可以管理自己的模板, 路由, 反向路由url_for, 甚至是静态文件，最后统一挂载到 Application 下。从头到尾都是 RestFul。</p>
+
+<p>在创建 app (app/<strong>init</strong>.py) 的时候调用如下:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">from app.controllers.site.console import console 
+</span><span class="line">app.register_blueprint(console, url_prefix='/console')</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>视图文件 (app/controllers/site/console.py):</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">console = BLueprint('console', __name__)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第七节">Json 返回</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">from flask import jsonify
+</span><span class="line">return jsonify({'code': 0})</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第八节">自定义出错页面</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">@app.errorhandler(404)
+</span><span class="line">def not_found(error):
+</span><span class="line">    return render_template('404.html'), 404
+</span><span class="line">
+</span><span class="line">@app.errorhandler(500)
+</span><span class="line">def crash(error):
+</span><span class="line">    return render_template('5xx.html'), 500</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第九节">WTF 跨站脚本防御</h3>
+
+<p>Flask-WTF 能保护表单免受跨站请求伪造的攻击,恶意网站把请求发送到被攻击者已经登录的其他玩战会引发 CSRF 攻击</p>
+
+<ul>
+  <li>app config 文件中，开启 CSRF 开关并配置密钥</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">CSRF_ENABLED = True
+</span><span class="line">SECRET_KEY = 'you-will-never-guess'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>表单的定义</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">from flask.ext.wtf import Form, TextField, BooleanField
+</span><span class="line">from flask.ext.wtf import Required
+</span><span class="line">class LoginForm(Form):
+</span><span class="line">    openid = TextField('openid', validators = [Required()])
+</span><span class="line">    remember_me = BooleanField('remember_me', default = False)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>页面渲染</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;form action="" method="post" name="login"&gt;
+</span><span class="line">    form.hidden_tag()
+</span><span class="line">    &lt;p&gt; Please enter your OpenID:form.openid(size=80)&lt;br&gt;&lt;/p&gt;
+</span><span class="line">    &lt;p&gt;form.remember_me &lt;/p&gt;
+</span><span class="line">    &lt;p&gt;&lt;input type="submit" value="Sign In"&gt;&lt;/p&gt;
+</span><span class="line">&lt;/form&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>控制器函数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">@app.route('/login', methods = ['GET', 'POST'])
+</span><span class="line">def login():
+</span><span class="line">    form = LoginForm()
+</span><span class="line">    if form.validate_on_submit():
+</span><span class="line">        flash('Login requested for OpenID="' + form.openid.data))
+</span><span class="line">        return redirect('/index')
+</span><span class="line">    return render_template('login.html', title = 'Sign In',form = form)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我们在配置中开启了CSRF(跨站伪造请求)功能，模板参数 form.hidden_tag() 会被替换成一个具有防止CSRF功能的隐藏表单字段。 在开启了CSRF功能后，所有模板的表单中都需要添加这个模板参数</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-06T13:21:00+08:00" pubdate data-updated="true">Oct 6<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/programe/'>Programe</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2015/10/01/python-shi-yong-ldap/" title="Previous Post: Python 使用 LDAP">&laquo; Python 使用 LDAP</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="记录使用 Flask 的点滴"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible 使用经验</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/21/supervisorjian-ting-qi/">Supervisor 监听器</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/08/10/hackthon/">黑客马拉松</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 btmp 文件</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org/">EverET</a>
+    </span>
+    <span>
+        <a href="http://www.kidsang.com/">Kid's Zone</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
