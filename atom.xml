@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-10-06T13:50:43+08:00</updated>
+  <updated>2015-10-29T23:06:00+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,89 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[给 Tengine 加上 lua 拓展]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/"/>
+    <updated>2015-10-29T22:45:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan</id>
+    <content type="html"><![CDATA[<p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
+感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
+
+<h2 id="nginxlua">编译 nginx_lua</h2>
+
+<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
+
+<ul>
+  <li>下载安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
+</span><span class="line">tar zxvf LuaJIT-2.0.4.tar.gz
+</span><span class="line">cd LuaJIT-2.0.4
+</span><span class="line">make
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置环境变量</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">export LUAJIT_LIB=/usr/local/lib
+</span><span class="line">export LUAJIT_INC=/usr/local/include/luajit-2.0</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>然后编译ngx-lua-module.so</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置动态库</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+</span><span class="line">&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="tengine-">在 Tengine 中启用</h3>
+
+<p><code>nginx.conf</code> 中先加载动态库</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">dso {
+</span><span class="line">    load ngx_load_module;
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在 nginx.conf 中添加</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache on/off;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
+
+<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
+
+<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
+<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
+
+<hr />
+
+<p>注：
+静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[记录使用 Flask 的点滴]]></title>
@@ -2037,25 +2120,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 </ul>
 
 <p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[慢]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/11/25/tired/"/>
-    <updated>2014-11-25T22:20:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/11/25/tired</id>
-    <content type="html"><![CDATA[<p>这三个月以来,有30天是凌晨才离开公司的.甚至有好几天都通宵没有睡过,累。</p>
-
-<p>貌似熟悉了凌晨的路灯,和冷冽的寒风。</p>
-
-<p>技术的东西,整理在 EvertNote 里，但想写一些非技术的冲动似乎更强。</p>
-
-<p>生活有很长的路要走, 几乎每天都在发现不足之处,只能让内心更强大, 去接受,去改变, 淡定去拥抱无时不刻的变化, 怀着信念与希望继续走着。</p>
-
-<p>感谢 Everet 一直以来给我的信念, 我们也都在《感谢你让我上场》获得共鸣。我也坚信这位青年会是我们这届的骄傲。</p>
-
-<p>我想让生活慢下来，做一些重要不紧急的事。</p>
 ]]></content>
   </entry>
   

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-10-06T13:50:43+08:00</updated>
+  <updated>2015-10-29T23:06:00+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,87 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[给 Tengine 加上 lua 拓展]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/"/>
+    <updated>2015-10-29T22:45:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan</id>
+    <content type="html"><![CDATA[<p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
+感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
+
+<h2 id="nginxlua">编译 nginx_lua</h2>
+
+<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
+
+<ul>
+  <li>下载安装</li>
+</ul>
+
+<p><code>
+wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
+tar zxvf LuaJIT-2.0.4.tar.gz
+cd LuaJIT-2.0.4
+make
+make install
+</code></p>
+
+<ul>
+  <li>设置环境变量</li>
+</ul>
+
+<p><code>
+export LUAJIT_LIB=/usr/local/lib
+export LUAJIT_INC=/usr/local/include/luajit-2.0
+</code></p>
+
+<ul>
+  <li>然后编译ngx-lua-module.so</li>
+</ul>
+
+<p><code>
+/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module
+</code></p>
+
+<ul>
+  <li>设置动态库</li>
+</ul>
+
+<p><code>
+&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+&gt; ldconfig
+</code></p>
+
+<h3 id="tengine-">在 Tengine 中启用</h3>
+
+<p><code>nginx.conf</code> 中先加载动态库</p>
+
+<p><code>
+dso {
+    load ngx_load_module;
+}
+</code></p>
+
+<p>在 nginx.conf 中添加</p>
+
+<p><code>
+lua_code_cache on/off;
+</code></p>
+
+<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
+
+<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
+
+<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
+<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
+
+<hr />
+
+<p>注：
+静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[记录使用 Flask 的点滴]]></title>
@@ -398,44 +479,6 @@ fmt: [231 188 150 231 168 139]
 <p>每个成熟的互联网产品，背后都是工程师耗费一点一滴思维的结晶构建而成的。对待技术不得不敬畏。</p>
 
 <p><a href="https://github.com/zheng-ji/trietips">代码</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Go Protobuf]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf/"/>
-    <updated>2014-07-12T17:39:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf</id>
-    <content type="html"><![CDATA[<p>protobuf 是谷歌出品的，质量就无需质疑了，广泛运用于工业界
-优点简而言之是：</p>
-
-<ul>
-  <li>二进制，速度快，便于拓展；</li>
-  <li>自动生成代码接口，支持多语言</li>
-</ul>
-
-<p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
-
-<h3 id="section">安装</h3>
-
-<p>比较蛋疼,折腾一小段时间。</p>
-
-<p>```
-go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}</p>
-
-<p>go install code.google.com/p/goprotobuf/proto</p>
-
-<p>sudo apt-get install protobuf-compiler
-```</p>
-
-<h3 id="section-1">使用</h3>
-
-<p>是在项目内部新建一个proto.文件, 然后执行</p>
-
-<p><code>
-protoc --go_out=. xxx.proto
-</code></p>
-
 ]]></content>
   </entry>
   

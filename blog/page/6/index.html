@@ -9,8 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="几天前在@ideawu的博客上看到了其一篇文章中讲到的技术题.
-《在线状态服务在网站系统中的应用》 。于是内心折腾的火焰便熊熊燃烧起来，连续几天晚上折腾到凌晨1点。感谢@agentzh 春哥与阿里巴巴的技术贡献,让我可以安心睡觉 :) 在线状态服务这样的场景在互联网应用上比比皆是 &hellip;">
+  <meta name="description" content="昨天搞了一整天js,遇到了各种我从没遇到的问题,真心觉得前端工程师是很厉害的。想不出为什么会有人说所谓的前端“无技术含量”的源论.前端要考虑的东西实在是多，也有其架构设计。特别是js. 我用的是phonegap + jqtouch做移动App 场景是：
+客户端使用Ajax技术向服务器发送请求， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +68,125 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/">Jsonp解决跨域请求</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-15T21:50:00+08:00" pubdate data-updated="true">Sep 15<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/15/jsonpjie-jue-kua-yu-qing-qiu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>昨天搞了一整天js,遇到了各种我从没遇到的问题,真心觉得前端工程师是很厉害的。想不出为什么会有人说所谓的前端“无技术含量”的源论.前端要考虑的东西实在是多，也有其架构设计。特别是js. 我用的是phonegap + jqtouch做移动App</p>
+
+<p>场景是：
+客户端使用Ajax技术向服务器发送请求，然后拉取数据</p>
+
+<p>Server端代码是php写的,</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="php"><span class="line"><span class="x">$arr = array(</span>
+</span><span class="line"><span class="x">        &#39;user&#39;=&gt;&#39;123&#39;,</span>
+</span><span class="line"><span class="x">        &#39;friends&#39; =&gt; 234</span>
+</span><span class="line"><span class="x">        )</span>
+</span><span class="line"><span class="x">echo json_encode($arr);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>js代码,使用jquery发起get 请求,文件路径E:/mytest/test.html</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class="javascript"><span class="line"><span class="nx">$</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class="line">    <span class="nx">url</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1/test.php&quot;</span>
+</span><span class="line">    <span class="nx">$</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="nx">funtion</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="nx">alert</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+</span><span class="line">    <span class="p">})</span>
+</span><span class="line"><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>看过jquery文档之后，我以为这样会返回我要的数据，真是图样图森破，chrome的控制台返回：不是同一个源，不允许跨域发请求。 </p>
+
+<h5 id="section">什么是跨域请求</h5>
+<p>简单来说：a.com 域名下的js无法操作b.com或是c.a.com域名下的对象,上述场景中，http://127.0.0.1/test.php 和 E：/mytest/test.html本身就不属于同一个域下，因此不能访问。浏览器本身有同源策略，当初设计是出于安全考虑，百度给出了解释是：
+&gt;　同源策略，它是由Netscape提出的一个著名的安全策略。现在所有支持JavaScript 的浏览器都会使用这个策略。所谓同源是指，域名，协议，端口相同。当一个浏览器的两个tab页中分别打开来 百度和谷歌的页面当一个百度浏览器执行一个脚本的时候会检查这个脚本是属于哪个页面的，即检查是否同源，只有和百度同源的脚本才会被执行。</p>
+
+<p>我最后是通过查阅资料,采用jsonp的方式解决</p>
+
+<h5 id="jsonp">什么是jsonp</h5>
+<blockquote>
+  <p>　JSONP是JSON with Padding的略称。它是一个非官方的协议，它允许在服务器端集成Script tags返回至客户端，通过javascript callback的形式实现跨域访问（这仅仅是JSONP简单的实现形式） - 百度</p>
+</blockquote>
+
+<p>因此最后的Server端代码是php写的</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="err">$</span><span class="n">arr</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span>
+</span><span class="line">        <span class="s">&#39;user&#39;</span><span class="o">=&gt;</span><span class="s">&#39;123&#39;</span><span class="p">,</span>
+</span><span class="line">        <span class="s">&#39;friends&#39;</span> <span class="o">=&gt;</span> <span class="mi">234</span>
+</span><span class="line">        <span class="p">)</span>
+</span><span class="line"><span class="err">$</span><span class="n">callback</span> <span class="o">=</span> <span class="err">$</span><span class="n">_GET</span><span class="p">[</span><span class="s">&#39;callback&#39;</span><span class="p">];</span> <span class="o">//</span><span class="err">新加</span>
+</span><span class="line"><span class="n">echo</span> <span class="err">$</span><span class="n">callback</span><span class="o">.</span><span class="n">json_encode</span><span class="p">(</span><span class="err">$</span><span class="n">arr</span><span class="p">);</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>js代码,请求的时候，加入一个参数callback,通过javascripte callback形式调用服务器的scrpt tags的返回值</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="javascript"><span class="line"><span class="nx">$</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+</span><span class="line">    <span class="nx">url</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1/test.php?callback=?&quot;</span>
+</span><span class="line">    <span class="nx">$</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span><span class="nx">funtion</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="nx">alert</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+</span><span class="line">    <span class="p">}));</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>调用成功
+这个东西纠结我大半天。但是有收获的 ：）</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1479,69 +1598,6 @@ Py_Finalize();</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/30/xiu-qi-xiao-bo/">修葺小博</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-30T23:20:00+08:00" pubdate data-updated="true">May 30<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/05/30/xiu-qi-xiao-bo/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="section">关于博客</h4>
-
-<p>大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。</p>
-
-<p>今天好好地修理一翻博客，顿觉从建博至今，写了很多垃圾文章，甚发觉以前很幼稚（包括想法与文字），本想删除劣迹，但这些文章终究是自己一步步成长的印记，所以让它们保留着。折腾了一天wp源码（修改css代码，添加一些有用的插件）还是很欢乐的。得益于广泛阅读和折腾，技术的广度是够的，但深度却明显不足。后续宁愿慢点也要做深度思考，尽可能写出博文。</p>
-
-<h4 id="section-1">关于技术</h4>
-
-<p>以后这个博客记录的更多会是后端开发的感悟，来源于自己浓厚的兴趣使然，喜欢服务端编程。虽然我在TX没有机会接触这样的开发（多少有些遗憾吧，但我希望去大公司开拓眼界，以后真的能做这样的工作，故不能放弃积累）。全凭一腔热血和毅力折腾，我所做的方法是，查看前人的技术成长，自己给自己提需求(比较傻)。偶有所得便会放上Github。诚如我所言，深度思考，学过的理要尽可能实现出来。宁愿慢点以获得真正的收获！</p>
-
-<p>如今已不再觉得学习某些技术会很厉害，真正具备的是思考，学习的能力。这都离不开扎实的基础！欣喜的是，我发现只要你去尝试并坚持努力，这些都可以提高的。</p>
-
-<p>接触到身边很多程序员：”CopyCat,重复劳动，眼界狭隘，缺乏思考”，内心感到难受。@ruitao说过；”不可能要求这世界所有人都有一样的想法，他们已经被磨去了棱角。“ （PS：@ruitao是一个Geek&amp;&amp;工具控,我的偶像：））。所幸的是我可以自我修炼，信息的畅通大大降低了学习门槛，一直欣赏一种人，知道自己需要什么并坚持想法的去学习，不为了所谓“外部评价”。很感恩认识到一些爱好技术，追求效率的朋友，和志同道合的人分享是件很幸福的事.</p>
-
-<h4 id="section-2">致将要逝去的大学时光</h4>
-
-<p>这个月与好友们泡在一起，俺学会了lol，虽然绝对菜B，但仍能感受到大伙在一起的狂欢激情。这些日子，我尽可能地尝试以前想做的事情，比如弹起吉他。感觉人生又完满了一点。认识多了几个热爱搞技术的朋友，能和他们一起侃共同的话题真的很爽。或许因为大家都有不安分的心以及共同的愿景吧。
-转入正题：leveldb的内存设计思想</p>
-
-<p>在研究leveldb的源代码，觉得他的内存池实现很收启发。学习leveldb的内存设计思想。</p>
-
-<p>如果是频繁的申请内存，不连续，会造成内存碎片。但Leveldb采用了内存池的概念，一次性申请4M的内存。下次读取的内存小于内存池的容量，直接获取，否则，重新申请内存块：
-* 如果申请的字节数，bytes &gt;= 1M，则申请内存为 bytes的块,避免内存块浪费
-* 如果申请的字节数，bytes &lt;= 1M，则申请内存为 4M 的块
-Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo">源码</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1563,6 +1619,10 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
@@ -1590,10 +1650,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
     
       <li class="post">
         <a href="/blog/2015/08/10/hackthon/">黑客马拉松</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 btmp 文件</a>
       </li>
     
   </ul>

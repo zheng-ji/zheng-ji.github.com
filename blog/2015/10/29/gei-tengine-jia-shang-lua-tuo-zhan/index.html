@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Nginx与php-fpm系统参数配置 - 织网</title>
+  <title>给 Tengine 加上 lua 拓展 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Nginx 调优 PHP 优化">
-  <meta name="keywords" content="Nginx 调优 PHP 优化">
+  <meta name="description" content="Tengine, lua-nginx-module">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Nginx与php-fpm系统参数配置</h1>
+      <h1 class="entry-title">给 Tengine 加上 Lua 拓展</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+<time datetime="2015-10-29T22:45:00+08:00" pubdate data-updated="true">Oct 29<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,96 +96,81 @@
   </header>
 
 
-<div class="entry-content"><p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
+<div class="entry-content"><p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
+感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
 
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
+<h2 id="nginxlua">编译 nginx_lua</h2>
 
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
+<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
+
+<ul>
+  <li>下载安装</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
 <span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
-</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
-</span><span class="line">pm = static # 使用静态进程管理
-</span><span class="line">pm.max_children = 128
-</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
+</pre></td><td class="code"><pre><code class=""><span class="line">wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
+</span><span class="line">tar zxvf LuaJIT-2.0.4.tar.gz
+</span><span class="line">cd LuaJIT-2.0.4
+</span><span class="line">make
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
-</span><span class="line">shell&gt; service irqbalance start
-</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>为nginx 绑定 cpu</li>
+  <li>设置环境变量</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">worker_processes  8;
-</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">export LUAJIT_LIB=/usr/local/lib
+</span><span class="line">export LUAJIT_INC=/usr/local/include/luajit-2.0</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>连接数调整，</li>
+  <li>然后编译ngx-lua-module.so</li>
 </ul>
 
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置动态库</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+</span><span class="line">&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="tengine-">在 Tengine 中启用</h3>
+
+<p><code>nginx.conf</code> 中先加载动态库</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
-</span><span class="line">fs.file-max = 6553600
-</span><span class="line">
-</span><span class="line">vim /etc/security/limits.conf
-</span><span class="line">* soft nofile 655360
-</span><span class="line">* hard nofile 655360
-</span><span class="line">
-</span><span class="line">vim /etc/nginx/nginx.conf
-</span><span class="line">
-</span><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">events {
-</span><span class="line">    worker_connections 300000;
-</span><span class="line">    use epoll;
-</span><span class="line">}
-</span><span class="line">http {
-</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
+</pre></td><td class="code"><pre><code class=""><span class="line">dso {
+</span><span class="line">    load ngx_load_module;
 </span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
+<p>在 nginx.conf 中添加</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache on/off;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
+
+<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
+
+<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
+<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
+
+<hr />
+
+<p>注：
+静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
+
 </div>
 
 
@@ -208,12 +193,12 @@
   
 
 
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+<time datetime="2015-10-29T22:45:00+08:00" pubdate data-updated="true">Oct 29<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/system/'>System</a>
+    <a class='category' href='/blog/categories/programe/'>Programe</a>
   
 </span>
 
@@ -229,10 +214,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/10/29/iptablezuo-natzhuan-fa/" title="Previous Post: iptable 之 NAT 转发">&laquo; iptable 之 NAT 转发</a>
+        <a class="basic-alignment left" href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/" title="Previous Post: 记录使用 Flask 的点滴">&laquo; 记录使用 Flask 的点滴</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/11/25/tired/" title="Next Post: 慢">慢 &raquo;</a>
       
     </p>
   </footer>
@@ -242,7 +225,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Nginx与php-fpm系统参数配置"></div>
+<div class="ds-thread" data-title="给 Tengine 加上 Lua 拓展"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
