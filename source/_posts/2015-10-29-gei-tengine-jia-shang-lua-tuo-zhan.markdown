@@ -3,7 +3,7 @@ layout: post
 title: "给 Tengine 加上 lua 拓展"
 date: 2015-10-29 22:45
 comments: true
-categories: Programe
+categories: System
 description: Tengine, lua-nginx-module
 ---
 
