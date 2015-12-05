@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Nginx与php-fpm系统参数配置 - 织网</title>
+  <title>Gre 隧道与 Keepalived - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Nginx 调优 PHP 优化">
-  <meta name="keywords" content="Nginx 调优 PHP 优化">
+  <meta name="description" content="keepalived">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Nginx与php-fpm系统参数配置</h1>
+      <h1 class="entry-title">Gre 隧道与 Keepalived</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+<time datetime="2015-12-05T10:29:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,59 +96,92 @@
   </header>
 
 
-<div class="entry-content"><p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
+<div class="entry-content"><p>这一篇文章是做了不少功课的。</p>
 
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
+<ul>
+  <li><a href="#第一节">什么是 Gre 隧道</a></li>
+  <li><a href="#第二节">什么是 Vrrp </a></li>
+  <li><a href="#第三节">KeepAlived 是什么</a></li>
+  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
+  <li><a href="#第五节">附录</a></li>
+</ul>
 
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
+<h3 id="第一节">什么是 Gre 隧道 </h3>
+
+<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
+
+<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
+
+<ul>
+  <li>$server_A_ip 表示服务器A的IP</li>
+  <li>$server_B_ip 服务器B 的内网IP</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
 <span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
-</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
-</span><span class="line">pm = static # 使用静态进程管理
-</span><span class="line">pm.max_children = 128
-</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># 在 A 机器上执行
+</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+</span><span class="line">sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
+</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
+</span><span class="line">sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址
+</span><span class="line">
+</span><span class="line"># 在 B 机器上执行
+</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+</span><span class="line">sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
+</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
+</span><span class="line">sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
-
-<ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
-</span><span class="line">shell&gt; service irqbalance start
-</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>为nginx 绑定 cpu</li>
-</ul>
+<p>如果想停止或者删除上述网卡</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">worker_processes  8;
-</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">ip link set gretap1 down
+</span><span class="line">ip tunnel del gretap1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>至此点到点得隧道建立。</p>
+
+<h3 id="第二节">什么是 vrrp 协议 </h3>
+
+<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
+
+<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
+
+<h3 id="第三节"> Keepalived 是什么 </h3>
+
+<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
 
 <ul>
-  <li>连接数调整，</li>
+  <li>一个经典的案例</li>
 </ul>
 
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
+<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
+
+<h3 id="第四节">怎么玩 Keepalived</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install keepalived</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
+接着在 A 服务器上</p>
+
+<ul>
+  <li>配置</li>
+</ul>
+
+<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -167,25 +200,37 @@
 <span class="line-number">15</span>
 <span class="line-number">16</span>
 <span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
-</span><span class="line">fs.file-max = 6553600
-</span><span class="line">
-</span><span class="line">vim /etc/security/limits.conf
-</span><span class="line">* soft nofile 655360
-</span><span class="line">* hard nofile 655360
-</span><span class="line">
-</span><span class="line">vim /etc/nginx/nginx.conf
-</span><span class="line">
-</span><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">events {
-</span><span class="line">    worker_connections 300000;
-</span><span class="line">    use epoll;
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">
+</span><span class="line">global_defs {
+</span><span class="line">    router_id LVS_DEVEL
 </span><span class="line">}
-</span><span class="line">http {
-</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
+</span><span class="line">
+</span><span class="line">vrrp_instance VI_1 {
+</span><span class="line">    state MASTER
+</span><span class="line">    interface gretap1 # 绑在建立起来的隧道上
+</span><span class="line">    virtual_router_id 51
+</span><span class="line">    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
+</span><span class="line">    priority 100          advert_int 1      # 广播时间间隔
+</span><span class="line">    authentication {  #  验证相关
+</span><span class="line">        auth_type PASS
+</span><span class="line">        auth_pass 1111
+</span><span class="line">    }
+</span><span class="line">    virtual_ipaddress {
+</span><span class="line">        $virtual_third_ip dev eth0
+</span><span class="line">    }
 </span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
+<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
+
+<h3 id="第五节"> 附录 </h3>
+
+<ul>
+  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
+  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
+  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
+</ul>
 </div>
 
 
@@ -208,7 +253,7 @@
   
 
 
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+<time datetime="2015-12-05T10:29:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2015</time>
       
 
 <span class="categories">
@@ -229,10 +274,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/10/29/iptablezuo-natzhuan-fa/" title="Previous Post: iptable 之 NAT 转发">&laquo; iptable 之 NAT 转发</a>
+        <a class="basic-alignment left" href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/" title="Previous Post: 给 Tengine 加上 lua 拓展">&laquo; 给 Tengine 加上 lua 拓展</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/11/25/tired/" title="Next Post: 慢">慢 &raquo;</a>
       
     </p>
   </footer>
@@ -242,7 +285,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Nginx与php-fpm系统参数配置"></div>
+<div class="ds-thread" data-title="Gre 隧道与 Keepalived"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

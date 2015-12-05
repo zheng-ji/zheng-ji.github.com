@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="读到ReWork这本久负盛名的书了。摘录了鄙人认为深刻的话语。 很多话有道理，但是我们见到的只有很少人真的会去做，至少是去刻意克服惰性和思维方式. 该书是由37signal 这个创造了很多精品的公司著作的。有很强的现实指导意义，以下摘自《rework》 谈到现实 撕开这个“现实世界”的遮羞布后， &hellip;">
+  <meta name="description" content="几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意 跳表简介 数据结构 应用场景 跳表简介 Skip List是 一种随机化的数据结构， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,333 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/01/tiao-biao-skiplist/">SkipList</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-01T10:21:00+08:00" pubdate data-updated="true">Feb 1<span>st</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/02/01/tiao-biao-skiplist/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意</p>
+
+<ul>
+  <li><a href="#第一节">跳表简介</a></li>
+  <li><a href="#第二节">数据结构</a></li>
+  <li><a href="#第三节">应用场景</a></li>
+</ul>
+
+<h3 id="第一节">跳表简介</h3>
+
+<p><img src="/images/2014/01/skiplist.png" /></p>
+
+<p><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">Skip List</a>是</p>
+
+<ul>
+  <li>一种随机化的数据结构，基于并联的链表，</li>
+  <li>其效率可比拟于二叉查找树（对于大多数操作需要O(log n)平均时间）。</li>
+  <li>以空间换时间，对有序的链表随机化增加上附加的前进链接</li>
+  <li>由多层链表组成，每一层有序的链表，第一层包含所有的元素；</li>
+</ul>
+
+<h3 id="第二节">数据结构</h3>
+
+<ul>
+  <li>skiplist节点</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">struct</span> <span class="n">node</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">key</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">value</span><span class="p">;</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">next</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>其中nodec * next[1] 是该节点的前向指针</p>
+
+<ul>
+  <li>skiplist数据结构</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">struct</span> <span class="n">skiplist</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">level</span><span class="p">;</span> <span class="c1">//最大的层</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">header</span><span class="p">;</span><span class="err">链表头</span>
+</span><span class="line"><span class="p">};</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>通常一个数据结构我们定义为表头信息和最大的层数</p>
+
+<ul>
+  <li>初始化</li>
+</ul>
+
+<p>列表的初始化需要初始化头部，并使头部每层都指向末尾（NULL）。MAX_LEVEL是我们定义的常量</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">node</span> <span class="o">*</span><span class="nf">createNode</span><span class="p">(</span><span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">key</span><span class="p">,</span> <span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">ns</span> <span class="o">=</span> <span class="p">(</span><span class="n">node</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">node</span><span class="p">)</span> <span class="o">+</span> <span class="n">level</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">node</span><span class="o">*</span><span class="p">));</span>
+</span><span class="line">    <span class="n">ns</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">;</span>
+</span><span class="line">    <span class="n">ns</span><span class="o">-&gt;</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">ns</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">skiplist</span><span class="o">*</span> <span class="nf">createSkiplist</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span> <span class="o">=</span> <span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">skiplist</span><span class="p">));</span>
+</span><span class="line">    <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span> <span class="o">=</span> <span class="n">createNode</span><span class="p">(</span><span class="n">MAX_LEVEL</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">MAX_LEVEL</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">sl</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>插入</li>
+</ul>
+
+<p>插入元素的时候元素所占有的层数完全是随机的，通过随机算法产生 需要三个步骤:</p>
+
+<ul>
+  <li>第一步需要查找到在每层待插入位置，</li>
+  <li>然后需要随机产生一个层数，</li>
+  <li>最后就是从高层至下插入.</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">bool</span> <span class="nf">insert</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span><span class="p">,</span><span class="kt">int</span> <span class="n">key</span><span class="p">,</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">update</span><span class="p">[</span><span class="n">MAX_LEVEL</span><span class="p">];</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">while</span><span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span><span class="o">&lt;</span><span class="n">key</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">p</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class="line">    <span class="c1">//产生一个随机层数K,新建一个待插入节点q, 层层插入</span>
+</span><span class="line">    <span class="n">k</span> <span class="o">=</span> <span class="n">randomLevel</span><span class="p">();</span>
+</span><span class="line">    <span class="c1">//更新跳表的level</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">k</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+</span><span class="line">            <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span> <span class="o">=</span> <span class="n">k</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">q</span> <span class="o">=</span> <span class="n">createNode</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//逐层更新节点的指针，和普通列表插入一样</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="n">k</span><span class="p">;</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span><span class="line">    <span class="p">{</span>
+</span><span class="line">        <span class="n">q</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>删除节点</li>
+</ul>
+
+<p>与插入类似的是，为了实现层层操作，用一个update数组维护每层需要的节点，如果删掉最大层则需要更新跳表的level。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">bool</span> <span class="nf">deleteSL</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span><span class="n">sl</span><span class="p">,</span><span class="kt">int</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">update</span><span class="p">[</span><span class="n">MAX_LEVEL</span><span class="p">];</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="c1">//从最高层开始搜</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span><span class="o">=</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">){</span>
+</span><span class="line">        <span class="k">while</span><span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span><span class="o">&lt;</span><span class="n">key</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">q</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="c1">//逐层删除，和普通列表删除一样</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">){</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">q</span><span class="p">){</span>
+</span><span class="line">                <span class="n">update</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="n">free</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+</span><span class="line">        <span class="c1">//如果删除的是最大层的节点，那么需要重新维护跳表的</span>
+</span><span class="line">        <span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">){</span>
+</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="nb">NULL</span><span class="p">){</span>
+</span><span class="line">                <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="o">--</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">else</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查找</li>
+</ul>
+
+<p>从最高层查找起， 跳跃查找</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">int</span> <span class="nf">search</span><span class="p">(</span><span class="n">skiplist</span> <span class="o">*</span> <span class="n">sl</span><span class="p">,</span> <span class="kt">int</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">node</span> <span class="o">*</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">q</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">p</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">header</span><span class="p">;</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">sl</span><span class="o">-&gt;</span><span class="n">level</span><span class="p">;</span>
+</span><span class="line">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">while</span> <span class="p">((</span><span class="n">q</span> <span class="o">=</span> <span class="n">p</span><span class="o">-&gt;</span><span class="n">forward</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">&lt;=</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="k">if</span> <span class="p">(</span><span class="n">q</span><span class="o">-&gt;</span><span class="n">key</span> <span class="o">==</span> <span class="n">key</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">                <span class="k">return</span> <span class="n">q</span><span class="o">-&gt;</span><span class="n">value</span><span class="p">;</span>
+</span><span class="line">            <span class="p">}</span>
+</span><span class="line">            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">应用场景</h3>
+<p>如前面说道的，老夫在leveldb的memtable.c看到这一实现的， Redis也是用到了这样的设计，看来KV的设计对skiplist有偏好，leveldb需要内存中存储的是有序的key-val键值对, 作为一个内存数据库，快速是很重要的，特别是数据量大的时候。牺牲了部分空间(冗余的指针)换取时间,达到O(logn)的效果</p>
+
+<h3>引用资料</h3>
+<ul>
+  <li><a href="http://zh.wikipedia.org/wiki/%E8%B7%B3%E8%B7%83%E5%88%97%E8%A1%A8">wikipedia</a> </li>
+  <li><a href="http://blog.csdn.net/ict2014/article/details/17394259">skiplist讲解</a></li>
+  <li><a href="https://github.com/zheng-ji/ToyCollection/skiplist">source code</a></li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1545,182 +1872,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/">Leveldb本地存储引擎-精致的工具</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-09-21T09:42:00+08:00" pubdate data-updated="true">Sep 21<span>st</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/09/21/leveldbben-di-cun-chu-yin-qing-jing-zhi-de-gong-ju/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>leveldb是一个google实现的非常高效的kv数据库，能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，主要归功于它的良好的设计。特别是LSM算法。 LevelDB 是单进程的服务，性能非常之高，在一台4个Q6600的CPU机器上，每秒钟写数据超过40w，而随机读的性能每秒钟超过10w。@ideawu的ssdb就是基于Leveldb引擎开发的，看起来很NB的样子 </p>
-
-<p>它只是一个本地存储引擎:</p>
-
-<ul>
-  <li>k/v db library，提供持久化 </li>
-  <li>No Server </li>
-  <li>No cache 
-于是它精巧。 </li>
-</ul>
-
-<blockquote>
-  <p>talk is cheap ,Show me the Code</p>
-</blockquote>
-
-<p>简单示范一下C++使用Leveldb ,要先下载leveldb源码编译<a href="https://github.com/basho/leveldb">code</a></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#include&lt;iostream&gt;  </span>
-</span><span class="line"><span class="c">#include&lt;string&gt;  </span>
-</span><span class="line"><span class="c">#include&quot;leveldb/db.h&quot;  </span>
-</span><span class="line">
-</span><span class="line"><span class="n">using</span> <span class="n">namespace</span> <span class="n">std</span><span class="p">;</span>
-</span><span class="line"><span class="n">using</span> <span class="n">namespace</span> <span class="n">leveldb</span><span class="p">;</span>
-</span><span class="line">
-</span><span class="line"><span class="nb">int</span> <span class="n">main</span><span class="p">()</span>
-</span><span class="line"><span class="p">{</span>
-</span><span class="line">    <span class="n">DB</span> <span class="o">*</span><span class="n">db</span><span class="p">;</span>
-</span><span class="line">    <span class="n">Options</span> <span class="n">options</span><span class="p">;</span>
-</span><span class="line">    <span class="n">options</span><span class="o">.</span><span class="n">create_if_missing</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
-</span><span class="line">    <span class="n">Status</span> <span class="n">s</span> <span class="o">=</span> <span class="n">DB</span><span class="p">::</span><span class="n">Open</span><span class="p">(</span><span class="n">options</span><span class="p">,</span><span class="s">&quot;/data/leveldb/lvd.db&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">db</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="err">!</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
-</span><span class="line">        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">ToString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="n">string</span> <span class="n">key</span> <span class="o">=</span> <span class="s">&quot;name&quot;</span><span class="p">,</span><span class="n">val</span> <span class="o">=</span> <span class="s">&quot;leveldb&quot;</span><span class="p">;</span>
-</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Put</span><span class="p">(</span><span class="n">WriteOptions</span><span class="p">(),</span><span class="n">key</span><span class="p">,</span><span class="n">val</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="err">!</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
-</span><span class="line">        <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">ToString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Get</span><span class="p">(</span><span class="n">ReadOptions</span><span class="p">(),</span><span class="n">key</span><span class="p">,</span><span class="o">&amp;</span><span class="n">val</span><span class="p">);</span>
-</span><span class="line">    <span class="k">if</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
-</span><span class="line">        <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">key</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;=&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">val</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
-</span><span class="line">        <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Put</span><span class="p">(</span><span class="n">leveldb</span><span class="p">::</span><span class="n">WriteOptions</span><span class="p">(),</span><span class="s">&quot;key2&quot;</span><span class="p">,</span><span class="n">val</span><span class="p">);</span>
-</span><span class="line">        <span class="k">if</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
-</span><span class="line">            <span class="n">s</span> <span class="o">=</span> <span class="n">db</span><span class="o">-&gt;</span><span class="n">Delete</span><span class="p">(</span><span class="n">leveldb</span><span class="p">::</span><span class="n">WriteOptions</span><span class="p">(),</span><span class="n">key</span><span class="p">);</span>
-</span><span class="line">            <span class="k">if</span><span class="p">(</span><span class="err">!</span><span class="n">s</span><span class="o">.</span><span class="n">ok</span><span class="p">()){</span>
-</span><span class="line">                <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">ToString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
-</span><span class="line">            <span class="p">}</span>
-</span><span class="line">        <span class="p">}</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">                                                                                                                                    <span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编译方法</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">g</span><span class="o">++</span> <span class="n">testleveldb</span><span class="o">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">main</span> <span class="o">-</span><span class="n">I</span><span class="o">./</span><span class="n">Include</span> <span class="o">-</span><span class="n">l</span><span class="o">./</span> <span class="o">-</span><span class="n">lleveldb</span> <span class="o">-</span><span class="n">lrt</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>执行./main 之后便可以看到,leveldb的存储文件</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">zj</span><span class="nd">@hp</span><span class="p">:</span><span class="o">~/</span><span class="n">lvd</span><span class="o">.</span><span class="n">db</span><span class="err">$</span> <span class="n">tree</span>
-</span><span class="line"><span class="o">.</span>
-</span><span class="line"><span class="err">├──</span> <span class="mf">000003.</span><span class="n">log</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">CURRENT</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">LOCK</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">LOG</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">MANIFEST</span><span class="o">-</span><span class="mo">000002</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">sst_0</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">sst_1</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">sst_2</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">sst_3</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">sst_4</span>
-</span><span class="line"><span class="err">├──</span> <span class="n">sst_5</span>
-</span><span class="line"><span class="err">└──</span> <span class="n">sst_6</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>很多语言都给予了binding,那么python 也不例外了 ：） <a href="https://github.com/rjpower/py-leveldb">py-leveldb</a><br />
-你需要先安装python-leveldb库</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">leveldb</span>
-</span><span class="line"><span class="n">db</span> <span class="o">=</span> <span class="n">leveldb</span><span class="o">.</span><span class="n">LevelDB</span><span class="p">(</span><span class="s">&#39;./db&#39;</span><span class="p">)</span>
-</span><span class="line"><span class="n">db</span><span class="o">.</span><span class="n">Put</span><span class="p">(</span><span class="s">&#39;hello&#39;</span><span class="p">,</span> <span class="s">&#39;world&#39;</span><span class="p">)</span>
-</span><span class="line"><span class="k">print</span> <span class="n">db</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s">&#39;hello&#39;</span><span class="p">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果你也和我一样蛋疼，你会不会想会有Server可以调用呢，再看下一篇吧 ：）</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -1742,6 +1893,10 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
@@ -1769,10 +1924,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
     
       <li class="post">
         <a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/10/hackthon/">黑客马拉松</a>
       </li>
     
   </ul>

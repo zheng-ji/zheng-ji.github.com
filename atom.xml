@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-10-29T23:06:00+08:00</updated>
+  <updated>2015-12-05T17:09:45+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,149 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Gre 隧道与 Keepalived]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived/"/>
+    <updated>2015-12-05T10:29:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived</id>
+    <content type="html"><![CDATA[<p>这一篇文章是做了不少功课的。</p>
+
+<ul>
+  <li><a href="#第一节">什么是 Gre 隧道</a></li>
+  <li><a href="#第二节">什么是 Vrrp </a></li>
+  <li><a href="#第三节">KeepAlived 是什么</a></li>
+  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
+  <li><a href="#第五节">附录</a></li>
+</ul>
+
+<h3 id="第一节">什么是 Gre 隧道 </h3>
+
+<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
+
+<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
+
+<ul>
+  <li>$server_A_ip 表示服务器A的IP</li>
+  <li>$server_B_ip 服务器B 的内网IP</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># 在 A 机器上执行
+</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+</span><span class="line">sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
+</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
+</span><span class="line">sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址
+</span><span class="line">
+</span><span class="line"># 在 B 机器上执行
+</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+</span><span class="line">sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
+</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
+</span><span class="line">sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果想停止或者删除上述网卡</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ip link set gretap1 down
+</span><span class="line">ip tunnel del gretap1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>至此点到点得隧道建立。</p>
+
+<h3 id="第二节">什么是 vrrp 协议 </h3>
+
+<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
+
+<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
+
+<h3 id="第三节"> Keepalived 是什么 </h3>
+
+<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
+
+<ul>
+  <li>一个经典的案例</li>
+</ul>
+
+<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
+
+<h3 id="第四节">怎么玩 Keepalived</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install keepalived</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
+接着在 A 服务器上</p>
+
+<ul>
+  <li>配置</li>
+</ul>
+
+<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">
+</span><span class="line">global_defs {
+</span><span class="line">    router_id LVS_DEVEL
+</span><span class="line">}
+</span><span class="line">
+</span><span class="line">vrrp_instance VI_1 {
+</span><span class="line">    state MASTER
+</span><span class="line">    interface gretap1 # 绑在建立起来的隧道上
+</span><span class="line">    virtual_router_id 51
+</span><span class="line">    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
+</span><span class="line">    priority 100          advert_int 1      # 广播时间间隔
+</span><span class="line">    authentication {  #  验证相关
+</span><span class="line">        auth_type PASS
+</span><span class="line">        auth_pass 1111
+</span><span class="line">    }
+</span><span class="line">    virtual_ipaddress {
+</span><span class="line">        $virtual_third_ip dev eth0
+</span><span class="line">    }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
+
+<h3 id="第五节"> 附录 </h3>
+
+<ul>
+  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
+  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
+  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[给 Tengine 加上 lua 拓展]]></title>
@@ -2082,44 +2225,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 <blockquote>
   <p>ssl_session_cache 大小不够等原因造成</p>
 </blockquote>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[用到的Tcpdump]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump/"/>
-    <updated>2014-11-29T14:15:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/11/29/yong-dao-de-tcpdump</id>
-    <content type="html"><![CDATA[<p>开发中，要定位具体问题，特别是网络问题的时候，多数是要晋出<code>tcpdump</code>，遗憾的是我略懂皮毛，有必要深入一些。
-简单说下我常用的 TcpDump的方法</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">tcpdump -i eth0 -Xxn port 80 -s 0 -c 1024 </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果仅仅是看manual  多数时候还是会忘记，好记性不如烂笔头，上述的选项是我认为很有用的</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">-i 指定网卡
-</span><span class="line">-Xxn X使用Ascii和16进制，n 表示 ip 用数字表示
-</span><span class="line">-s 0 表示整包抓取
-</span><span class="line">-c 1024 表示包得大小</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果希望将抓包过程中保留下来，可以在上述命令尾部加上 <code>-w trace.cap</code>
-这种格式的文件，文本编辑器是无法理解，需要特殊的软件才能回复，比如 <code>wireshark</code></p>
-
-<p>Tcpdump 中的 flag 有必要提下：</p>
-
-<ul>
-  <li>PSH 代表要求发送立即发送缓冲区内的其他对应数据包，无需缓冲区满才发送</li>
-  <li>RST 如果RST=1表示连接马上结束，无需等待终止确认手续，发送端已经断线</li>
-  <li>SYNC 表示主动连接到对方，建立连接</li>
-  <li>FIN 表示传送结束，发送方等待对方响应</li>
-</ul>
-
-<p>通过 wireshark 可以再现所谓的三次握手和四次挥手过程。</p>
 ]]></content>
   </entry>
   

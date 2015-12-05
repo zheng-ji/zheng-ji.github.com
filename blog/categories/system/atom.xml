@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-10-29T23:06:00+08:00</updated>
+  <updated>2015-12-05T17:09:45+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,205 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Gre 隧道与 Keepalived]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived/"/>
+    <updated>2015-12-05T10:29:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived</id>
+    <content type="html"><![CDATA[<p>这一篇文章是做了不少功课的。</p>
+
+<ul>
+  <li><a href="#第一节">什么是 Gre 隧道</a></li>
+  <li><a href="#第二节">什么是 Vrrp </a></li>
+  <li><a href="#第三节">KeepAlived 是什么</a></li>
+  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
+  <li><a href="#第五节">附录</a></li>
+</ul>
+
+<h3 id="第一节">什么是 Gre 隧道 </h3>
+
+<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
+
+<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
+
+<ul>
+  <li>$server_A_ip 表示服务器A的IP</li>
+  <li>$server_B_ip 服务器B 的内网IP</li>
+</ul>
+
+<p>```
+# 在 A 机器上执行
+# 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
+sudo ip link set dev gretap1 up  # 启动该设备
+sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址</p>
+
+<h1 id="b-">在 B 机器上执行</h1>
+<p># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
+sudo ip link set dev gretap1 up  # 启动该设备
+sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址
+```</p>
+
+<p>如果想停止或者删除上述网卡</p>
+
+<p><code>
+ip link set gretap1 down
+ip tunnel del gretap1
+</code></p>
+
+<p>至此点到点得隧道建立。</p>
+
+<h3 id="第二节">什么是 vrrp 协议 </h3>
+
+<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
+
+<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
+
+<h3 id="第三节"> Keepalived 是什么 </h3>
+
+<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
+
+<ul>
+  <li>一个经典的案例</li>
+</ul>
+
+<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
+
+<h3 id="第四节">怎么玩 Keepalived</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<p><code>
+sudo apt-get install keepalived
+</code></p>
+
+<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
+接着在 A 服务器上</p>
+
+<ul>
+  <li>配置</li>
+</ul>
+
+<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
+
+<p>```</p>
+
+<p>global_defs {
+    router_id LVS_DEVEL
+}</p>
+
+<p>vrrp_instance VI_1 {
+    state MASTER
+    interface gretap1 # 绑在建立起来的隧道上
+    virtual_router_id 51
+    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
+    priority 100          advert_int 1      # 广播时间间隔
+    authentication {  #  验证相关
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        $virtual_third_ip dev eth0
+    }
+}
+```</p>
+
+<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
+
+<h3 id="第五节"> 附录 </h3>
+
+<ul>
+  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
+  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
+  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
+</ul>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[给 Tengine 加上 lua 拓展]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/"/>
+    <updated>2015-10-29T22:45:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan</id>
+    <content type="html"><![CDATA[<p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
+感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
+
+<h2 id="nginxlua">编译 nginx_lua</h2>
+
+<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
+
+<ul>
+  <li>下载安装</li>
+</ul>
+
+<p><code>
+wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
+tar zxvf LuaJIT-2.0.4.tar.gz
+cd LuaJIT-2.0.4
+make
+make install
+</code></p>
+
+<ul>
+  <li>设置环境变量</li>
+</ul>
+
+<p><code>
+export LUAJIT_LIB=/usr/local/lib
+export LUAJIT_INC=/usr/local/include/luajit-2.0
+</code></p>
+
+<ul>
+  <li>然后编译ngx-lua-module.so</li>
+</ul>
+
+<p><code>
+/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module
+</code></p>
+
+<ul>
+  <li>设置动态库</li>
+</ul>
+
+<p><code>
+&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+&gt; ldconfig
+</code></p>
+
+<h3 id="tengine-">在 Tengine 中启用</h3>
+
+<p><code>nginx.conf</code> 中先加载动态库</p>
+
+<p><code>
+dso {
+    load ngx_load_module;
+}
+</code></p>
+
+<p>在 nginx.conf 中添加</p>
+
+<p><code>
+lua_code_cache on/off;
+</code></p>
+
+<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
+
+<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
+
+<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
+<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
+
+<hr />
+
+<p>注：
+静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Sysdig 值得拥有]]></title>
@@ -335,236 +534,6 @@ sudo lastb | awk '{ print $3}' | awk '{++S[$NF]} END {for(a in S) print a, S[a]}
 <p><code>
 iptables -A INPUT -i eth0 -s *.*.*.0/24 -j DROP
 </code></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[搭建 Postfix]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/"/>
-    <updated>2015-05-17T00:25:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix</id>
-    <content type="html"><![CDATA[<p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
-现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
-
-<h3 id="section">安装</h3>
-
-<p><code>
-sudo apt-get install postfix
-</code></p>
-
-<h3 id="section-1">配置</h3>
-
-<p>编辑 <code>/etc/postfix/main.cnf</code></p>
-
-<p><code>
-smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
-biff = no
-append_dot_mydomain = no
-readme_directory = no
-smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
-smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
-smtpd_use_tls=yes
-smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-myhostname = mail.zheng-ji.info 邮箱服务器域名
-alias_maps = hash:/etc/aliases
-alias_database = hash:/etc/aliases
-myorigin = $myhostname
-mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
-mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
-relay_domains = $mydestination
-inet_interfaces = all
-inet_protocols = all
-</code></p>
-
-<h3 id="section-2">授权</h3>
-
-<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
-
-<p><code>
-A 记录指向 1.2.3.4
-MX 记录也指向 1.2.3.4
-TXT 记录 v=spf1 ip4:1.2.3.4 ~all
-</code></p>
-
-<p>以上操作是防止被认为垃圾邮件。</p>
-
-<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
-编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
-
-<p><code>
-5.6.7.8  OK
-</code></p>
-
-<p>重启并授权生效</p>
-
-<p><code>
-sudo service postfix restart
-postmap access
-</code></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Nginx 错误码]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma/"/>
-    <updated>2014-12-13T15:18:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma</id>
-    <content type="html"><![CDATA[<p>在定位线上服务问题的时候，通常会去查看<code>Nginx</code> 的<code>error log</code></p>
-
-<p>那么 error 的定义, 对查找问题就显得很有帮助</p>
-
-<ul>
-  <li>upstream prematurely closed connection</li>
-</ul>
-
-<blockquote>
-  <p>请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
-</blockquote>
-
-<ul>
-  <li>recv() failed (104: Connection reset by peer) </li>
-</ul>
-
-<blockquote>
-  <p>服务器的并发连接数超过了其承载量，服务器会将其中一些连接Down掉；客户关掉了浏览器，而服务器还在给客户端发送数据;</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>用户在连接时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>用户在连接成功后读取数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while sending request to upstream </li>
-</ul>
-
-<blockquote>
-  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 连接后面的 upstream 时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应时超时 </p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应头时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx读取来自 upstream 的响应时超时</p>
-</blockquote>
-
-<ul>
-  <li>(104: Connection reset by peer) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream发送了 RST，将连接重置</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent invalid header while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent no valid HTTP/1.0 header while reading response header from upstream</li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>client intended to send too large body </li>
-</ul>
-
-<blockquote>
-  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client 发送的 body 超过了设置值</p>
-</blockquote>
-
-<ul>
-  <li>reopening logs </li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -USR1命令</p>
-</blockquote>
-
-<ul>
-  <li>gracefully shutting down</li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -WINCH命令</p>
-</blockquote>
-
-<ul>
-  <li>no live upstreams while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 下的 server 全都挂了</p>
-</blockquote>
-
-<ul>
-  <li>SSL_do_handshake() failed</li>
-</ul>
-
-<blockquote>
-  <p>SSL握手失败</p>
-</blockquote>
-
-<ul>
-  <li>ngx_slab_alloc() failed: no memory in SSL session shared cache</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache大小不够等原因造成</p>
-</blockquote>
-
-<ul>
-  <li>could not add new SSL session to the session cache while SSL handshaking</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache 大小不够等原因造成</p>
-</blockquote>
 ]]></content>
   </entry>
   

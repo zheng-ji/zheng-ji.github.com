@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 感谢 agentzh, lua-nginx-module, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 &hellip;">
+  <meta name="description" content="这一篇文章是做了不少功课的。 什么是 Gre 隧道 什么是 Vrrp KeepAlived 是什么 用Keepalived 怎么玩 附录 什么是 Gre 隧道 GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,179 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-12-05T10:29:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/12/05/gre-tuning-and-keepalived/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这一篇文章是做了不少功课的。</p>
+
+<ul>
+  <li><a href="#第一节">什么是 Gre 隧道</a></li>
+  <li><a href="#第二节">什么是 Vrrp </a></li>
+  <li><a href="#第三节">KeepAlived 是什么</a></li>
+  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
+  <li><a href="#第五节">附录</a></li>
+</ul>
+
+<h3 id="第一节">什么是 Gre 隧道 </h3>
+
+<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
+
+<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
+
+<ul>
+  <li>$server_A_ip 表示服务器A的IP</li>
+  <li>$server_B_ip 服务器B 的内网IP</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># 在 A 机器上执行
+</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+</span><span class="line">sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
+</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
+</span><span class="line">sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址
+</span><span class="line">
+</span><span class="line"># 在 B 机器上执行
+</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+</span><span class="line">sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
+</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
+</span><span class="line">sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果想停止或者删除上述网卡</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ip link set gretap1 down
+</span><span class="line">ip tunnel del gretap1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>至此点到点得隧道建立。</p>
+
+<h3 id="第二节">什么是 vrrp 协议 </h3>
+
+<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
+
+<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
+
+<h3 id="第三节"> Keepalived 是什么 </h3>
+
+<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
+
+<ul>
+  <li>一个经典的案例</li>
+</ul>
+
+<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
+
+<h3 id="第四节">怎么玩 Keepalived</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install keepalived</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
+接着在 A 服务器上</p>
+
+<ul>
+  <li>配置</li>
+</ul>
+
+<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">
+</span><span class="line">global_defs {
+</span><span class="line">    router_id LVS_DEVEL
+</span><span class="line">}
+</span><span class="line">
+</span><span class="line">vrrp_instance VI_1 {
+</span><span class="line">    state MASTER
+</span><span class="line">    interface gretap1 # 绑在建立起来的隧道上
+</span><span class="line">    virtual_router_id 51
+</span><span class="line">    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
+</span><span class="line">    priority 100          advert_int 1      # 广播时间间隔
+</span><span class="line">    authentication {  #  验证相关
+</span><span class="line">        auth_type PASS
+</span><span class="line">        auth_pass 1111
+</span><span class="line">    }
+</span><span class="line">    virtual_ipaddress {
+</span><span class="line">        $virtual_third_ip dev eth0
+</span><span class="line">    }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
+
+<h3 id="第五节"> 附录 </h3>
+
+<ul>
+  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
+  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
+  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1334,200 +1507,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/">my.cnf 配置依据</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-07-12T08:35:00+08:00" pubdate data-updated="true">Jul 12<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/07/12/my-dot-cnfpei-zhi-yi-ju/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>阅读完<a href="http://book.douban.com/subject/6873681/">构建高性能服务器</a> 一书，书中对 <code>MySQL</code> 配置做了讲解，我用烂笔头记录一番，明白它们这么配置的真正意义，形成系统的认知。</p>
-
-<ul>
-  <li><a href="#第一节">通用配置</a></li>
-  <li><a href="#第二节">innodb_pool_buffer 合理配置</a></li>
-  <li><a href="#第三节">文件打开数的合理设置</a></li>
-  <li><a href="#第四节">打开表优化设置</a></li>
-  <li><a href="#第五节">临时表的设置</a></li>
-  <li><a href="#第六节">查看索引命中率</a></li>
-</ul>
-
-<h3 id="第一节">通用配置</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">skip-name-resolve:</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>禁止 MySQL 对外连接 DNS 解析 ,这一选项可以消除 MySQL 进行DNS解析时间，开启该选项，所有远程主机连接授权都要使用 IP。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">back_log=512</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>指出在 MySQL 暂停响应之前，有多少个请求被存在堆栈中。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">key_buffer_size</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>指定用于索引的缓冲区大小，增加它可得到更好的索引处理能力，对于内存 4G 左右，可设置为 256MB。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">max_allowed_packet=4M</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>设定在一次网络传输中的最大值。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">thread_stack=256k</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>设置每个线程的堆栈大小，可满足普通操作。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">table_cache=614k</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>高速缓冲区的大小，当mysql访问一个表示，缓冲区还有空间，那么这个表就会被放入缓冲区，一般看峰值时间状态值，open_tables与open_cache，用于判断是否需要增加table_cache，如果open_Table接近table_cache就要增加了。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sort_buffer_size=6M</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>设定查询排序所用的缓冲区大小，是对每个链接而言，如果有100个连接，那么分配的总缓存是100*6=600M。
-read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">thread_cache_size=64</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>设置缓存中的链接线程的最大数量,4GB内存以上的我们会给64或者更大。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">query_cache_size=64M</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果该值比较小反而会影响效率，可以考虑不用。如果太大，缓存区中碎片会很多。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">tmp_table_size</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>设置内存临时表的最大值，如果超过改制，就会将临时表写入磁盘，范围是1kB-4GB。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">max_connection</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果超过该值，会出现<code>too many connections</code>。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">max_connect_errors</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>设置每个主机中连接请求异常中断最大次数，如果超过，MySQL禁止host连接请求，直到MySQL重启。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">wait_timeout = 120</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>一个请求的最大链接时间。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">thread_concurrency=8</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>该参数为服务器逻辑CPU * 2。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">skip-networking</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>该选项可以关闭连接方式，如果需要远程连接，不要开启。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">innodb_flush_log_at_trx_commit = 1</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>设置为0就是等到 innodb_log_buffer_size 队列满了之后再统一存储，默认是1，是最安全的设置。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">innodb_thread_concurrency = 8</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>服务器几个CPU就设置多少。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">read_rnd_buffer_Size = 16M</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>设置随机读的使用的缓冲区。</p>
-
-<h3 id="第二节">innodb_buffer_pool 的合理设置</h3>
-
-<p>不要武断的把innodb_buffer pool 配置为内存的50-80% 应具体而定。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show status like 'innodb_buffer_pool_%'
-</span><span class="line">
-</span><span class="line">关注的有
-</span><span class="line">innodb_buffer_pool_pages_data;
-</span><span class="line">innodb_buffer_pool_page_total;
-</span><span class="line">innodb_buffer_pool_read_request;
-</span><span class="line">innodb_buffer_pool_reads;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>然后看</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">读命中率 (innodb_buffer_pool_read_request - innodb_buffer_pool_reads) / innodb_buffer_pool_read_request;
-</span><span class="line">写命中率 innodb_buffer_pool_pages_data /innodb_buffer_pool_page_total;</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>如果读写命中率都能在95%以上就很好了。</p>
-
-<h3 id="第三节">文件打开数的合理设置依据</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'open_files'
-</span><span class="line">show variables like 'open_file_limit';</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>比较合适的设置是 Open_files / open_files_limit * 100% &lt;= 75;</p>
-
-<h3 id="第四节">打开表优化设置依据</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'open%tables';
-</span><span class="line">show variable like 'table_cache';</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>比较合适</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">open_tables / opende_tables * 100 &gt; 85%;
-</span><span class="line">open_Tables / table_Cache* 100% &lt; 95%；</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第五节">临时表的设置依据</h3>
-
-<p>每次执行语句，关于已经被创造了的临时表的数量，可以这么设置:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show gloabl status like 'created_tmp5';
-</span><span class="line">Created_tmp_disk_table / Created_tmp_tables * 100% &lt;= 25 %</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第六节">查看索引命中率</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'key_read%';</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>key_cache_miss_rate = key_Read / key_read_request * 100% 小于 1% 是很好的，
-意味着1000个请求有一个直接读硬盘。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1547,6 +1526,10 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
@@ -1574,10 +1557,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     
       <li class="post">
         <a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/10/hackthon/">黑客马拉松</a>
       </li>
     
   </ul>

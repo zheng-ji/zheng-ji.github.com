@@ -9,7 +9,16 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="关于博客 大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。 &hellip;">
+  <meta name="description" content="python拓展编写
+C++编写python的拓展。提高程序运行效率
+我理解的一般流程:
+* 编写自己的业务逻辑代码本例子如 1
+string add(int a,int b) 包装为python函数，用于解析python传进来的参数 1
+2
+3
+4
+5
+PyObject* wrap_add( &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +76,380 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/">C++与Python的混合编程</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-08T23:42:00+08:00" pubdate data-updated="true">Jun 8<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="python">python拓展编写</h4>
+<p>C++编写python的拓展。提高程序运行效率
+我理解的一般流程:
+* 编写自己的业务逻辑代码本例子如</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">string add(int a,int b)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>包装为python函数，用于解析python传进来的参数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_add</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">);</span>
+</span><span class="line"><span class="c1">//解析参数</span>
+</span><span class="line"><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line"><span class="c1">//构建返回值</span>
+</span><span class="line"><span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>编写映射函数</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="n">PyMethodDef</span> <span class="n">bintMethods</span><span class="p">[]</span> <span class="o">=</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">        <span class="p">{</span><span class="s">&quot;add&quot;</span><span class="p">,</span> <span class="n">wrap_add</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For add&quot;</span><span class="p">},</span>
+</span><span class="line">            <span class="p">{</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>*.模块初始化函数</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">initbint</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">PyObject</span><span class="o">*</span> <span class="n">m</span><span class="p">;</span>
+</span><span class="line">    <span class="n">m</span> <span class="o">=</span> <span class="n">Py_InitModule</span><span class="p">(</span><span class="s">&quot;bint&quot;</span><span class="p">,</span> <span class="n">bintMethods</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &quot;BigNum.h&quot;</span>
+</span><span class="line"><span class="cp">#include &lt;python2.7/Python.h&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;iostream&gt;</span>
+</span><span class="line">
+</span><span class="line"><span class="n">string</span> <span class="nf">add</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num1</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num2</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">ans</span> <span class="o">=</span> <span class="n">num1</span> <span class="o">+</span> <span class="n">num2</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Bint</span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">ans</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">string</span> <span class="nf">multiple</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num1</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">num2</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Bint</span> <span class="n">ans</span> <span class="o">=</span> <span class="n">num1</span> <span class="o">*</span> <span class="n">num2</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Bint</span><span class="o">::</span><span class="n">write</span><span class="p">(</span><span class="n">ans</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_add</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="n">PyObject</span><span class="o">*</span> <span class="nf">wrap_mul</span><span class="p">(</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">self</span><span class="p">,</span><span class="n">PyObject</span><span class="o">*</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">PyArg_ParseTuple</span><span class="p">(</span><span class="n">args</span><span class="p">,</span><span class="s">&quot;i|i&quot;</span><span class="p">,</span><span class="o">&amp;</span><span class="n">a</span><span class="p">,</span><span class="o">&amp;</span><span class="n">b</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">Py_BuildValue</span><span class="p">(</span><span class="s">&quot;s&quot;</span><span class="p">,</span><span class="n">multiple</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">).</span><span class="n">c_str</span><span class="p">());</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="k">static</span> <span class="n">PyMethodDef</span> <span class="n">bintMethods</span><span class="p">[]</span> <span class="o">=</span>
+</span><span class="line"><span class="p">{</span>
+</span><span class="line">    <span class="p">{</span><span class="s">&quot;add&quot;</span><span class="p">,</span> <span class="n">wrap_add</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For add&quot;</span><span class="p">},</span>
+</span><span class="line">    <span class="p">{</span><span class="s">&quot;mul&quot;</span><span class="p">,</span> <span class="n">wrap_mul</span><span class="p">,</span> <span class="n">METH_VARARGS</span><span class="p">,</span> <span class="s">&quot;For mul&quot;</span><span class="p">},</span>
+</span><span class="line">    <span class="p">{</span><span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">}</span>
+</span><span class="line"><span class="p">};</span>
+</span><span class="line">
+</span><span class="line"><span class="k">extern</span> <span class="s">&quot;C&quot;</span>              <span class="c1">//不加会导致找不到initbint</span>
+</span><span class="line"><span class="kt">void</span> <span class="n">initbint</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">PyObject</span><span class="o">*</span> <span class="n">m</span><span class="p">;</span>
+</span><span class="line">    <span class="n">m</span> <span class="o">=</span> <span class="n">Py_InitModule</span><span class="p">(</span><span class="s">&quot;bint&quot;</span><span class="p">,</span> <span class="n">bintMethods</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译成动态链接库</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="nl">all:</span>
+</span><span class="line">    <span class="n">g</span><span class="o">++</span> <span class="o">-</span><span class="n">fPIC</span> <span class="o">-</span><span class="n">shared</span> <span class="n">BigNum</span><span class="p">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">Bint</span><span class="p">.</span><span class="n">so</span>
+</span><span class="line"><span class="nl">clean:</span>
+</span><span class="line">    <span class="n">rm</span> <span class="o">-</span><span class="n">rf</span> <span class="n">bint</span><span class="p">.</span><span class="n">so</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">bint</span>
+</span><span class="line"><span class="n">bint</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="mi">4000000</span><span class="p">,</span><span class="mi">5000000</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>GitHub上有<a href="http://innerbrilliant.sinaapp.com/?p=515">源码</a></p>
+
+<h3 id="cpython">C++调用Python</h3>
+
+<p>python的开发效率之高是毋庸置疑的，C++/C的语言性能之快也是让人羡慕的。这一次，鱼和熊掌是可以兼得的 ：），混合编程，使得我们可以取之所长，游走在C与python之间。很多游戏开发中使用python来实现战斗脚本。
+* 初始化调用
+Py_Initialize();</p>
+
+<ul>
+  <li>
+    <p>PyObject* PyImport_ImportModule (char *name)
+一般都是通过(pmod = PyImport_ImportModule (“zhengji.app_context”)先来
+加载一个模块（py脚本),得到一个PyObject *pmod对象,失败返回NULL类型</p>
+  </li>
+  <li>
+    <p>获取某个方法或者类，PyObject * o是pmod
+PyObject* PyObject_GetAttrString (PyObject *o, char *attr_name)</p>
+  </li>
+</ul>
+
+<p><em>调用该方法 callable_object是第二步返回的指针
+PyObject</em> PyObject_CallFunction (PyObject *callable_object, char *format, …)</p>
+
+<ul>
+  <li>
+    <p>将PyObject* 返回char*
+char* PyString_AsString (PyObject *string)</p>
+  </li>
+  <li>
+    <p>结束初始化
+Py_Finalize();</p>
+  </li>
+</ul>
+
+<p>下面是script.py的内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/python</span>
+</span><span class="line"><span class="c"># Filename: script.py</span>
+</span><span class="line"><span class="k">class</span> <span class="nc">Student</span><span class="p">:</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">SetName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">PrintName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&quot;Hello World</span><span class="se">\n</span><span class="s">&quot;</span>
+</span><span class="line">    <span class="k">def</span> <span class="nf">world</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+</span><span class="line">        <span class="k">print</span> <span class="s">&quot;name&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="cscriptpy">C++调用Script.py</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &lt;python2.7/Python.h&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;iostream&gt;</span>
+</span><span class="line"><span class="cp">#include &lt;string&gt;</span>
+</span><span class="line">
+</span><span class="line"><span class="kt">int</span> <span class="nf">main</span> <span class="p">()</span> <span class="p">{</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//使用python之前，要调用Py_Initialize();这个函数进行初始化</span>
+</span><span class="line">    <span class="n">Py_Initialize</span><span class="p">();</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">PyRun_SimpleString</span><span class="p">(</span><span class="s">&quot;import sys&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyRun_SimpleString</span><span class="p">(</span><span class="s">&quot;sys.path.append(&#39;./&#39;)&quot;</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pModule</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pFunc</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pClass</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">PyObject</span> <span class="o">*</span> <span class="n">pInstance</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//这里是要调用的文件名</span>
+</span><span class="line">    <span class="n">pModule</span> <span class="o">=</span> <span class="n">PyImport_ImportModule</span><span class="p">(</span><span class="s">&quot;script&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//这里是要调用的函数名</span>
+</span><span class="line">    <span class="n">pFunc</span><span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;hello&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//调用函数</span>
+</span><span class="line">    <span class="n">PyEval_CallObject</span><span class="p">(</span><span class="n">pFunc</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">pFunc</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">pFunc</span> <span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;world&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyObject_CallFunction</span><span class="p">(</span><span class="n">pFunc</span><span class="p">,</span> <span class="s">&quot;s&quot;</span><span class="p">,</span> <span class="s">&quot;zhengji&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">Py_DECREF</span><span class="p">(</span><span class="n">pFunc</span><span class="p">);</span>
+</span><span class="line">
+</span><span class="line">    <span class="c1">//测试调用python的类</span>
+</span><span class="line">    <span class="n">pClass</span> <span class="o">=</span> <span class="n">PyObject_GetAttrString</span><span class="p">(</span><span class="n">pModule</span><span class="p">,</span> <span class="s">&quot;Student&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pClass</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t find Student class.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">pInstance</span> <span class="o">=</span> <span class="n">PyInstance_New</span><span class="p">(</span><span class="n">pClass</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">pInstance</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t create Student instance.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">PyObject_CallMethod</span><span class="p">(</span><span class="n">pInstance</span><span class="p">,</span> <span class="s">&quot;SetName&quot;</span><span class="p">,</span> <span class="s">&quot;s&quot;</span><span class="p">,</span><span class="s">&quot;my family&quot;</span><span class="p">);</span>
+</span><span class="line">    <span class="n">PyObject_CallMethod</span><span class="p">(</span><span class="n">pInstance</span><span class="p">,</span> <span class="s">&quot;PrintName&quot;</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="nb">NULL</span><span class="p">);</span>
+</span><span class="line">    <span class="c1">//调用Py_Finalize，这个根Py_Initialize相对应的。</span>
+</span><span class="line">    <span class="n">Py_Finalize</span><span class="p">();</span>
+</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编译C++代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">g</span><span class="o">++</span> <span class="n">zj</span><span class="p">.</span><span class="n">cpp</span> <span class="o">-</span><span class="n">o</span> <span class="n">zj</span> <span class="o">-</span><span class="n">lpython2</span><span class="mf">.7</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>输出结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zj</span><span class="err">@</span><span class="n">hp</span><span class="o">:~/</span><span class="n">tmp</span><span class="o">/</span><span class="n">CcalPy</span><span class="err">$</span> <span class="p">.</span><span class="o">/</span><span class="n">zj</span>
+</span><span class="line"><span class="n">Hello</span> <span class="n">World</span>
+</span><span class="line"><span class="n">name</span>
+</span><span class="line"><span class="n">my</span> <span class="n">family</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1024,115 +1407,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/07/05/fastcgi-plus-nginx-plus-c/">FastCGI + Nginx + C</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-07-05T23:22:00+08:00" pubdate data-updated="true">Jul 5<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/07/05/fastcgi-plus-nginx-plus-c/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>最近做完IP工具，梳理下学到的知识</p>
-
-<p>**关键词:whois UNIX FastCGI Nginx PHP GCC **</p>
-
-<p><strong>CGI</strong>全称是“公共网关接口”(Common Gateway Interface)，HTTP服务器与你的或其它机器上的程序进行“交谈”的一种工具，其程序须运行在网络服务器上。　CGI可以用任何一种语言编写，只要这种语言具有标准输入、输出和环境变量。如PHP,PERL等</p>
-
-<h3 id="fastcgi-">FASTCGI 特点</h3>
-
-<ul>
-  <li>FastCGI的不依赖于任何Web服务器的内部架构，因此即使服务器技术的变化, FastCGI依然稳定不变。</li>
-  <li>FastCGI具有语言无关性</li>
-</ul>
-
-<h3 id="fastcgi--1">FASTCGI 工作原理</h3>
-
-<ul>
-  <li>Web Server启动时载入FastCGI进程管理器（IIS ISAPI或Apache Module)</li>
-  <li>FastCGI进程管理器自身初始化，启动多个CGI解释器进程(可见多个php-cgi)并等待来自Web Server的连接。</li>
-  <li>当客户端请求到达Web Server时，FastCGI进程管理器选择并连接到一个CGI解释器。Web server将CGI环境变量和标准输入发送到FastCGI子进程php-cgi。</li>
-  <li>FastCGI子进程完成处理后将标准输出和错误信息从同一连接返回Web Server。当FastCGI子进程关闭连接时，请求便告处理完成。FastCGI子进程接着等待并处理来自FastCGI进程管理器(运行在Web Server中)的下一个连接。 在CGI模式中，php-cgi在此便退出了。</li>
-</ul>
-
-<p>在上述情况中，你可以想象CGI通常有多慢。每一个Web请求PHP都必须重新解析php.ini、重新载入全部扩展并重初始化全部数据结构。使用FastCGI，所有这些都只在进程启动时发生一次。一个额外的好处是，持续数据库连接(Persistent database connection)可以工作</p>
-
-<h3 id="nginxfastcgi">Nginx+FastCGI运行原理</h3>
-
-<p>Nginx不支持对外部程序的直接调用或者解析，所有的外部程序（包括PHP）必须通过FastCGI接口来调用。FastCGI接口在Linux下是 socket（这个socket可以是文件socket，也可以是ip socket）。为了调用CGI程序，还需要一个FastCGI的wrapper（wrapper可以理解为用于启动另一个程序的程序），这个 wrapper绑定在某个固定socket上，如端口或者文件socket。当Nginx将CGI请求发送给这个socket的时候，通过FastCGI 接口，wrapper接收到请求，然后派生出一个新的线程，这个线程调用解释器或者外部程序处理脚本并读取返回数据；接着，wrapper再将返回的数据 通过FastCGI接口，沿着固定的socket传递给Nginx；最后，Nginx将返回的数据发送给客户端。这就是Nginx+FastCGI的整个 运作过程，如图1-3所示。</p>
-
-<p><img src="/images/2013/fastcgi.jpg" /></p>
-
-<h3 id="fastcgi">我使用FastCGI的场景</h3>
-
-<p>通过随机产生千万条IP地址，shell命令处理文本，用whois爬取信息，入库，接着用C语言写的客户端通过FASTCGI 实现与Nginx服务器的通信</p>
-
-<h4 id="section">通信方式</h4>
-
-<p>写好的c 程序在spawn-fcgi（一种fastcgi管理工具）下转换为unix sock ,由nginx指定文件监听sock文件描述符。</p>
-
-<p>FastCGI 代码示例</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="cp">#include &quot;fcgi_stdio.h&quot;</span>
-</span><span class="line"><span class="kt">int</span> <span class="nf">main</span><span class="p">(){</span>
-</span><span class="line">    <span class="kt">int</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class="line">    <span class="k">while</span><span class="p">(</span><span class="n">FCGI_Accept</span><span class="p">()</span> <span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span><span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">        <span class="c1">//通信协议的格式，\r\n\r\n是向浏览器通信</span>
-</span><span class="line">        <span class="c1">//，之前因为只写\r\n导致Page unavailable</span>
-</span><span class="line">        <span class="n">printf</span><span class="p">(</span><span class="s">&quot;Content-type: text/html</span><span class="se">\r\n</span><span class="s">&quot;</span>
-</span><span class="line">                <span class="s">&quot;</span><span class="se">\r\n</span><span class="s">&quot;</span>
-</span><span class="line">                <span class="s">&quot;Request number %d running on host &lt;em&gt;%s&lt;/em&gt;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
-</span><span class="line">                <span class="o">++</span><span class="n">count</span><span class="p">,</span> <span class="n">getenv</span><span class="p">(</span><span class="s">&quot;SERVER_NAME&quot;</span><span class="p">));</span><span class="c1">//环境变量</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>### 感悟:</p>
-
-<p>排查错误的基础是要有好的思维习惯，比如去看日志，然后定位错误。能让我写到linux c 程序很高兴,特别最后坚持写完字符串处理函数，同时也更认清自己的好多基础上的不足，在此感谢荣哥 :) 。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1154,6 +1428,10 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
@@ -1181,10 +1459,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
     
       <li class="post">
         <a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/10/hackthon/">黑客马拉松</a>
       </li>
     
   </ul>
