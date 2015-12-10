@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Google C++ Style - 织网</title>
+  <title>Nginx 日志利器 GoAccess - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。 有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: _H 能用前置声明的地方尽量不使用 #include &hellip;">
+  <meta name="description" content="GoAccess Nginx">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/05/11/google-c-plus-plus-style">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Google C++ Style</h1>
+      <h1 class="entry-title">Nginx 日志利器 GoAccess</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2013-05-11T23:12:00+08:00" pubdate data-updated="true">May 11<span>th</span>, 2013</time>
+<time datetime="2015-12-10T23:28:00+08:00" pubdate data-updated="true">Dec 10<span>th</span>, 2015</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,29 +96,40 @@
   </header>
 
 
-<div class="entry-content"><p>阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。</p>
+<div class="entry-content"><p>我们经常需要从 Nginx 日志分析得出很多有价值的东西，分析的方法是各种 shell, awk, python, 现在 <a href="https://github.com/allinurl/goaccess">GoAccess</a> 给你另外一种选择, 值得拥有。</p>
 
 <ul>
-  <li>有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: <strong>_H</strong></li>
-  <li>
-    <p>能用前置声明的地方尽量不使用 #include
-前置声明是为了降低编译依赖，防止修改一个头文件引发多米诺效应; 举例说明: 如果头文件中用到类 File, 但不需要访问 File 类的声明, 头文件中只需前置声明 class File; 而无须 #include “file/base/file.h”.</p>
-  </li>
-  <li>
-    <p>只有当函数只有 10 行甚至更少时才将其定义为内联函数.
-当函数被声明为内联函数之后, 编译器会将其内联展开, 而不是按通常的函数调用机制进行调用.优点:当函数体比较小的时候, 内联该函数可以令目标代码更加高效. 对于存取函数以及其它函数体比较短, 性能关键的函数</p>
-  </li>
-  <li>
-    <p>义函数时, 参数顺序依次为: 输入参数, 然后是输出参数。
-标准化函数参数顺序可以提高可读性和易维护性</p>
-  </li>
-  <li>
-    <p>造函数体中进行初始化操作
-如果对象需要进行有意义的 (non-trivial) 初始化, 考虑使用明确的 Init() 方法并 (或) 增加一个成员标记用于指示对象是否已经初始化成功.</p>
-  </li>
-  <li>单个参数的构造函数使用 C++ 关键字 explicit.
-  大部分类并不需要可拷贝, 也不需要一个拷贝构造函数或重载赋值运算符. 不幸的是, 如果你不主动声明它们, 编译器会为你自动生成, 而且是 public 的.可以考虑在类的 private: 中添加拷贝构造函数和赋值操作的空实现, 只有声明, 没有定义. 由于这些空函数声明为 private, 当其他代码试图使用它们的时候, 编译器将报错. 方便起见, 我们可以使用 DISALLOW_COPY_AND_ASSIGN 宏:</li>
+  <li>安装
+用以下的方式安装，才能得到新版的 GoAccess, 功能更健全</li>
 </ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">$ echo "deb http://deb.goaccess.io $(lsb_release -cs) main"|sudo tee -a /etc/apt/sources.list
+</span><span class="line">$ wget -O - http://deb.goaccess.io/gnugpg.key | sudo apt-key add -
+</span><span class="line">$ sudo apt-get update
+</span><span class="line">$ sudo apt-get install goaccess</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>推荐配置</li>
+</ul>
+
+<p>安装完成之后，会生成一份 <code>/etc/goaccess.conf</code> 稍作编辑，这就是默认的配置，免去了后续每次都要定义格式</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">time-format %T   # 只有这种方式才能解决 0.0us 的显示问题
+</span><span class="line">date-format %d/%b/%Y
+</span><span class="line">log-format %h %^[%d:%t %^] "%r" %s %b "%R" "%u" %T</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用</li>
+</ul>
+
+<p>输出报表，报表中，我们可以看到最常访问的 IP, 接口，以及每个接口使用带宽，平均响应时长，状态码等，对业务分析有较好的便利性</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -131,50 +142,18 @@
 <span class="line-number">9</span>
 <span class="line-number">10</span>
 <span class="line-number">11</span>
-<span class="line-number">12</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">
-</span><span class="line">#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
-</span><span class="line">    TypeName(const TypeName&amp;); \
-</span><span class="line">void operator=(const TypeName&amp;)
-</span><span class="line">class Foo {
-</span><span class="line">    public:
-</span><span class="line">        Foo(int f);
-</span><span class="line">        ~Foo();
-</span><span class="line">
-</span><span class="line">    private:
-</span><span class="line">        DISALLOW_COPY_AND_ASSIGN(Foo);
-</span><span class="line">};</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">终端显示
+</span><span class="line">goaccess -f access.log 
+</span><span class="line"> 
+</span><span class="line">输出报表，报表中，我们可以看到top ip, 接口，以及接口使用带宽，平均响应时长，状态码等
+</span><span class="line">goaccess -f access.log &gt; report.html
+</span><span class="line"> 
+</span><span class="line">具体某段时间的输出
+</span><span class="line">sed -n '/5\/Dec\/2015/,/10\/Dec\/2010/ p' access.log | goaccess -a
+</span><span class="line"> 
+</span><span class="line">处理已经压缩的日志
+</span><span class="line">zcat access.log.*.gz | goaccess</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<ul>
-  <li>仅当只有数据时使用 struct, 其它一概使用 class.</li>
-  <li>
-    <p>编写简短函数
-如果函数超过 40 行, 可以思索一下能不能在不影响程序结构的前提下对其进行分割.</p>
-  </li>
-  <li>存取控制</li>
-</ul>
-
-<p>将所有数据成员声明为 private, 并根据需要提供相应的存取函数. 例如, 某个名为 foo_ 的变量, 其取值函数是 foo(). 还可能需要一个赋值函数 set_foo().一般在头文件中把存取函数定义成内联函数.
-* 声明顺序</p>
-
-<p>在类中使用特定的声明顺序: public: 在 private: 之前, 成员函数在数据成员 (变量) 前;</p>
-
-<p>通常是：
-+ public -&gt; protected -&gt; private;
-+ typedefs 和枚举
-+ 常量
-+ 构造函数
-+ 析构函数
-+ 成员函数, 含静态成员函数
-+ 数据成员, 含静态数据成员
-+ 类型转换</p>
-
-<p>使用 C++ 的类型转换, 如 static_cast&lt;&gt;(). 不要使用 int y = (int)x 或 int y = int(x) 等转换方式;
-不要使用 C 风格类型转换. 而应该使用 C++ 风格.
-* 对于迭代器和其他模板对象使用前缀形式 (++i) 的自增, 自减运算符.</p>
-
-<p>不考虑返回值的话, 前置自增 (++i) 通常要比后置自增 (i++) 效率更高. 因为后置自增 (或自减) 需要对表达式的值 i 进行一次拷贝. 如果 i 是迭代器或其他非数值类型, 拷贝的代价是比较大的.
-* 尽可能用 sizeof(varname) 代替 sizeof(type).</p>
 </div>
 
 
@@ -197,12 +176,12 @@
   
 
 
-<time datetime="2013-05-11T23:12:00+08:00" pubdate data-updated="true">May 11<span>th</span>, 2013</time>
+<time datetime="2015-12-10T23:28:00+08:00" pubdate data-updated="true">Dec 10<span>th</span>, 2015</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/programe/'>Programe</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -218,10 +197,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/" title="Previous Post: 返回值的透彻理解">&laquo; 返回值的透彻理解</a>
+        <a class="basic-alignment left" href="/blog/2015/12/05/gre-tuning-and-keepalived/" title="Previous Post: Gre 隧道与 Keepalived">&laquo; Gre 隧道与 Keepalived</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/05/30/xiu-qi-xiao-bo/" title="Next Post: 修葺小博">修葺小博 &raquo;</a>
       
     </p>
   </footer>
@@ -231,7 +208,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Google C++ Style"></div>
+<div class="ds-thread" data-title="Nginx 日志利器 GoAccess"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="leveldb是一个google实现的非常高效的kv数据库，能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，主要归功于它的良好的设计。特别是LSM算法。 LevelDB 是单进程的服务，性能非常之高，在一台4个Q6600的CPU机器上，每秒钟写数据超过40w， &hellip;">
+  <meta name="description" content="以前在Amazon Web ServiceAWS 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,353 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/22/dan-ji-wan-hadoop/">单机玩Hadoop</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-22T18:11:00+08:00" pubdate data-updated="true">Sep 22<span>nd</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/22/dan-ji-wan-hadoop/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>以前在Amazon Web Service<a href="http://aws.amazon.com/">AWS</a> 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热，特别是某些公司会把这些当作自我标榜更是让人恶心.本着折腾的信，把自己玩hadoop的过程写下来 ：）</p>
+
+<ul>
+  <li>创建hadoop用户组;</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo addgroup hadoop
+</span><span class="line">sudo adduser -ingroup hadoop hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>给hadoop用户添加权限，编辑/etc/sudoers文件; 在root   ALL=(ALL:ALL)   ALL下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop  ALL=(ALL:ALL) ALL</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>在Ubuntu下安装JDK </li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-add-repository ppa:flexiondotorg/java
+</span><span class="line">sudo apt-get update
+</span><span class="line">sudo apt-get install sun-java6-jre sun-java6-jdk sun-java6-plugin</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>如果你在第二条命令遇到错误:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">W: GPG 错误：http://ppa.launchpad.net precise Release: 由于没有公钥，无法验证下列签名： NO_PUBKEY 2EA8F35793D8809A
+</span><span class="line">请执行
+</span><span class="line">sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2EA8F35793D8809A  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑 sudo vi /etc/environment
+在其中添加如下两行：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">JAVA_HOME=/usr/lib/jvm/java-6-sun
+</span><span class="line">CLASSPATH=.:/usr/lib/jvm/java-6-sun/lib</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>安装ssh 服务</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install ssh openssh-server</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>首先要转换成hadoop用户，执行以下命令：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">su - hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>采用 rsa 方式 生成key</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ssh-keygen -t rsa -P ""</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>进入~/.ssh/目录下，将id_rsa.pub追加到authorized_keys授权文件中,使其无密码登录本机</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/.ssh
+</span><span class="line">cat id_rsa.pub &gt;&gt; authorized_keys</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>下载<a href="http://www.apache.org/dyn/closer.cgi/hadoop/common/">hadoop</a>,并安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo cp hadoop-0.20.203.0rc1.tar.gz /usr/local/</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>解压hadoop-0.20.203.tar.gz；</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd /usr/local
+</span><span class="line">sudo tar -zxf hadoop-0.20.203.0rc1.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>将解压出的文件夹改名为hadoop;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo mv hadoop-0.20.203.0 hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>将该hadoop文件夹的属主用户设为hadoop，</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo chown -R hadoop:hadoop hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>打开hadoop/conf/hadoop-env.sh文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo vi hadoop/conf/hadoop-env.sh</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>配置conf/hadoop-env.sh,配置本机jdk的路径;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">export JAVA_HOME=/usr/lib/jvm/java-6-sun/
+</span><span class="line">export HADOOP_HOME=/usr/local/hadoop
+</span><span class="line">export PATH=$PATH:/usr/local/hadoop/bin</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>记得source hadoop-env.sh </p>
+
+<p>编辑conf/core-site.xml文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;?xml version="1.0"?&gt;
+</span><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+</span><span class="line">&lt;!-- Put site-specific property overrides in this file. --&gt;
+</span><span class="line">&lt;configuration&gt;
+</span><span class="line">    &lt;property&gt;  
+</span><span class="line">        &lt;name&gt;fs.default.name&lt;/name&gt;  
+</span><span class="line">        &lt;value&gt;hdfs://localhost:9000&lt;/value&gt;   
+</span><span class="line">    &lt;/property&gt;  
+</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑conf/mapred-site.xml文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;?xml version="1.0"?&gt;
+</span><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
+</span><span class="line">&lt;!-- Put site-specific property overrides in this file. --&gt;
+</span><span class="line">&lt;configuration&gt;  
+</span><span class="line">     &lt;property&gt;   
+</span><span class="line">           &lt;name&gt;mapred.job.tracker&lt;/name&gt;  
+</span><span class="line">            &lt;value&gt;localhost:9001&lt;/value&gt;   
+</span><span class="line">      &lt;/property&gt;  
+</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑conf/hdfs-site.xml文件;</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&lt;configuration&gt;
+</span><span class="line">    &lt;property&gt;
+</span><span class="line">        &lt;name&gt;dfs.name.dir&lt;/name&gt;
+</span><span class="line">        &lt;value&gt;/usr/local/hadoop/datalog1,/usr/local/hadoop/datalog2&lt;/value&gt;
+</span><span class="line">    &lt;/property&gt;
+</span><span class="line">    &lt;property&gt;
+</span><span class="line">        &lt;name&gt;dfs.data.dir&lt;/name&gt;
+</span><span class="line">        &lt;value&gt;/usr/local/hadoop/data1,/usr/local/hadoop/data2&lt;/value&gt;
+</span><span class="line">    &lt;/property&gt;
+</span><span class="line">    &lt;property&gt;
+</span><span class="line">        &lt;name&gt;dfs.replication&lt;/name&gt;
+</span><span class="line">        &lt;value&gt;2&lt;/value&gt;
+</span><span class="line">    &lt;/property&gt;
+</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>运行hadoop,并启动</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd /usr/local/hadoop/
+</span><span class="line">bin/hadoop namenode -format // 进入hadoop目录下，格式化hdfs文件系统
+</span><span class="line">bin/start-all.sh //启动脚本</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>检测hadoop是否启动成功</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop/bin$ sudo jps
+</span><span class="line">11822 DataNode
+</span><span class="line">12461 Jps
+</span><span class="line">11581 NameNode
+</span><span class="line">12157 JobTracker
+</span><span class="line">12064 SecondaryNameNode
+</span><span class="line">12377 TaskTracker</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>说明hadoop单机版环境配置好了
+此时访问<a href="http://localhost:50030/">http://localhost:50030/</a>,便可以看到管理界面
+<img src="/images/2013/09/hadoop.png" />
+让我们来完成那篇著名论文的wordcounw吧</p>
+
+<p>创建输入文件夹,并挂载hdfs</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ mkdir input //创建输入文件夹
+</span><span class="line">hadoop@hp:/usr/local/hadoop$ cp conf/* input
+</span><span class="line">hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -put input/ input</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行wordcount程序,输入为input，输出数据目录为output。,</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">bin/hadoop jar hadoop-examples-0.20.203.0.jar wordcount input output</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>出现了运行情况如下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">13/09/22 17:59:40 INFO input.FileInputFormat: Total input paths to process : 15
+</span><span class="line">13/09/22 17:59:41 INFO mapred.JobClient: Running job: job_201309221738_0006
+</span><span class="line">13/09/22 17:59:42 INFO mapred.JobClient:  map 0% reduce 0%
+</span><span class="line">13/09/22 17:59:58 INFO mapred.JobClient:  map 13% reduce 0%
+</span><span class="line">13/09/22 18:00:07 INFO mapred.JobClient:  map 26% reduce 0%
+</span><span class="line">13/09/22 18:00:16 INFO mapred.JobClient:  map 40% reduce 8%
+</span><span class="line">13/09/22 18:00:22 INFO mapred.JobClient:  map 53% reduce 13%
+</span><span class="line">13/09/22 18:00:28 INFO mapred.JobClient:  map 66% reduce 13%
+</span><span class="line">13/09/22 18:00:31 INFO mapred.JobClient:  map 66% reduce 17%
+</span><span class="line">13/09/22 18:00:34 INFO mapred.JobClient:  map 80% reduce 17%
+</span><span class="line">13/09/22 18:00:37 INFO mapred.JobClient:  map 80% reduce 22%
+</span><span class="line">13/09/22 18:00:40 INFO mapred.JobClient:  map 93% reduce 22%
+</span><span class="line">13/09/22 18:00:46 INFO mapred.JobClient:  map 100% reduce 26%
+</span><span class="line">13/09/22 18:00:55 INFO mapred.JobClient:  map 100% reduce 100%
+</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient: Job complete: job_201309221738_0006
+</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient: Counters: 25
+</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient:   Job Counters </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查看执行结果</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -cat output/*</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>截取部分结果现场</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ hadoop fs -cat output/*
+</span><span class="line">"". 4
+</span><span class="line">"*" 10
+</span><span class="line">"alice,bob  10
+</span><span class="line">"console"   1
+</span><span class="line">"hadoop.root.logger".   1
+</span><span class="line">"jks".  4
+</span><span class="line">   79
+</span><span class="line">$HADOOP_BALANCER_OPTS"   1
+</span><span class="line">$HADOOP_DATANODE_OPTS"   1
+</span><span class="line">$HADOOP_HOME/conf/slaves 1
+</span><span class="line">$HADOOP_HOME/logs    1
+</span><span class="line">$HADOOP_JOBTRACKER_OPTS" 1
+</span><span class="line">$HADOOP_NAMENODE_OPTS"   1
+</span><span class="line">$HADOOP_SECONDARYNAMENODE_OPTS"  1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>停止hadoop</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ ./stop-all.sh </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>hadoop这只小象在单机可以这么玩</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1287,118 +1634,6 @@ worker代码</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/">豆瓣喜爱文章下载器</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-12T23:31:00+08:00" pubdate data-updated="true">Jun 12<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>收藏一些不错的文章</p>
-
-<p>在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。</p>
-
-<p>使用方法：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
-</span><span class="line">    <span class="c">#用户名,可以写入douban ID</span>
-</span><span class="line">    <span class="n">usrnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;laiyonghao&quot;</span><span class="p">,</span><span class="s">&quot;fenng&quot;</span><span class="p">]</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">usrnames</span><span class="p">:</span>
-</span><span class="line">                <span class="n">cwl</span> <span class="o">=</span> <span class="n">Crawler</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span><span class="line">        <span class="n">cwl</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span class="line">        <span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">(</span><span class="n">cwl</span><span class="p">)</span>
-</span><span class="line">        <span class="n">parser</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<blockquote>
-  <p>运行 python main.py</p>
-</blockquote>
-
-<p>结果 </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">tmp</span>
-</span><span class="line">    <span class="err">├──</span> <span class="n">fenng</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">Got</span> <span class="n">talent</span><span class="err">?</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">QCon</span> <span class="n">Beijing</span> <span class="mi">2013</span> <span class="err">乱记</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">北京生存指南</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">发现「讷客」</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">父亲谈创新</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">和菜头对豆瓣用户骂声的回应</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">胡扯两句</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">年会：公司人的新民俗</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">一个关于嘲笑的小故事</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">有些事，蹲在家里是永远实现不了的。</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">赞</span>
-</span><span class="line">    <span class="err">│</span>   <span class="err">└──</span> <span class="err">中国说唱教父</span><span class="o">--</span><span class="err">尹相杰</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="err">转</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span>
-</span><span class="line">    <span class="err">└──</span> <span class="n">laiyonghao</span>
-</span><span class="line">        <span class="err">├──</span> <span class="n">Live</span> <span class="n">Together</span><span class="p">,</span> <span class="n">Hate</span> <span class="n">Each</span> <span class="n">Other</span>
-</span><span class="line">        <span class="err">├──</span> <span class="err">当初的愿望实现了么？</span>
-</span><span class="line">        <span class="err">├──</span> <span class="err">豆瓣阅读即将开售（已上线）</span>
-</span><span class="line">        <span class="err">├──</span> <span class="err">婚礼主题曲背后的故事</span>
-</span><span class="line">        <span class="err">└──</span> <span class="err">科普也需严谨</span><span class="o">---</span><span class="err">对《数学之美》密码部分的评论</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>源代码<a href="https://github.com/zheng-ji/douban-likes-crawler.git">链接</a>
-Happy Hacking : )</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1420,6 +1655,10 @@ Happy Hacking : )</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
@@ -1447,10 +1686,6 @@ Happy Hacking : )</p>
     
       <li class="post">
         <a href="/blog/2015/08/21/supervisorjian-ting-qi/">Supervisor 监听器</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a>
       </li>
     
   </ul>

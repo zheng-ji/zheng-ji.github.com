@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2015-12-05T17:09:45+08:00</updated>
+  <updated>2015-12-10T23:37:22+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,72 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Nginx 日志利器 GoAccess]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/"/>
+    <updated>2015-12-10T23:28:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess</id>
+    <content type="html"><![CDATA[<p>我们经常需要从 Nginx 日志分析得出很多有价值的东西，分析的方法是各种 shell, awk, python, 现在 <a href="https://github.com/allinurl/goaccess">GoAccess</a> 给你另外一种选择, 值得拥有。</p>
+
+<ul>
+  <li>安装
+用以下的方式安装，才能得到新版的 GoAccess, 功能更健全</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">$ echo "deb http://deb.goaccess.io $(lsb_release -cs) main"|sudo tee -a /etc/apt/sources.list
+</span><span class="line">$ wget -O - http://deb.goaccess.io/gnugpg.key | sudo apt-key add -
+</span><span class="line">$ sudo apt-get update
+</span><span class="line">$ sudo apt-get install goaccess</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>推荐配置</li>
+</ul>
+
+<p>安装完成之后，会生成一份 <code>/etc/goaccess.conf</code> 稍作编辑，这就是默认的配置，免去了后续每次都要定义格式</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">time-format %T   # 只有这种方式才能解决 0.0us 的显示问题
+</span><span class="line">date-format %d/%b/%Y
+</span><span class="line">log-format %h %^[%d:%t %^] "%r" %s %b "%R" "%u" %T</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用</li>
+</ul>
+
+<p>输出报表，报表中，我们可以看到最常访问的 IP, 接口，以及每个接口使用带宽，平均响应时长，状态码等，对业务分析有较好的便利性</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">终端显示
+</span><span class="line">goaccess -f access.log 
+</span><span class="line"> 
+</span><span class="line">输出报表，报表中，我们可以看到top ip, 接口，以及接口使用带宽，平均响应时长，状态码等
+</span><span class="line">goaccess -f access.log &gt; report.html
+</span><span class="line"> 
+</span><span class="line">具体某段时间的输出
+</span><span class="line">sed -n '/5\/Dec\/2015/,/10\/Dec\/2010/ p' access.log | goaccess -a
+</span><span class="line"> 
+</span><span class="line">处理已经压缩的日志
+</span><span class="line">zcat access.log.*.gz | goaccess</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Gre 隧道与 Keepalived]]></title>
@@ -2062,169 +2128,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 <p>通过开启 mysql 的 <code>general log</code>, 可以发现pt-archiver 执行时，是分批commit 的事务，因此执行效率会慢，在8核16G 内存的生产环境机器备份 1kw 条记录, 耗时150 分钟。 但基本不对服务造成影响，而且可以不用深夜进行, 值得一用。</p>
 
 <p>最近攒了好多好工具和经验，要好好整理搬上来和大家分享才是。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Nginx 错误码]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma/"/>
-    <updated>2014-12-13T15:18:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma</id>
-    <content type="html"><![CDATA[<p>在定位线上服务问题的时候，通常会去查看<code>Nginx</code> 的<code>error log</code></p>
-
-<p>那么 error 的定义, 对查找问题就显得很有帮助</p>
-
-<ul>
-  <li>upstream prematurely closed connection</li>
-</ul>
-
-<blockquote>
-  <p>请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
-</blockquote>
-
-<ul>
-  <li>recv() failed (104: Connection reset by peer) </li>
-</ul>
-
-<blockquote>
-  <p>服务器的并发连接数超过了其承载量，服务器会将其中一些连接Down掉；客户关掉了浏览器，而服务器还在给客户端发送数据;</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>用户在连接时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>用户在连接成功后读取数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(111: Connection refused) while sending request to upstream </li>
-</ul>
-
-<blockquote>
-  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 连接后面的 upstream 时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应时超时 </p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应头时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx读取来自 upstream 的响应时超时</p>
-</blockquote>
-
-<ul>
-  <li>(104: Connection reset by peer) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream发送了 RST，将连接重置</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent invalid header while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent no valid HTTP/1.0 header while reading response header from upstream</li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>client intended to send too large body </li>
-</ul>
-
-<blockquote>
-  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client 发送的 body 超过了设置值</p>
-</blockquote>
-
-<ul>
-  <li>reopening logs </li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -USR1命令</p>
-</blockquote>
-
-<ul>
-  <li>gracefully shutting down</li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -WINCH命令</p>
-</blockquote>
-
-<ul>
-  <li>no live upstreams while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 下的 server 全都挂了</p>
-</blockquote>
-
-<ul>
-  <li>SSL_do_handshake() failed</li>
-</ul>
-
-<blockquote>
-  <p>SSL握手失败</p>
-</blockquote>
-
-<ul>
-  <li>ngx_slab_alloc() failed: no memory in SSL session shared cache</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache大小不够等原因造成</p>
-</blockquote>
-
-<ul>
-  <li>could not add new SSL session to the session cache while SSL handshaking</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache 大小不够等原因造成</p>
-</blockquote>
 ]]></content>
   </entry>
   
