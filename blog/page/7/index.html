@@ -9,15 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="收藏一些不错的文章 在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。 使用方法： 1
-2
-3
-4
-5
-6
-7
-8
-if &hellip;">
+  <meta name="description" content="什么是Unix Domain Socket
+基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率： &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -75,6 +68,83 @@ if &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/">Unix Domain Socket – IPC通信机制</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-17T23:52:00+08:00" pubdate data-updated="true">Jun 17<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="unix-domain-socket">什么是Unix Domain Socket</h4>
+<p>基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率：</p>
+
+<ul>
+  <li>不需要经过网络协议栈</li>
+  <li>不需要打包拆包、计算校验和、维护序号和应答等</li>
+</ul>
+
+<p>只是将应用层数据从一个进程拷贝到另一个进程。这是因为，IPC机制本质上是可靠的通讯，而网络协议是为不可靠的通讯设计的。UNIX Domain Socket也提供面向流和面向数据包两种API接口，类似于TCP和UDP，但是面向消息的UNIX Domain Socket也是可靠的，消息既不会丢失也不会顺序错乱。</p>
+
+<h4 id="section">应用</h4>
+
+<p>UNIX Domain Socket是全双工的，API接口语义丰富，相比其它IPC机制有明显的优越性，目前已成为使用最广泛的IPC机制，比如X Window服务器和GUI程序之间就是通过UNIX Domain Socket通讯的。</p>
+
+<p>Nginx通过unix:/socket与fastcgi连接，提升性能,比tcp socket要高效
++ 在nginx.conf中修改配置为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">fastcgi_pass unix:/tmp/php-cgi.sock;
+</span><span class="line">#fastcgi_pass 127.0.0.1:9000;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>在php-fpm.conf中修改配置为：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/tmp/php-cgi.sock</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>通信过程</p>
+
+<p><img src="/images/2013/08/ipc_unix_socket-300x300.png" /></p>
+
+<p>用Unix domain socket写的Demo</p>
+
+<p>使用UNIX Domain Socket的过程和网络socket十分相似，也要先调用socket()创建一个socket文件描述符，address family指定为AF_UNIX，type可以选择SOCK_DGRAM或SOCK_STREAM，protocol参数仍然指定为0即可。通常是指定/tmp/目录下的一个文件作为通信路径</p>
+
+<p>源码demo<a href="https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock">链接</a></p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1391,63 +1461,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/11/28/si-kao-yu-fen-xiang-shi-jie-zhi-sheng-hua/">思考与分享使价值升华</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-11-28T00:45:00+08:00" pubdate data-updated="true">Nov 28<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/11/28/si-kao-yu-fen-xiang-shi-jie-zhi-sheng-hua/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>一个月匆匆过去了，还没来得及叹口气，又被生活推着向前走，耐不住很多思绪与感悟。抽空看看我冷清的博客，恍然间我已经4个月没上来过了，便有了个理由写篇东西算是为博客增点暖气。</p>
-
-<p>这个月经常想起kant，也就是知乎上那位风云人物，这个和我在腾讯大楼里认识的人。不知为何会记起这位大神，但有点能肯定的是，在他身上看到了我想追求的东西（独立人格，思考的魅力），有些人很奇妙，短短的交流便能让你找到了目标.比如 @ruitao,@jiahui。他们都是The gift of god：）</p>
-
-<p>这个月的技术关键词 <strong>“Mongodb,Redis,Go,Zmq,Python,Tonardo” “数值计算，性能调优”</strong>，如此云云，是不是看来很唬人呢，当我看到一个庞大的软件而且都是陌生的技术在我眼前浮现的时候，彷如在建筑“长城”，内心赞叹之余感慨万千。等到我也拾起键盘，开始构建代码的时候，也慢慢能理解到其实并不可怕。这是个过程，当你投入时间和毅力，总能给你答案，要坚信。这中间我是在不断地在提醒自己，还有很多缺点一直存在，始终没有改好（3年前我已经意识到自己急躁的心理是个大难题），不过面对真实自己的勇气我还是有的。于是也准备做好与之长时间抗战了，是不是以后也有本书叫做《与自己的缺点为友》呢？</p>
-
-<p>技术的学习要保持一直的理性分析真的是不易，现阶段的我是人云亦云的墙头草。听说不懂的名词就容易陷入盲目崇拜。年岁有加，知道真正核心的东西是思维方式与经验积累，这两者是水和鱼的关系。所以必须开拓视野，多积累经验。如何将知识转化为自己的东西？那就是思维方式的训练了。积极正面的思考，这对于感性思维多一点的人，如我，更是需要多点刻意的维持。奇怪的是，即便有点难熬，我还是很享受这样战胜自己的感受。那天在大巴上和chandy有不少共鸣，其中有一点便是，人的对手只有自己，你能说不是么。或许我就是一纠结狂吧：）</p>
-
-<p>旁边的偶像的桌上有一坨坨书。阅读便是一件很重要的事情了。人需要血液循环来新陈代谢。读书就是必不可少的事情。并不是为了追求腹有诗书气自华的装逼，只求随着知识的增长，实现上述所言的思维方式与经验的累积，thanks to ruitao 借的书和推荐的博客。《coders at work》是我最近阅读的一本采访15位伟大软件先驱的人生经历。我需要更多的阅读来broaden my horizion。以前觉得会写作的人没什么，现在突然意识到如果能把你的东西转述成逻辑分明的文章让人意会，这是一种境界，所以我也很佩服韩寒。博客的作用也在这个时候起了正能量的作用。</p>
-
-<p>人们总是在拼命追求得不到的东西，当我不会某些技术的时候，便羡慕掌握这些知识，每个时期的感悟也有所不同，就像我一直记得好友说过的话，不要为了技术而技术。对于回忆，总有后知后觉，比如偶然有一天我配置属于自己的vim插件的时候，慢慢能体会别人的话了，是必须承认自己的愚笨。当然这样的例子还有很多，哈哈，我有这样一位值得骄傲的朋友@jiahui。大学将近尾声。多点机会聚聚才行。</p>
-
-<p>有时候会陷入过度优化的噩梦。该如何取舍就是经验了。透过现象看本质的是多么睿智一件事。喜欢丁香园博主，便是这个原因。慢慢觉得无论身在哪里，规終到底还是需要你能解决问题。这个过程需要足够强大的内心，对于这一天，我一直在路上，虽说走的有点慢。耐心也是一种美德，嗯，it must be!</p>
-
-<p>在写完程序工作的时候，我总能看到互联网上那些知名博客的分析。觉得不能一直成日埋头写代码。哪怕现阶段是追求技术，积累的阶段，生活也一样，是多线程的，也要多关注行业动态装逼的说是产品思考，不要限制自己的可能。如果有能力写些有思考性的东西，与别人分享,这样一来创造学习的机会，二来让思考升华。总而言之，只要想学习，一直都有方法。</p>
-
-<p>对于选择，我想时候到了我会再次拾起破烂的笔头。好好叙述我的经历，无论周遭怎样，希望大家都慢慢变好：）</p>
-
-<p>末了，终于记起为什么老是想起kant了,因为他的一句话，“思考与分享，你的价值在升华”。于是也有了这日志的诞生。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1469,6 +1482,10 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
@@ -1496,10 +1513,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
     
       <li class="post">
         <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible 使用经验</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/21/supervisorjian-ting-qi/">Supervisor 监听器</a>
       </li>
     
   </ul>
@@ -1547,7 +1560,7 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2015 - zheng-ji -
+  Copyright &copy; 2016 - zheng-ji -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
   <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
   </script>

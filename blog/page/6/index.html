@@ -9,7 +9,23 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="以前在Amazon Web ServiceAWS 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热， &hellip;">
+  <meta name="description" content="使用 shell 获取进程，并删除 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+#取得当前进程号
+current_pid=$$
+#获得特定进程号并重定向到一个临时文件中
+ps -aux|grep "/usr/sbin/httpd" | grep -v "grep"| awk '{ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +83,152 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/09/28/shellji-qiao-xiao-jie/">Bash Shell 技巧小结</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-28T22:52:00+08:00" pubdate data-updated="true">Sep 28<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/09/28/shellji-qiao-xiao-jie/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+  <li>使用 shell 获取进程，并删除</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#取得当前进程号
+</span><span class="line">current_pid=$$
+</span><span class="line">#获得特定进程号并重定向到一个临时文件中
+</span><span class="line">ps -aux|grep "/usr/sbin/httpd" | grep -v "grep"| awk '{print $2}' &gt;/tmp/${current_pid}.txt
+</span><span class="line">#commands start
+</span><span class="line">for pid in `cat /tmp/${current_pid}.txt`
+</span><span class="line">do
+</span><span class="line">{
+</span><span class="line">    echo "kill -9 $pid"
+</span><span class="line">    kill -9 $pid
+</span><span class="line">}
+</span><span class="line">done 
+</span><span class="line">rm -f /tmp/${current_pid}.txt </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>shell 的函数处理</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">func()
+</span><span class="line">{
+</span><span class="line">    echo $a $b $c
+</span><span class="line">    echo $1 $2 $3
+</span><span class="line">}
+</span><span class="line">a="aaa"
+</span><span class="line">b="bbb"
+</span><span class="line">c="ccc"
+</span><span class="line">func $a e f</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>函数传参是通过 funcname $para1 $para2 …,函数内部是使用$1,$2,$3
+结果为：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">aaa bbb ccc
+</span><span class="line">aaa e f </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>信号捕捉
+trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
+其中,name是捕捉到信号以后所采取的一系列操作。实际中，name一般是一个专门用来处理所捕捉信号的函数。name需要用双引号（“”）引起来。signal是待捕捉的信号。
+最常见的行动包括： 清除临时文件 忽略该信号(如trap “” 23) 询问用户是否终止该脚本进程</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">trap 'exitprocess' 2　　　　#捕捉到信号２之后执行exitprocess function
+</span><span class="line">LOOP=0
+</span><span class="line">function exitprocess()
+</span><span class="line">{
+</span><span class="line">    echo "You Just hit &lt;CTRL-C&gt;, at number $LOOP"
+</span><span class="line">    echo "I will now exit"
+</span><span class="line">    exit 1
+</span><span class="line">}
+</span><span class="line">while : # 循环直到捕捉到信号（注意中间的空格） 
+</span><span class="line">do
+</span><span class="line">    LOOP=$LOOP+1
+</span><span class="line">    echo $LOOP
+</span><span class="line">    sleep 1
+</span><span class="line">done </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>给一个文本，获取其中2000 ~ 3000 行怎么破？</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cat data.txt | tail -n +2000 | head -n 1000 &gt; result.txt</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>查找文件是否存在</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">find /data -name hello.cpp </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1557,83 +1719,6 @@ worker代码</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/">Unix Domain Socket – IPC通信机制</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-17T23:52:00+08:00" pubdate data-updated="true">Jun 17<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/06/17/unix-domain-socket-ipctong-xin-ji-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h4 id="unix-domain-socket">什么是Unix Domain Socket</h4>
-<p>基于socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），但是UNIX Domain Socket用于IPC更有效率：</p>
-
-<ul>
-  <li>不需要经过网络协议栈</li>
-  <li>不需要打包拆包、计算校验和、维护序号和应答等</li>
-</ul>
-
-<p>只是将应用层数据从一个进程拷贝到另一个进程。这是因为，IPC机制本质上是可靠的通讯，而网络协议是为不可靠的通讯设计的。UNIX Domain Socket也提供面向流和面向数据包两种API接口，类似于TCP和UDP，但是面向消息的UNIX Domain Socket也是可靠的，消息既不会丢失也不会顺序错乱。</p>
-
-<h4 id="section">应用</h4>
-
-<p>UNIX Domain Socket是全双工的，API接口语义丰富，相比其它IPC机制有明显的优越性，目前已成为使用最广泛的IPC机制，比如X Window服务器和GUI程序之间就是通过UNIX Domain Socket通讯的。</p>
-
-<p>Nginx通过unix:/socket与fastcgi连接，提升性能,比tcp socket要高效
-+ 在nginx.conf中修改配置为：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">fastcgi_pass unix:/tmp/php-cgi.sock;
-</span><span class="line">#fastcgi_pass 127.0.0.1:9000;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>在php-fpm.conf中修改配置为：</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">/tmp/php-cgi.sock</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>通信过程</p>
-
-<p><img src="/images/2013/08/ipc_unix_socket-300x300.png" /></p>
-
-<p>用Unix domain socket写的Demo</p>
-
-<p>使用UNIX Domain Socket的过程和网络socket十分相似，也要先调用socket()创建一个socket文件描述符，address family指定为AF_UNIX，type可以选择SOCK_DGRAM或SOCK_STREAM，protocol参数仍然指定为0即可。通常是指定/tmp/目录下的一个文件作为通信路径</p>
-
-<p>源码demo<a href="https://github.com/zheng-ji/ToyCollection/tree/master/unix-sock">链接</a></p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1655,6 +1740,10 @@ worker代码</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
@@ -1682,10 +1771,6 @@ worker代码</p>
     
       <li class="post">
         <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible 使用经验</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/08/21/supervisorjian-ting-qi/">Supervisor 监听器</a>
       </li>
     
   </ul>
@@ -1733,7 +1818,7 @@ worker代码</p>
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2015 - zheng-ji -
+  Copyright &copy; 2016 - zheng-ji -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
   <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
   </script>

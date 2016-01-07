@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Nginx 错误码 - 织网</title>
+  <title> 实时监控 nginx qps 的拓展 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Nginx 错误码">
+  <meta name="description" content="Nginx lua">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/12/13/nginxcuo-wu-ma">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Nginx 错误码</h1>
+      <h1 class="entry-title">实时监控 Nginx Qps 的拓展</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-12-13T15:18:00+08:00" pubdate data-updated="true">Dec 13<span>th</span>, 2014</time>
+<time datetime="2016-01-07T12:59:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2016</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,161 +96,98 @@
   </header>
 
 
-<div class="entry-content"><p>在定位线上服务问题的时候，通常会去查看<code>Nginx</code> 的<code>error log</code></p>
-
-<p>那么 error 的定义, 对查找问题就显得很有帮助</p>
+<div class="entry-content"><p>用下班时间写了一个 ngx lua 的拓展, <a href="https://github.com/zheng-ji/ngx_reqstatus_lua">GitHub</a>。可以:</p>
 
 <ul>
-  <li>upstream prematurely closed connection</li>
+  <li>[x] 实时监控域名的 qps</li>
+  <li>[x] 实时监控域名的 5xx 个数</li>
+  <li>[x] 实时监控域名的 响应时长</li>
+  <li>[x] 并附带 Ganglia 监控插件</li>
 </ul>
 
-<blockquote>
-  <p>请求uri的时候出现的异常，是由于 upstream 还未返回应答给用户时用户断掉连接造成的，对系统没有影响，可以忽略</p>
-</blockquote>
+<h2 id="section">使用</h2>
 
 <ul>
-  <li>recv() failed (104: Connection reset by peer) </li>
+  <li>配置 <code>nginx.conf</code></li>
 </ul>
 
-<blockquote>
-  <p>服务器的并发连接数超过了其承载量，服务器会将其中一些连接Down掉；客户关掉了浏览器，而服务器还在给客户端发送数据;</p>
-</blockquote>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">http {
+</span><span class="line">    ...
+</span><span class="line">    ...
+</span><span class="line">
+</span><span class="line">    lua_shared_dict statics_dict    1M; # 初始化变量
+</span><span class="line">    lua_package_path "/etc/nginx/ngx_reqstatus_lua/?.lua";  #路径
+</span><span class="line">
+</span><span class="line">    server {
+</span><span class="line">        listen 80;
+</span><span class="line">        server_name  justforfun.com; 
+</span><span class="line">
+</span><span class="line">        # 在需要监控的 server_name 添加此句
+</span><span class="line">        log_by_lua_file "/etc/nginx/ngx_reqstatus_lua/hook.lua";
+</span><span class="line">        location /{
+</span><span class="line">            ...
+</span><span class="line">            ...
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">    # 监控服务
+</span><span class="line">    server {
+</span><span class="line">        listen 127.0.0.1:6080;
+</span><span class="line">        location /{
+</span><span class="line">            access_by_lua_file "/etc/nginx/ngx_reqstatus_lua/status.lua";
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>(111: Connection refused) while connecting to upstream </li>
+  <li>效果, 查看 <code>justforfun.com</code> 的命令</li>
 </ul>
 
-<blockquote>
-  <p>用户在连接时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl localhost:6080/?domain=justforfun.com</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>(111: Connection refused) while reading response header from upstream </li>
+  <li>输出</li>
 </ul>
 
-<blockquote>
-  <p>用户在连接成功后读取数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">Server Name:    justforfun.com
+</span><span class="line">Seconds SinceLast:   1.4399998188019 secs
+</span><span class="line">Request Count:      1
+</span><span class="line">Average Req Time:   0 secs
+</span><span class="line">Requests Per Secs:  0.69444453182781
+</span><span class="line">5xx num:    0</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<ul>
-  <li>(111: Connection refused) while sending request to upstream </li>
-</ul>
-
-<blockquote>
-  <p>Nginx 和 upstream 连接成功后发送数据时，若遇到后端 upstream 挂掉或者不通，会收到该错误</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 连接后面的 upstream 时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应时超时 </p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx 读取来自 upstream 的响应头时超时</p>
-</blockquote>
-
-<ul>
-  <li>(110: Connection timed out) while reading upstream </li>
-</ul>
-
-<blockquote>
-  <p>nginx读取来自 upstream 的响应时超时</p>
-</blockquote>
-
-<ul>
-  <li>(104: Connection reset by peer) while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream发送了 RST，将连接重置</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent invalid header while reading response header from upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>upstream sent no valid HTTP/1.0 header while reading response header from upstream</li>
-</ul>
-
-<blockquote>
-  <p>upstream 发送的响应头无效</p>
-</blockquote>
-
-<ul>
-  <li>client intended to send too large body </li>
-</ul>
-
-<blockquote>
-  <p>用于设置允许接受的客户端请求内容的最大值，默认值是1M，client 发送的 body 超过了设置值</p>
-</blockquote>
-
-<ul>
-  <li>reopening logs </li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -USR1命令</p>
-</blockquote>
-
-<ul>
-  <li>gracefully shutting down</li>
-</ul>
-
-<blockquote>
-  <p>用户发送kill  -WINCH命令</p>
-</blockquote>
-
-<ul>
-  <li>no live upstreams while connecting to upstream </li>
-</ul>
-
-<blockquote>
-  <p>upstream 下的 server 全都挂了</p>
-</blockquote>
-
-<ul>
-  <li>SSL_do_handshake() failed</li>
-</ul>
-
-<blockquote>
-  <p>SSL握手失败</p>
-</blockquote>
-
-<ul>
-  <li>ngx_slab_alloc() failed: no memory in SSL session shared cache</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache大小不够等原因造成</p>
-</blockquote>
-
-<ul>
-  <li>could not add new SSL session to the session cache while SSL handshaking</li>
-</ul>
-
-<blockquote>
-  <p>ssl_session_cache 大小不够等原因造成</p>
-</blockquote>
 </div>
 
 
@@ -273,7 +210,7 @@
   
 
 
-<time datetime="2014-12-13T15:18:00+08:00" pubdate data-updated="true">Dec 13<span>th</span>, 2014</time>
+<time datetime="2016-01-07T12:59:00+08:00" pubdate data-updated="true">Jan 7<span>th</span>, 2016</time>
       
 
 <span class="categories">
@@ -294,10 +231,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/11/29/yong-dao-de-tcpdump/" title="Previous Post: 用到的Tcpdump">&laquo; 用到的Tcpdump</a>
+        <a class="basic-alignment left" href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/" title="Previous Post: Nginx 日志利器 GoAccess">&laquo; Nginx 日志利器 GoAccess</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/" title="Next Post: Percona 小箱里的pt-archiver">Percona 小箱里的pt-archiver &raquo;</a>
       
     </p>
   </footer>
@@ -307,7 +242,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Nginx 错误码"></div>
+<div class="ds-thread" data-title="实时监控 Nginx Qps 的拓展"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
