@@ -109,7 +109,7 @@
   </header>
 
 
-  <div class="entry-content"><p>用下班时间写了一个 ngx lua 的拓展, <a href="https://github.com/zheng-ji/ngx_reqstatus_lua">GitHub</a>。可以:</p>
+  <div class="entry-content"><p>用下班时间写了一个 ngx lua 的拓展, <a href="https://github.com/zheng-ji/ngx_lua_reqstatus">GitHub</a>。可以:</p>
 
 <ul>
   <li>[x] 实时监控域名的 qps</li>
@@ -155,14 +155,14 @@
 </span><span class="line">    ...
 </span><span class="line">
 </span><span class="line">    lua_shared_dict statics_dict    1M; # 初始化变量
-</span><span class="line">    lua_package_path "/etc/nginx/ngx_reqstatus_lua/?.lua";  #路径
+</span><span class="line">    lua_package_path "/etc/nginx/ngx_lua_reqstatus/?.lua";  #路径
 </span><span class="line">
 </span><span class="line">    server {
 </span><span class="line">        listen 80;
 </span><span class="line">        server_name  justforfun.com; 
 </span><span class="line">
 </span><span class="line">        # 在需要监控的 server_name 添加此句
-</span><span class="line">        log_by_lua_file "/etc/nginx/ngx_reqstatus_lua/hook.lua";
+</span><span class="line">        log_by_lua_file "/etc/nginx/ngx_lua_reqstatus/hook.lua";
 </span><span class="line">        location /{
 </span><span class="line">            ...
 </span><span class="line">            ...
@@ -172,7 +172,7 @@
 </span><span class="line">    server {
 </span><span class="line">        listen 127.0.0.1:6080;
 </span><span class="line">        location /{
-</span><span class="line">            access_by_lua_file "/etc/nginx/ngx_reqstatus_lua/status.lua";
+</span><span class="line">            access_by_lua_file "/etc/nginx/ngx_lua_reqstatus/status.lua";
 </span><span class="line">        }
 </span><span class="line">    }
 </span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>

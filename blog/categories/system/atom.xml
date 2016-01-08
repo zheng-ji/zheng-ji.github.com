@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-01-07T13:11:50+08:00</updated>
+  <updated>2016-01-08T13:01:30+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -18,7 +18,7 @@
     <link href="http://zheng-ji.github.com/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"/>
     <updated>2016-01-07T12:59:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan</id>
-    <content type="html"><![CDATA[<p>用下班时间写了一个 ngx lua 的拓展, <a href="https://github.com/zheng-ji/ngx_reqstatus_lua">GitHub</a>。可以:</p>
+    <content type="html"><![CDATA[<p>用下班时间写了一个 ngx lua 的拓展, <a href="https://github.com/zheng-ji/ngx_lua_reqstatus">GitHub</a>。可以:</p>
 
 <ul>
   <li>[x] 实时监控域名的 qps</li>
@@ -39,14 +39,14 @@ http {
     …</p>
 
 <pre><code>lua_shared_dict statics_dict    1M; # 初始化变量
-lua_package_path "/etc/nginx/ngx_reqstatus_lua/?.lua";  #路径
+lua_package_path "/etc/nginx/ngx_lua_reqstatus/?.lua";  #路径
 
 server {
     listen 80;
     server_name  justforfun.com; 
 
     # 在需要监控的 server_name 添加此句
-    log_by_lua_file "/etc/nginx/ngx_reqstatus_lua/hook.lua";
+    log_by_lua_file "/etc/nginx/ngx_lua_reqstatus/hook.lua";
     location /{
         ...
         ...
@@ -56,7 +56,7 @@ server {
 server {
     listen 127.0.0.1:6080;
     location /{
-        access_by_lua_file "/etc/nginx/ngx_reqstatus_lua/status.lua";
+        access_by_lua_file "/etc/nginx/ngx_lua_reqstatus/status.lua";
     }
 } } ```
 </code></pre>
