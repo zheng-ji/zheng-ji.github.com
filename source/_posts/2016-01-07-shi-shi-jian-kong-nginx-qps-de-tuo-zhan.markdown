@@ -7,7 +7,7 @@ categories: System
 description: Nginx lua
 ---
 
-用下班时间写了一个 ngx lua 的拓展, [GitHub](https://github.com/zheng-ji/ngx_reqstatus_lua)。可以:
+用下班时间写了一个 ngx lua 的拓展, [GitHub](https://github.com/zheng-ji/ngx_lua_reqstatus)。可以:
 
 - [x] 实时监控域名的 qps
 - [x] 实时监控域名的 5xx 个数
@@ -24,14 +24,14 @@ http {
     ...
 
     lua_shared_dict statics_dict    1M; # 初始化变量
-    lua_package_path "/etc/nginx/ngx_reqstatus_lua/?.lua";  #路径
+    lua_package_path "/etc/nginx/ngx_lua_reqstatus/?.lua";  #路径
 
     server {
         listen 80;
         server_name  justforfun.com; 
 
         # 在需要监控的 server_name 添加此句
-        log_by_lua_file "/etc/nginx/ngx_reqstatus_lua/hook.lua";
+        log_by_lua_file "/etc/nginx/ngx_lua_reqstatus/hook.lua";
         location /{
             ...
             ...
@@ -41,7 +41,7 @@ http {
     server {
         listen 127.0.0.1:6080;
         location /{
-            access_by_lua_file "/etc/nginx/ngx_reqstatus_lua/status.lua";
+            access_by_lua_file "/etc/nginx/ngx_lua_reqstatus/status.lua";
         }
     }
 }
