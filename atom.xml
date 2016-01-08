@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-01-08T13:01:30+08:00</updated>
+  <updated>2016-01-08T21:53:01+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -57,23 +57,19 @@
 <span class="line-number">22</span>
 <span class="line-number">23</span>
 <span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">http {
 </span><span class="line">    ...
 </span><span class="line">    ...
 </span><span class="line">
 </span><span class="line">    lua_shared_dict statics_dict    1M; # 初始化变量
 </span><span class="line">    lua_package_path "/etc/nginx/ngx_lua_reqstatus/?.lua";  #路径
+</span><span class="line">    log_by_lua_file "/etc/nginx/ngx_lua_reqstatus/hook.lua"; # 添加此句
 </span><span class="line">
 </span><span class="line">    server {
 </span><span class="line">        listen 80;
 </span><span class="line">        server_name  justforfun.com; 
 </span><span class="line">
-</span><span class="line">        # 在需要监控的 server_name 添加此句
-</span><span class="line">        log_by_lua_file "/etc/nginx/ngx_lua_reqstatus/hook.lua";
 </span><span class="line">        location /{
-</span><span class="line">            ...
 </span><span class="line">            ...
 </span><span class="line">        }
 </span><span class="line">    }
@@ -87,7 +83,7 @@
 </span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>效果, 查看 <code>justforfun.com</code> 的命令</li>
+  <li>效果</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
