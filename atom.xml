@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-03-11T00:46:50+08:00</updated>
+  <updated>2016-03-11T00:49:25+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -18,15 +18,11 @@
     <link href="http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/"/>
     <updated>2016-03-10T23:32:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi</id>
-    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色色药丸，还是红色药丸？</p>
+    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
 
-<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式</p>
+<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
 
 <ul>
-  <li>SnapShot</li>
-  <li>
-    <p>AOF</p>
-  </li>
   <li><a href="#第一节">什么是 Snapshot</a></li>
   <li><a href="#第二节">什么是 AOF </a></li>
   <li><a href="#第三节">选择哪种药丸</a></li>
