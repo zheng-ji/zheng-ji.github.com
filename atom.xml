@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-03-09T18:28:59+08:00</updated>
+  <updated>2016-03-11T00:45:46+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,133 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/"/>
+    <updated>2016-03-10T23:32:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi</id>
+    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色色药丸，还是红色药丸？</p>
+
+<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式</p>
+
+<ul>
+  <li>SnapShot</li>
+  <li>
+    <p>AOF</p>
+  </li>
+  <li><a href="#第一节">什么是 Snapshot</a></li>
+  <li><a href="#第二节">什么是 AOF </a></li>
+  <li><a href="#第三节">选择哪种药丸</a></li>
+</ul>
+
+<h3 id="第一节">什么是 Snapshot</h3>
+
+<p>Snapshot 将内存中数据以结构化的方式序列化到 rdb 文件中，是默认的持久化方式，便于解析引擎快速解析和内存实施。快照得由间隔时间，变更次数同时符合才会触发， 该过程中并不阻塞客户端请求，copy-on-write 方式也意味着极端情况下可能会导致实际数据2倍内存的使用量。它首先将数据写入临时文件，结束后，将临时文件重名为 dump.rdb。可以使用 <code>redis-check-dump</code> 用来检测完整性</p>
+
+<p>只有快照结束后才会将旧的文件替换成新的，因此任何时候 RDB 文件都是完整的。如果在触发 snapshot 之前，server 失效。会导致上一个时间点之后的数据未能序列化到 rdb 文件，安全性上稍弱。 </p>
+
+<p>我们可手动执行 save 或 bgsave 命令让 redis 执行快照。两个命令的区别在于:</p>
+
+<ul>
+  <li>save 是由主进程进行快照操作，会阻塞其它请求;</li>
+  <li>bgsave 会通过 fork 子进程进行快照操作;</li>
+</ul>
+
+<p>RDB 文件默认是经过压缩的二进制文件，占用的空间会小于内存中的数据，更加利于传输。设置如下，可以关闭快照功能</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">save ""</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section">相关配置</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># snapshot触发的时机，save &lt;seconds&gt; &lt;changes&gt;， 比如600秒有2个操作
+</span><span class="line">save 600 2
+</span><span class="line"># 当snapshot 时出现错误无法继续时，是否阻塞客户端变更操作 
+</span><span class="line">stop-writes-on-bgsave-error yes 
+</span><span class="line"># 是否启用rdb文件压缩，默认为 yes cpu消耗，快速传输  
+</span><span class="line">rdbcompression yes  
+</span><span class="line"># rdb文件名称  
+</span><span class="line">dbfilename dump.rdb  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">什么是 AOF</h3>
+
+<p>Append-only file，将 <code>操作 + 数据</code> 以格式化指令的方式追加到操作日志文件的尾部，在 append 操作返回后， 已经写入到文件或者即将写入，才进行实际的数据变更，日志文件保存了历史的操作过程；当 server 需要数据恢复时，可以直接回放此日志文件，即可还原所有的操作过程。 如果你期望数据更少的丢失，那么可以采用 AOF 模式。可以用 redis-check-aof 检测文件是否完整。</p>
+
+<p>AOF 就是日志会记录变更操(例如：set/del等)，会导致AOF文件非常的庞大，意味着server失效后，数据恢复的过程将会很长；事实上，一条数据经过多次变更，将会产生多条AOF记录，其实只要保存当前的状态，历史的操作记录是可以抛弃的， 由此催生了 AOF ReWrite。</p>
+
+<h3 id="aof-rewrite">什么是 AOF Rewrite</h3>
+
+<p>其实是压缩 AOF 文件的过程，Redis 采取了类似 Snapshot 的方式：基于 <code>copy-on-write</code>，全量遍历内存中数据，然后逐个序列到 aof 文件中。因此 AOF Rewrite 能够正确反应当前内存数据的状态， Rewrite 过程中，新的变更操作将仍然被写入到原 AOF 文件中，同时这些新的变更操作也会被收集起来， 并不阻塞客户端请求。</p>
+
+<h3 id="section-1">相关配置</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">##只有在yes下，aof重写/文件同步等特性才会生效  
+</span><span class="line">appendonly no  
+</span><span class="line">  
+</span><span class="line">##指定aof文件名称  
+</span><span class="line">appendfilename appendonly.aof  
+</span><span class="line">  
+</span><span class="line">##指定aof操作中文件同步策略，有三个合法值：always everysec no，默认为everysec  
+</span><span class="line">appendfsync everysec  
+</span><span class="line">
+</span><span class="line">##在aof-rewrite期间，appendfsync 是否暂缓文件同步，no 表示不暂缓，yes 表示暂缓，默认为no  
+</span><span class="line">no-appendfsync-on-rewrite no  
+</span><span class="line">  
+</span><span class="line">##aof文件rewrite触发的最小文件尺寸 只有大于此aof文件大于此尺寸是才会触发rewrite，默认64mb，建议512mb  
+</span><span class="line">auto-aof-rewrite-min-size 64mb  
+</span><span class="line">  
+</span><span class="line">##相对于上一次rewrite，本次rewrite触发时aof文件应该增长的百分比
+</span><span class="line">auto-aof-rewrite-percentage 100  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="appendfsync-">appendfsync 方式：</h3>
+
+<ul>
+  <li>always：每一条 aof 记录都立即同步到文件，这是最安全的方式，但是更多的磁盘操作和阻塞延迟，IO 开支较大。</li>
+  <li>everysec：每秒同步一次，性能和安全也是redis推荐的方式。如果服务器故障，有可能导致最近一秒内aof记录丢失。</li>
+  <li>no：redis并不直接调用文件同步，而是交给操作系统来处理，操作系统可以根据buffer填充情况等择机触发同步；性能较好，在物理服务器故障时，数据丢失量会因OS配置有关。</li>
+</ul>
+
+<h3 id="第三节">选择哪种药丸</h3>
+
+<ul>
+  <li>AOF更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</li>
+  <li>Snapshot，安全性较差，它是正常时期数据备份及 master-slave 数据同步的最佳手段，文件尺寸较小，恢复数度较快。</li>
+</ul>
+
+<h3 id="section-2">主从架构的环境下的选择</h3>
+
+<ul>
+  <li>通常 master 使用AOF，slave 使用 Snapshot，master 需要确保数据完整性，slave 提供只读服务.</li>
+  <li>如果你的网络稳定性差， 物理环境糟糕情况下，那么 master， slave均采取 AOF，这个在 master， slave角色切换时，可以减少时间成本；</li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[ 实时监控 nginx qps 的拓展]]></title>
@@ -2043,125 +2170,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
 <p>测试就通过了.好奇怪，在我的理解中很不应该, 明天继续看看为什么会这么奇怪。</p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[搭建elasticsearch与kibana]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/01/31/da-jian-elasticsearchyu-kibana/"/>
-    <updated>2015-01-31T12:52:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/01/31/da-jian-elasticsearchyu-kibana</id>
-    <content type="html"><![CDATA[<p>ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
-Kibana 是一个与之配套的 web 界面。</p>
-
-<h3 id="section">安装所需的：</h3>
-
-<ul>
-  <li>需要openJDK</li>
-  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">elasticsearch-1.4.2.deb</a></li>
-  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">kibana-4.0.0-beta3.tar.gz</a></li>
-</ul>
-
-<h3 id="section-1">配置相关</h3>
-<p>启动 elasticsearch 方式如下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo service elasticsearch restart</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>我是使用 <a href="http://wiki.zheng-ji.info/Sys/supervisor.html">supervisor</a> 启动 kibana, </li>
-  <li>同时使用 <a href="http://wiki.zheng-ji.info/Sys/monit.html">monit</a> 监控elasticsearch </li>
-</ul>
-
-<p>在/etc/defaut/elasticsearch 配置数据文件目录的地址，log 地址，调整内存和堆栈大小，个人认为机器配置的50% 就可以了。</p>
-
-<p>Nginx 配置，使得kibanan可以被外部访问，eleasticsearch 默认监听的是5601：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">server {
-</span><span class="line">        listen 80;
-</span><span class="line">        #auth_basic_user_file /home/ymserver/auth/kibana-user;
-</span><span class="line">        error_log /home/ymserver/log/nginx/kibana.err.log;
-</span><span class="line">        location / {
-</span><span class="line">            proxy_pass http://127.0.0.1:5601$request_uri;
-</span><span class="line">            proxy_set_header Host $http_host;
-</span><span class="line">            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
-</span><span class="line">            proxy_set_header X-Forwarded-Proto $scheme;
-</span><span class="line">        }
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-2">使用过程</h3>
-<p>Python 有支持elasticsearch 的库 <a href="https://github.com/elasticsearch/elasticsearch-py">elasticsearch-py</a>，
-用其导数据进入elasticsearch,需要指定好索引。</p>
-
-<p>使用restful<a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/">查询</a>， 
-如下例子：其中’2014-12-18’是索引名，q后面是查询条件，_all表示全部索引</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -XGET 'http://localhost:9200/2014-12-18/_search/?q=name:861160022835011'
-</span><span class="line">curl -XGET 'http://localhost:9200/_all/_search/?q=name:861160022835011'
-</span><span class="line">curl -XGET localhost:9200/_search -d '
-</span><span class="line">{
-</span><span class="line">    "query": {
-</span><span class="line">        "bool": {
-</span><span class="line">            "must": [
-</span><span class="line">            {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field1": "X"
-</span><span class="line">                }
-</span><span class="line">            },
-</span><span class="line">            {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field3": "Z"
-</span><span class="line">                }
-</span><span class="line">            }
-</span><span class="line">            ],
-</span><span class="line">            "must_not": {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field2": "Y"
-</span><span class="line">                }
-</span><span class="line">            }
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">}'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-3">性能概述</h3>
-<p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
 ]]></content>
   </entry>
   
