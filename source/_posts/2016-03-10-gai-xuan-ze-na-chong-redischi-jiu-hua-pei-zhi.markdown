@@ -7,12 +7,9 @@ categories: System
 description: Redsi AOF RDB
 ---
 
-这个标题或许会让你想起[《黑客帝国》](https://movie.douban.com/subject/1291843/)里经典的台词，你要选择蓝色色药丸，还是红色药丸？
+这个标题或许会让你想起[《黑客帝国》](https://movie.douban.com/subject/1291843/)里经典的台词，你要选择蓝色药丸，还是红色药丸？
 
-Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式
-
-* SnapShot
-* AOF
+Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。
 
 * [什么是 Snapshot](#第一节)
 * [什么是 AOF ](#第二节)
