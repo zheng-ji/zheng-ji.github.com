@@ -34,7 +34,7 @@ save ""
 ```
 
 
-### 相关配置
+#### 相关配置
 
 ```
 # snapshot触发的时机，save <seconds> <changes>， 比如600秒有2个操作
@@ -54,12 +54,12 @@ Append-only file，将 `操作 + 数据` 以格式化指令的方式追加到操
 
 AOF 就是日志会记录变更操(例如：set/del等)，会导致AOF文件非常的庞大，意味着server失效后，数据恢复的过程将会很长；事实上，一条数据经过多次变更，将会产生多条AOF记录，其实只要保存当前的状态，历史的操作记录是可以抛弃的， 由此催生了 AOF ReWrite。
 
-### 什么是 AOF Rewrite
+#### 什么是 AOF Rewrite
 
 其实是压缩 AOF 文件的过程，Redis 采取了类似 Snapshot 的方式：基于 `copy-on-write`，全量遍历内存中数据，然后逐个序列到 aof 文件中。因此 AOF Rewrite 能够正确反应当前内存数据的状态， Rewrite 过程中，新的变更操作将仍然被写入到原 AOF 文件中，同时这些新的变更操作也会被收集起来， 并不阻塞客户端请求。
 
 
-### 相关配置
+#### 相关配置
 
 ```
 ##只有在yes下，aof重写/文件同步等特性才会生效  
@@ -81,7 +81,7 @@ auto-aof-rewrite-min-size 64mb
 auto-aof-rewrite-percentage 100  
 ```
 
-### appendfsync 方式：
+#### appendfsync 方式：
 
 * always：每一条 aof 记录都立即同步到文件，这是最安全的方式，但是更多的磁盘操作和阻塞延迟，IO 开支较大。
 * everysec：每秒同步一次，性能和安全也是redis推荐的方式。如果服务器故障，有可能导致最近一秒内aof记录丢失。
@@ -93,7 +93,7 @@ auto-aof-rewrite-percentage 100
 * AOF更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。
 * Snapshot，安全性较差，它是正常时期数据备份及 master-slave 数据同步的最佳手段，文件尺寸较小，恢复数度较快。
 
-### 主从架构的环境下的选择
+#### 主从架构的环境下的选择
 
 * 通常 master 使用AOF，slave 使用 Snapshot，master 需要确保数据完整性，slave 提供只读服务.
 * 如果你的网络稳定性差， 物理环境糟糕情况下，那么 master， slave均采取 AOF，这个在 master， slave角色切换时，可以减少时间成本；
