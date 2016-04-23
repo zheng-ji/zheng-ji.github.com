@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-03-11T20:12:53+08:00</updated>
+  <updated>2016-04-23T09:24:56+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,136 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Flume 实时收集 Nginx 日志]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/"/>
+    <updated>2016-04-23T09:13:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi</id>
+    <content type="html"><![CDATA[<p>在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
+但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。</p>
+
+<p>现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。Flume 立功了。</p>
+
+<h1 id="flume-">Flume 简介</h1>
+
+<p><a href="https://flume.apache.org/"><strong>F</strong>lume</a> 是一个分布式，可靠高效的日志收集系统，它允许用户自定义数据传输模型，因此可扩展性也强。也有较强的容错和恢复机制.
+以下是几个重要的概念</p>
+
+<ul>
+  <li>Event：Event 是 Flume 数据传输的基本单元。flume 以事件的形式将数据从源头传送到最终的目的。</li>
+  <li>Agent：Agent包含 Sources, Channels, Sinks 和其他组件，它利用这些组件将events从一个节点传输到另一个节点或最终目的。</li>
+  <li>Source：Source负责接收events，并将events批量的放到一个或多个Channels。</li>
+  <li>Channel：Channel位于 Source 和 Sink 之间，用于缓存进来的events，当Sink成功的将events发送到下一跳的channel或最终目的，events从Channel移除。</li>
+  <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
+</ul>
+
+<p><img src="/images/2016/04/flume.jpg"></p>
+
+<ul>
+  <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
+  <li>Sink 有 Kafka Sink, Avro Sink, File Roll Sink, HDFS Sink 等。</li>
+  <li>Channel 有 Memory Channel,File Channel 等</li>
+</ul>
+
+<p>它提供了一个骨架，以及多种 Source, Sink, Channel, 让你设计合适的数据模型。事实上也可以多个 Flume 联动完成，就像地铁的车厢一样。</p>
+
+<h1 id="section">定义数据流模型</h1>
+
+<p>回到我们开头的场景,我们要将多台服务器的 Nginx 日志进行汇总分析，</p>
+
+<p>分成两个 flume 来实现</p>
+
+<ul>
+  <li>Flume1 数据流是 Exec Source -&gt; Memory Channel -&gt; Avro Sink,部署在业务机器上</li>
+  <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
+</ul>
+
+<p><img src="/images/2016/04/flume1toflume2.jpg"></p>
+
+<h1 id="section-1">需要的准备</h1>
+
+<p>你需要安装</p>
+
+<ul>
+  <li>下载 <a href="https://flume.apache.org/download.html">Flume</a></li>
+  <li>安装 JavaSDk,并在下载解压之后的 conf/flume-env.sh，配置</li>
+</ul>
+
+<p><code>sh
+# 我用的是oracle-java-8
+export JAVA_HOME=/usr/lib/jvm/java-8-oracle/jre/
+</code></p>
+
+<ul>
+  <li>思考你的数据流动模型，编写配置，如上文所说的Flume1, tail2avro.conf  ：</li>
+</ul>
+
+<p>```
+agent.sources = s1
+agent.channels = c1
+agent.sinks = k1</p>
+
+<p>agent.sources.s1.type=exec
+agent.sources.s1.command=tail -F <your file="" path="">
+agent.sources.s1.channels=c1</your></p>
+
+<p>agent.channels.c1.type=memory
+agent.channels.c1.capacity=10000
+agent.channels.c1.transactionCapacity=10000</p>
+
+<p>agent.sinks.k1.type = avro
+agent.sinks.k1.hostname = <your target="" address="">
+agent.sinks.k1.port = <your target="" port="">
+agent.sinks.k1.channel=c1
+```</your></your></p>
+
+<p>Flume2 中的 avro2file.conf </p>
+
+<p>```
+agent.sources = s1
+agent.channels = c1
+agent.sinks = k1</p>
+
+<p>agent.sources.s1.type = avro
+agent.sources.s1.bind = <your address="">
+agent.sources.s1.port = <your port="">
+agent.sources.s1.channels = c1</your></your></p>
+
+<p>agent.sinks.k1.type = file_roll
+agent.sinks.k1.sink.directory = /data/log/ngxlog
+# 滚动间隔
+agent.sinks.k1.sink.rollInterval = 86400
+agent.sinks.k1.channel = c1</p>
+
+<p>agent.channels.c1.type = memory
+# 队列里 Event 的容量
+agent.channels.c1.capacity = 10000
+agent.channels.c1.transactionCapacity = 10000
+agent.channels.c1.keep-alive = 60
+```</p>
+
+<ul>
+  <li>启动运行</li>
+</ul>
+
+<p>```
+# 启动flume1
+bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf \
+-Dflume.root.logger=WARN</p>
+
+<h1 id="flume2">启动flume2</h1>
+<p>in/flume-ng agent -n agent -c conf -f conf/avro2file.conf \
+-Dflume.root.logger=INFO
+```</p>
+
+<h2 id="section-2">参考</h2>
+
+<ul>
+  <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
@@ -355,87 +485,6 @@ sudo apt-get install keepalived
   <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
   <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
 </ul>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[给 Tengine 加上 lua 拓展]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/"/>
-    <updated>2015-10-29T22:45:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan</id>
-    <content type="html"><![CDATA[<p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
-感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
-
-<h2 id="nginxlua">编译 nginx_lua</h2>
-
-<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
-
-<ul>
-  <li>下载安装</li>
-</ul>
-
-<p><code>
-wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
-tar zxvf LuaJIT-2.0.4.tar.gz
-cd LuaJIT-2.0.4
-make
-make install
-</code></p>
-
-<ul>
-  <li>设置环境变量</li>
-</ul>
-
-<p><code>
-export LUAJIT_LIB=/usr/local/lib
-export LUAJIT_INC=/usr/local/include/luajit-2.0
-</code></p>
-
-<ul>
-  <li>然后编译ngx-lua-module.so</li>
-</ul>
-
-<p><code>
-/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module
-</code></p>
-
-<ul>
-  <li>设置动态库</li>
-</ul>
-
-<p><code>
-&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
-&gt; ldconfig
-</code></p>
-
-<h3 id="tengine-">在 Tengine 中启用</h3>
-
-<p><code>nginx.conf</code> 中先加载动态库</p>
-
-<p><code>
-dso {
-    load ngx_load_module;
-}
-</code></p>
-
-<p>在 nginx.conf 中添加</p>
-
-<p><code>
-lua_code_cache on/off;
-</code></p>
-
-<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
-
-<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
-
-<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
-<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
-
-<hr />
-
-<p>注：
-静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
-
 ]]></content>
   </entry>
   

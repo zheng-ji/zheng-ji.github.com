@@ -9,8 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
-Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK 下载并安装 elasticsearch-1.4.2.deb &hellip;">
+  <meta name="description" content="服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。 为了解决这个问题, 可以有的选择是： 业内炒的比较火的有，奇虎Atlas, 淘宝前架构师写的OneProxy, 官方的MySQL-Proxy; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +67,118 @@ Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK �
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/03/haproxy-plus-mysql/">Haproxy - MySQl 的负载均衡</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-03T23:17:00+08:00" pubdate data-updated="true">Feb 3<span>rd</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/02/03/haproxy-plus-mysql/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。</p>
+
+<p>为了解决这个问题, 可以有的选择是：</p>
+
+<ul>
+  <li>业内炒的比较火的有，奇虎<a href="https://github.com/Qihoo360/Atlas">Atlas</a>, 淘宝前架构师写的<a href="http://weibo.com/dbatools">OneProxy</a>, 官方的MySQL-Proxy;</li>
+  <li>从连接层解决负载均衡的压力，Haproxy 所擅长的事情</li>
+</ul>
+
+<p>对于第一个选择，同事做过调研，使用起来不太放心。官方库就无人维护, 于是，最后选择了 Haproxy 来承担数据库的前端代理.链接数下降明显。</p>
+
+<hr />
+
+<h3 id="section">一些关键的配置</h3>
+
+<p>参考<a href="http://www.sysads.co.uk/2014/08/install-haproxy-1-5-6-on-ubuntu-14-04/">连接</a>:</p>
+
+<p>以下是配置内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">listen mysql-cluster
+</span><span class="line">    bind 127.0.0.1:3306  # 连接本地3306 到后端的DB
+</span><span class="line">    mode tcp
+</span><span class="line">    option mysql-check user haproxy_check # haproxy_check 是该haproxy用户
+</span><span class="line">    balance roundrobin
+</span><span class="line">    server mysql-1 10.0.0.1:3306 check # 后端DB
+</span><span class="line">    server mysql-2 10.0.0.2:3306 check # 后端DB
+</span><span class="line">
+</span><span class="line">listen 0.0.0.0:8080 # 监控页面
+</span><span class="line">    mode http
+</span><span class="line">    stats enable
+</span><span class="line">    stats uri /
+</span><span class="line">    stats realm Strictly\ Private
+</span><span class="line">    stats auth A_Username:YourPassword
+</span><span class="line">    stats auth Another_User:passwd</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>值得注意的是，我们需要在DB 里面添加用户 haproxy_check,使得它有权限访问这个数据库。一开始我习惯用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">假设我的内网ip是 192.168.1.5
+</span><span class="line">create user 'haproxy_check'@'192.168.1.5' identified by 'xxx';
+</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>事实上这样连接 haproxy 会报：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h127.0.0.1 -uusername -p
+</span><span class="line">lost connection to mysql server at 'reading initial communication packet'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>后来老实按照 digitalocean 的文章修改成</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">INSERT INTO mysql.user (Host,User) values ('192.168.1.5','haproxy_check');
+</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>测试就通过了.好奇怪，在我的理解中很不应该, 明天继续看看为什么会这么奇怪。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1011,73 +1122,6 @@ ServerB 就可以连接外网了。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/04/redisre-bei/">Redis 主从平滑切换</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-04T22:28:00+08:00" pubdate data-updated="true">Oct 4<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/10/04/redisre-bei/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>业务原来所在的Redis需要做迁移，感谢Redis，主从切换不算太复杂。
-为了可以更好地阐述过程，我们定义了：</p>
-
-<ul>
-  <li>A 服务器，原来拥有 redis 数据库的机器</li>
-  <li>B 服务器，未来取代 A 服务器的 redis 数据库服务器</li>
-</ul>
-
-<h2 id="section">主从同步</h2>
-
-<p>把 B 服务器的 redis 配置更改为:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">slaveof  IP地址 端口</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就开始同步了，并且只读了。接下来准备把 B 服务器提升为 master,</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">redis-in-b-host&gt; slaveof no one</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>B服务器就断掉主从同步，提升为主，并行可读写</p>
-
-<h2 id="tips">Tips;</h2>
-
-<p>我们在停止服务的5分钟，在 A 的命令行，执行</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">bgsave</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>使得内存里的数据，完整地保存于 dumps.rdb</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1099,6 +1143,10 @@ ServerB 就可以连接外网了。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
@@ -1126,10 +1174,6 @@ ServerB 就可以连接外网了。</p>
     
       <li class="post">
         <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a>
       </li>
     
   </ul>

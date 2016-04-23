@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-03-11T20:12:53+08:00</updated>
+  <updated>2016-04-23T09:24:56+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,177 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Flume 实时收集 Nginx 日志]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/"/>
+    <updated>2016-04-23T09:13:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi</id>
+    <content type="html"><![CDATA[<p>在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
+但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。</p>
+
+<p>现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。Flume 立功了。</p>
+
+<h1 id="flume-">Flume 简介</h1>
+
+<p><a href="https://flume.apache.org/"><strong>F</strong>lume</a> 是一个分布式，可靠高效的日志收集系统，它允许用户自定义数据传输模型，因此可扩展性也强。也有较强的容错和恢复机制.
+以下是几个重要的概念</p>
+
+<ul>
+  <li>Event：Event 是 Flume 数据传输的基本单元。flume 以事件的形式将数据从源头传送到最终的目的。</li>
+  <li>Agent：Agent包含 Sources, Channels, Sinks 和其他组件，它利用这些组件将events从一个节点传输到另一个节点或最终目的。</li>
+  <li>Source：Source负责接收events，并将events批量的放到一个或多个Channels。</li>
+  <li>Channel：Channel位于 Source 和 Sink 之间，用于缓存进来的events，当Sink成功的将events发送到下一跳的channel或最终目的，events从Channel移除。</li>
+  <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
+</ul>
+
+<p><img src="http://zheng-ji.github.com/images/2016/04/flume.jpg" /></p>
+
+<ul>
+  <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
+  <li>Sink 有 Kafka Sink, Avro Sink, File Roll Sink, HDFS Sink 等。</li>
+  <li>Channel 有 Memory Channel,File Channel 等</li>
+</ul>
+
+<p>它提供了一个骨架，以及多种 Source, Sink, Channel, 让你设计合适的数据模型。事实上也可以多个 Flume 联动完成，就像地铁的车厢一样。</p>
+
+<h1 id="section">定义数据流模型</h1>
+
+<p>回到我们开头的场景,我们要将多台服务器的 Nginx 日志进行汇总分析，</p>
+
+<p>分成两个 flume 来实现</p>
+
+<ul>
+  <li>Flume1 数据流是 Exec Source -&gt; Memory Channel -&gt; Avro Sink,部署在业务机器上</li>
+  <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
+</ul>
+
+<p><img src="http://zheng-ji.github.com/images/2016/04/flume1toflume2.jpg" /></p>
+
+<h1 id="section-1">需要的准备</h1>
+
+<p>你需要安装</p>
+
+<ul>
+  <li>下载 <a href="https://flume.apache.org/download.html">Flume</a></li>
+  <li>安装 JavaSDk,并在下载解压之后的 conf/flume-env.sh，配置</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 我用的是oracle-java-8</span>
+</span><span class="line"><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/usr/lib/jvm/java-8-oracle/jre/
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>思考你的数据流动模型，编写配置，如上文所说的Flume1, tail2avro.conf  ：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
+</span><span class="line">agent.channels <span class="o">=</span> c1
+</span><span class="line">agent.sinks <span class="o">=</span> k1
+</span><span class="line">
+</span><span class="line">agent.sources.s1.type<span class="o">=</span><span class="nb">exec</span>
+</span><span class="line">agent.sources.s1.command<span class="o">=</span>tail -F &lt;Your File Path&gt;
+</span><span class="line">agent.sources.s1.channels<span class="o">=</span>c1
+</span><span class="line">
+</span><span class="line">agent.channels.c1.type<span class="o">=</span>memory
+</span><span class="line">agent.channels.c1.capacity<span class="o">=</span>10000
+</span><span class="line">agent.channels.c1.transactionCapacity<span class="o">=</span>10000
+</span><span class="line">
+</span><span class="line">agent.sinks.k1.type <span class="o">=</span> avro
+</span><span class="line">agent.sinks.k1.hostname <span class="o">=</span> &lt;Your Target Address&gt;
+</span><span class="line">agent.sinks.k1.port <span class="o">=</span> &lt;Your Target Port&gt;
+</span><span class="line">agent.sinks.k1.channel<span class="o">=</span>c1
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Flume2 中的 avro2file.conf </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
+</span><span class="line">agent.channels <span class="o">=</span> c1
+</span><span class="line">agent.sinks <span class="o">=</span> k1
+</span><span class="line">
+</span><span class="line">agent.sources.s1.type <span class="o">=</span> avro
+</span><span class="line">agent.sources.s1.bind <span class="o">=</span> &lt;Your Address&gt;
+</span><span class="line">agent.sources.s1.port <span class="o">=</span> &lt;Your Port&gt;
+</span><span class="line">agent.sources.s1.channels <span class="o">=</span> c1
+</span><span class="line">
+</span><span class="line">agent.sinks.k1.type <span class="o">=</span> file_roll
+</span><span class="line">agent.sinks.k1.sink.directory <span class="o">=</span> /data/log/ngxlog
+</span><span class="line"><span class="c"># 滚动间隔</span>
+</span><span class="line">agent.sinks.k1.sink.rollInterval <span class="o">=</span> 86400
+</span><span class="line">agent.sinks.k1.channel <span class="o">=</span> c1
+</span><span class="line">
+</span><span class="line">agent.channels.c1.type <span class="o">=</span> memory
+</span><span class="line"><span class="c"># 队列里 Event 的容量</span>
+</span><span class="line">agent.channels.c1.capacity <span class="o">=</span> 10000
+</span><span class="line">agent.channels.c1.transactionCapacity <span class="o">=</span> 10000
+</span><span class="line">agent.channels.c1.keep-alive <span class="o">=</span> 60
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>启动运行</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 启动flume1</span>
+</span><span class="line">bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf <span class="se">\</span>
+</span><span class="line">-Dflume.root.logger<span class="o">=</span>WARN
+</span><span class="line">
+</span><span class="line"><span class="c"># 启动flume2</span>
+</span><span class="line">in/flume-ng agent -n agent -c conf -f conf/avro2file.conf <span class="se">\</span>
+</span><span class="line">-Dflume.root.logger<span class="o">=</span>INFO
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-2">参考</h2>
+
+<ul>
+  <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
@@ -2084,88 +2255,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 <p>每个成熟的互联网产品，背后都是工程师耗费一点一滴思维的结晶构建而成的。对待技术不得不敬畏。</p>
 
 <p><a href="https://github.com/zheng-ji/trietips">代码</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[haproxy - MySQl 的负载均衡]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/02/03/haproxy-plus-mysql/"/>
-    <updated>2015-02-03T23:17:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/02/03/haproxy-plus-mysql</id>
-    <content type="html"><![CDATA[<p>服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。</p>
-
-<p>为了解决这个问题, 可以有的选择是：</p>
-
-<ul>
-  <li>业内炒的比较火的有，奇虎<a href="https://github.com/Qihoo360/Atlas">Atlas</a>, 淘宝前架构师写的<a href="http://weibo.com/dbatools">OneProxy</a>, 官方的MySQL-Proxy;</li>
-  <li>从连接层解决负载均衡的压力，Haproxy 所擅长的事情</li>
-</ul>
-
-<p>对于第一个选择，同事做过调研，使用起来不太放心。官方库就无人维护, 于是，最后选择了 Haproxy 来承担数据库的前端代理.链接数下降明显。</p>
-
-<hr />
-
-<h3 id="section">一些关键的配置</h3>
-
-<p>参考<a href="http://www.sysads.co.uk/2014/08/install-haproxy-1-5-6-on-ubuntu-14-04/">连接</a>:</p>
-
-<p>以下是配置内容</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen mysql-cluster
-</span><span class="line">    bind 127.0.0.1:3306  # 连接本地3306 到后端的DB
-</span><span class="line">    mode tcp
-</span><span class="line">    option mysql-check user haproxy_check # haproxy_check 是该haproxy用户
-</span><span class="line">    balance roundrobin
-</span><span class="line">    server mysql-1 10.0.0.1:3306 check # 后端DB
-</span><span class="line">    server mysql-2 10.0.0.2:3306 check # 后端DB
-</span><span class="line">
-</span><span class="line">listen 0.0.0.0:8080 # 监控页面
-</span><span class="line">    mode http
-</span><span class="line">    stats enable
-</span><span class="line">    stats uri /
-</span><span class="line">    stats realm Strictly\ Private
-</span><span class="line">    stats auth A_Username:YourPassword
-</span><span class="line">    stats auth Another_User:passwd</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>值得注意的是，我们需要在DB 里面添加用户 haproxy_check,使得它有权限访问这个数据库。一开始我习惯用</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">假设我的内网ip是 192.168.1.5
-</span><span class="line">create user 'haproxy_check'@'192.168.1.5' identified by 'xxx';
-</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>事实上这样连接 haproxy 会报：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h127.0.0.1 -uusername -p
-</span><span class="line">lost connection to mysql server at 'reading initial communication packet'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>后来老实按照 digitalocean 的文章修改成</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">INSERT INTO mysql.user (Host,User) values ('192.168.1.5','haproxy_check');
-</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>测试就通过了.好奇怪，在我的理解中很不应该, 明天继续看看为什么会这么奇怪。</p>
-
 ]]></content>
   </entry>
   

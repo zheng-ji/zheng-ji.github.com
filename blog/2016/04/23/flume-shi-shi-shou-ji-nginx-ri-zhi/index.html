@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title> Expect 与系统自动交互 - 织网</title>
+  <title>Flume 实时收集 Nginx 日志 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="expect语言">
-  <meta name="keywords" content="expect语言">
+  <meta name="description" content="flume">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Expect 与系统自动交互</h1>
+      <h1 class="entry-title">Flume 实时收集 Nginx 日志</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-03-13T23:05:00+08:00" pubdate data-updated="true">Mar 13<span>th</span>, 2014</time>
+<time datetime="2016-04-23T09:13:00+08:00" pubdate data-updated="true">Apr 23<span>rd</span>, 2016</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,32 +96,65 @@
   </header>
 
 
-<div class="entry-content"><p>在<code>linux</code>下 做一些操作的时候，比如使用 <em>scp</em>, <em>telnet</em> 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。</p>
+<div class="entry-content"><p>在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
+但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。</p>
 
-<p>这个时候，你可以使用 <em>expect</em> 语言帮我们解决问题。</p>
+<p>现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。Flume 立功了。</p>
 
-<h3 id="section">官方定义</h3>
-<blockquote>
-  <p>Expect是一个用来实现自动交互功能的软件套件 (Expect [is a] software suite for automating interactive tools)</p>
-</blockquote>
+<h1 id="flume-">Flume 简介</h1>
 
-<p>expect 是 <a href="http://en.wikipedia.org/wiki/Don_Libes">Don Libes</a> 编写的免费编程工具语言, 由expect-send对组成：</p>
+<p><a href="https://flume.apache.org/"><strong>F</strong>lume</a> 是一个分布式，可靠高效的日志收集系统，它允许用户自定义数据传输模型，因此可扩展性也强。也有较强的容错和恢复机制.
+以下是几个重要的概念</p>
 
-<p>expect等待输出中输出特定的字符，通常是一个提示符，然后发送特定的响应。</p>
+<ul>
+  <li>Event：Event 是 Flume 数据传输的基本单元。flume 以事件的形式将数据从源头传送到最终的目的。</li>
+  <li>Agent：Agent包含 Sources, Channels, Sinks 和其他组件，它利用这些组件将events从一个节点传输到另一个节点或最终目的。</li>
+  <li>Source：Source负责接收events，并将events批量的放到一个或多个Channels。</li>
+  <li>Channel：Channel位于 Source 和 Sink 之间，用于缓存进来的events，当Sink成功的将events发送到下一跳的channel或最终目的，events从Channel移除。</li>
+  <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
+</ul>
 
-<hr />
+<p><img src="/images/2016/04/flume.jpg" /></p>
 
-<p>先来个 helloworld, 注意需要在exp脚本前面加上 <code>#!/usr/bin/expect</code></p>
+<ul>
+  <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
+  <li>Sink 有 Kafka Sink, Avro Sink, File Roll Sink, HDFS Sink 等。</li>
+  <li>Channel 有 Memory Channel,File Channel 等</li>
+</ul>
+
+<p>它提供了一个骨架，以及多种 Source, Sink, Channel, 让你设计合适的数据模型。事实上也可以多个 Flume 联动完成，就像地铁的车厢一样。</p>
+
+<h1 id="section">定义数据流模型</h1>
+
+<p>回到我们开头的场景,我们要将多台服务器的 Nginx 日志进行汇总分析，</p>
+
+<p>分成两个 flume 来实现</p>
+
+<ul>
+  <li>Flume1 数据流是 Exec Source -&gt; Memory Channel -&gt; Avro Sink,部署在业务机器上</li>
+  <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
+</ul>
+
+<p><img src="/images/2016/04/flume1toflume2.jpg" /></p>
+
+<h1 id="section-1">需要的准备</h1>
+
+<p>你需要安装</p>
+
+<ul>
+  <li>下载 <a href="https://flume.apache.org/download.html">Flume</a></li>
+  <li>安装 JavaSDk,并在下载解压之后的 conf/flume-env.sh，配置</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
-</span><span class="line">send_user <span class="s2">&quot;hello world&quot;</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 我用的是oracle-java-8</span>
+</span><span class="line"><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/usr/lib/jvm/java-8-oracle/jre/
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>这里的 send_user 类似 echo </p>
-
-<h3 id="section-1">常见用法</h3>
+<ul>
+  <li>思考你的数据流动模型，编写配置，如上文所说的Flume1, tail2avro.conf  ：</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -131,37 +164,33 @@
 <span class="line-number">6</span>
 <span class="line-number">7</span>
 <span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="nb">set </span>i 0
-</span><span class="line"><span class="nb">set </span>user <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>timeout 300
-</span><span class="line"><span class="nb">set </span>i 0
-</span><span class="line"><span class="k">while</span> <span class="o">{</span> <span class="nv">$i</span> &lt; 10 <span class="o">}</span> <span class="o">{</span>
-</span><span class="line">    puts <span class="nv">$i</span>;
-</span><span class="line">    incr i;
-</span><span class="line"><span class="o">}</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
+</span><span class="line">agent.channels <span class="o">=</span> c1
+</span><span class="line">agent.sinks <span class="o">=</span> k1
+</span><span class="line">
+</span><span class="line">agent.sources.s1.type<span class="o">=</span><span class="nb">exec</span>
+</span><span class="line">agent.sources.s1.command<span class="o">=</span>tail -F &lt;Your File Path&gt;
+</span><span class="line">agent.sources.s1.channels<span class="o">=</span>c1
+</span><span class="line">
+</span><span class="line">agent.channels.c1.type<span class="o">=</span>memory
+</span><span class="line">agent.channels.c1.capacity<span class="o">=</span>10000
+</span><span class="line">agent.channels.c1.transactionCapacity<span class="o">=</span>10000
+</span><span class="line">
+</span><span class="line">agent.sinks.k1.type <span class="o">=</span> avro
+</span><span class="line">agent.sinks.k1.hostname <span class="o">=</span> &lt;Your Target Address&gt;
+</span><span class="line">agent.sinks.k1.port <span class="o">=</span> &lt;Your Target Port&gt;
+</span><span class="line">agent.sinks.k1.channel<span class="o">=</span>c1
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>以上分别是:</p>
-
-<ul>
-  <li>将0赋值给变量i;</li>
-  <li>获取脚本的第一个参数给变量user;</li>
-  <li>设置超时时间是300秒</li>
-  <li>循环使用，不多说</li>
-</ul>
-
-<hr />
-
-<p>在 expect脚本中, 最亮点的是 spawn 会启动一个进程，由 expect 和 send 组合负责跟该进程交互, in short </p>
-
-<ul>
-  <li>expect捕获进程需要什么信息</li>
-  <li>send将这个信息发给进程</li>
-  <li>expect eof与spawn对应，表示捕获终端输出信息的终止，即进程已结束</li>
-  <li>expect都是使用 {}，且{, }使用时，前后需要留空格。 只要其中一项符合，就会执行该项，类似switch</li>
-</ul>
-
-<p>看完以下代码相信你就明白其魅力了 ：）</p>
+<p>Flume2 中的 avro2file.conf </p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -183,39 +212,53 @@
 <span class="line-number">18</span>
 <span class="line-number">19</span>
 <span class="line-number">20</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
+</span><span class="line">agent.channels <span class="o">=</span> c1
+</span><span class="line">agent.sinks <span class="o">=</span> k1
 </span><span class="line">
-</span><span class="line"><span class="nb">set </span>timeout 10
-</span><span class="line"><span class="nb">set </span>host <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>username <span class="o">[</span>lindex <span class="nv">$argv</span> 1<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>password <span class="o">[</span>lindex <span class="nv">$argv</span> 2<span class="o">]</span>
+</span><span class="line">agent.sources.s1.type <span class="o">=</span> avro
+</span><span class="line">agent.sources.s1.bind <span class="o">=</span> &lt;Your Address&gt;
+</span><span class="line">agent.sources.s1.port <span class="o">=</span> &lt;Your Port&gt;
+</span><span class="line">agent.sources.s1.channels <span class="o">=</span> c1
 </span><span class="line">
-</span><span class="line">spawn ssh <span class="nv">$username</span>@<span class="nv">$host</span>
-</span><span class="line">expect <span class="o">{</span>
-</span><span class="line">    <span class="s2">&quot;(yes/no)?&quot;</span> <span class="o">{</span>
-</span><span class="line">        send <span class="s2">&quot;yes\n&quot;</span>
-</span><span class="line">        expect <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span> send <span class="s2">&quot;$password\n&quot;</span> <span class="o">}</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">    <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span>
-</span><span class="line">        send <span class="s2">&quot;$password\n&quot;</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
+</span><span class="line">agent.sinks.k1.type <span class="o">=</span> file_roll
+</span><span class="line">agent.sinks.k1.sink.directory <span class="o">=</span> /data/log/ngxlog
+</span><span class="line"><span class="c"># 滚动间隔</span>
+</span><span class="line">agent.sinks.k1.sink.rollInterval <span class="o">=</span> 86400
+</span><span class="line">agent.sinks.k1.channel <span class="o">=</span> c1
 </span><span class="line">
-</span><span class="line">expect <span class="s2">&quot;$&quot;</span>
-</span><span class="line">expect eof
+</span><span class="line">agent.channels.c1.type <span class="o">=</span> memory
+</span><span class="line"><span class="c"># 队列里 Event 的容量</span>
+</span><span class="line">agent.channels.c1.capacity <span class="o">=</span> 10000
+</span><span class="line">agent.channels.c1.transactionCapacity <span class="o">=</span> 10000
+</span><span class="line">agent.channels.c1.keep-alive <span class="o">=</span> 60
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>使用时, 执行如下脚本命令.  其中<code>expect</code> 捕获到 “*assword:”, 发送 <code>$password</code> 变量,  捕获到<code>$</code>符号，表示登陆成功，结束 spawn 进程</p>
+<ul>
+  <li>启动运行</li>
+</ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line">./autosh.exp xxx<span class="o">(</span>ip地址<span class="o">)</span> xxx<span class="o">(</span>用户名<span class="o">)</span> xxx<span class="o">(</span>密码<span class="o">)</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 启动flume1</span>
+</span><span class="line">bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf <span class="se">\</span>
+</span><span class="line">-Dflume.root.logger<span class="o">=</span>WARN
+</span><span class="line">
+</span><span class="line"><span class="c"># 启动flume2</span>
+</span><span class="line">in/flume-ng agent -n agent -c conf -f conf/avro2file.conf <span class="se">\</span>
+</span><span class="line">-Dflume.root.logger<span class="o">=</span>INFO
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<hr />
+<h2 id="section-2">参考</h2>
 
-<p>感觉这样的脚本在自动化运维可以有很多运用之处, 至少让你可以在执行需要交互命令的时候跑去喝茶。
-Happy Hacking :-)</p>
-
+<ul>
+  <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
+</ul>
 </div>
 
 
@@ -238,12 +281,12 @@ Happy Hacking :-)</p>
   
 
 
-<time datetime="2014-03-13T23:05:00+08:00" pubdate data-updated="true">Mar 13<span>th</span>, 2014</time>
+<time datetime="2016-04-23T09:13:00+08:00" pubdate data-updated="true">Apr 23<span>rd</span>, 2016</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/programe/'>Programe</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -259,10 +302,8 @@ Happy Hacking :-)</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/02/24/socketnian-bao/" title="Previous Post: socket黏包引发的YY">&laquo; socket黏包引发的YY</a>
+        <a class="basic-alignment left" href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/" title="Previous Post: Redis 该选择哪种持久化配置">&laquo; Redis 该选择哪种持久化配置</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/04/22/liu-xia-liao-xie-dong-xi/" title="Next Post: 留下了些东西">留下了些东西 &raquo;</a>
       
     </p>
   </footer>
@@ -272,7 +313,7 @@ Happy Hacking :-)</p>
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Expect 与系统自动交互"></div>
+<div class="ds-thread" data-title="Flume 实时收集 Nginx 日志"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
