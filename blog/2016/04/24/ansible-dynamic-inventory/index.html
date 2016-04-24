@@ -1,0 +1,405 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Ansible Dynamic Inventory - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="ansible">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/04/24/ansible-dynamic-inventory">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Ansible Dynamic Inventory</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-04-24T20:53:00+08:00" pubdate data-updated="true">Apr 24<span>th</span>, 2016</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Ansible 在使用的过程中，如果机器数量比较固定，且变更不多的情况下，可在 /etc/ansible/hosts 文件里面配置固定的组合机器IP， 并给他起组的别名，执行 Ansible 脚本便可以通过别名找到相应的机器。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[webservers]
+</span><span class="line">111.222.333.444 ansible_ssh_port=888</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>假如你有很多台机器，且机器经常变更导致IP时常变换，你还想把IP逐个写入 /etc/ansible/hosts 就不现实了。你也许会问，若不把 IP 写进 /etc/ansible/hosts，那不是没法用 Ansible 指挥这些机器？
+感谢 Ansible Dynamic Inventory， 如果我们能通过编程等手段获取变更机器的IP，我们还是有办法实现的。</p>
+
+<h3 id="dynamic-inventory-">Dynamic Inventory 的原理</h3>
+
+<ul>
+  <li>通过编程的方式,也就是动态获取机器的 json 信息;</li>
+  <li>Ansible 通过解析这串 json 字符串;</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ansible -i yourprogram.py -m raw  -a 'cd /home'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Ansible Dynamic Inventory 对程序返回的 json 的转义是这样的：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">{"devtest-asg": {"hosts": ["172.31.21.164"], "vars": {"ansible_ssh_port": 12306}}}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>翻译一下就是  /etc/ansible/hosts 中的:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[devtest-asg]
+</span><span class="line">172.31.21.164 ansible_ssh_port=12306</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section">一个实战的例子</h3>
+
+<p>官方文档对 Inventory 仅作概念性描述，阅读完后仍是一头雾水，不知如何下手。 让我们用一个例子来豁然开朗吧。 我们使用 AWS 的 AutoScaling Group，以下简称 ASG，ASG 会在某种自定义的条件下会自动开启和关闭机器，这给我们在辨别IP，定位机器的时候造成困扰。因此我们需要 Ansible Dynamic Inventory</p>
+
+<p>我们使用 AWS 的 boto 库来获取 ASG 的实例信息.以下程序(get_host.py)中要实现的方法就是列出返回机器信息的 json 串。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/env python</span>
+</span><span class="line"><span class="c"># -*- coding: utf-8 -*-</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">json</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">boto</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">boto.ec2</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">boto.ec2.autoscale</span>
+</span><span class="line">
+</span><span class="line"><span class="n">AWS_REGION</span> <span class="o">=</span> <span class="s">&#39;BBB&#39;</span>
+</span><span class="line"><span class="n">AWS_ACCESS_KEY</span> <span class="o">=</span> <span class="s">&#39;xxxx&#39;</span>
+</span><span class="line"><span class="n">AWS_SECRET_KEY</span> <span class="o">=</span> <span class="s">&#39;yyy&#39;</span>
+</span><span class="line">
+</span><span class="line"><span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">getData</span><span class="p">():</span>
+</span><span class="line">    <span class="n">conn_as</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">autoscale</span><span class="o">.</span><span class="n">connect_to_region</span><span class="p">(</span>
+</span><span class="line">            <span class="s">&#39;cn-north-1&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_access_key_id</span><span class="o">=</span><span class="n">AWS_ACCESS_KEY</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="n">AWS_SECRET_KEY</span><span class="p">)</span>
+</span><span class="line">    <span class="n">group</span> <span class="o">=</span> <span class="n">conn_as</span><span class="o">.</span><span class="n">get_all_groups</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+</span><span class="line">    <span class="n">conn_ec2</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">connect_to_region</span><span class="p">(</span>
+</span><span class="line">            <span class="n">AWS_REGION</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_access_key_id</span><span class="o">=</span><span class="n">AWS_ACCESS_KEY</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="n">AWS_SECRET_KEY</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">instance_id</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">instances</span><span class="p">]</span>
+</span><span class="line">    <span class="n">reservations</span> <span class="o">=</span> <span class="n">conn_ec2</span><span class="o">.</span><span class="n">get_all_instances</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span>
+</span><span class="line">    <span class="n">instances</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reservations</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">instances</span><span class="p">]</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class="line">    <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">][</span><span class="s">&#39;hosts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reservations</span><span class="p">:</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">instances</span><span class="p">:</span>
+</span><span class="line">            <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">][</span><span class="s">&#39;hosts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="o">.</span><span class="n">private_ip_address</span><span class="p">)</span>
+</span><span class="line">            <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">][</span><span class="s">&#39;vars&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;ansible_ssh_port&#39;</span><span class="p">:</span> <span class="mi">36000</span><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">getlists</span><span class="p">():</span>
+</span><span class="line">    <span class="n">getData</span><span class="p">()</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="n">getlists</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行以下命令就可以愉快地使用 Ansible 了，其中 devtest-asg 是 ASG 的别名：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">ansible</span> <span class="o">-</span><span class="n">i</span> <span class="n">get_host</span><span class="o">.</span><span class="n">py</span>  <span class="n">devtest</span><span class="o">-</span><span class="n">asg</span> <span class="o">-</span><span class="n">m</span> <span class="n">raw</span> <span class="o">-</span><span class="n">a</span> <span class="s">&#39;ls /&#39;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-04-24T20:53:00+08:00" pubdate data-updated="true">Apr 24<span>th</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/system/'>System</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/" title="Previous Post: Flume 实时收集 Nginx 日志">&laquo; Flume 实时收集 Nginx 日志</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="Ansible Dynamic Inventory"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org">EverET</a>
+    </span>
+    <span>
+        <a href="http://forsigner.com">forsigner</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">Onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

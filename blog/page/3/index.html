@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。 为了解决这个问题, 可以有的选择是： 业内炒的比较火的有，奇虎Atlas, 淘宝前架构师写的OneProxy, 官方的MySQL-Proxy; &hellip;">
+  <meta name="description" content="耗了3个夜晚出来的东西. 先上图吧： 是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。 起因: 在公司GitLab看到有这人对内部管理系统提出了这个需求，但是一直没有被close, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,137 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/08/trie-suggestion/">实现一个智能提示框功能</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-08T13:40:00+08:00" pubdate data-updated="true">Feb 8<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/02/08/trie-suggestion/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>耗了3个夜晚出来的东西.</p>
+
+<p>先上图吧：</p>
+
+<p><img src="/images/2015/02/suggest.png" /></p>
+
+<p>是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。</p>
+
+<p>起因: 在公司<code>GitLab</code>看到有这人对内部管理系统提出了这个需求，但是一直没有被<code>close</code>, 我觉得应该挺有趣的，好奇心驱动下就开始搞了。</p>
+
+<p>如果仅仅是实现这个需求，应该有很多种</p>
+
+<ul>
+  <li>方法一：使用一个hash,将关键字填入key，如果采用此法，数据量大的时候估计堪忧，以一个汉字2个Byte计算的话，1kw个词条，1个词条10个词语的话需要占用大于200M内存。</li>
+  <li>方法二：前缀匹配，那么应该怎么选择数据结构,朴素的做法是O(N^N),我们肯定采用复杂度较优的Trie树  O(1)</li>
+  <li>方法三：Radix Tree 据说这个是linux cache的一个算法。看了几个小时，真心复杂，不得不佩服内核开发者！</li>
+</ul>
+
+<h3 id="trie">讲一讲<code>trie</code>树吧</h3>
+
+<p><img src="/images/2015/02/triestruct.png" /></p>
+
+<ul>
+  <li>根节点不包含字符，除根节点外的每一个子节点都包含一个字符。</li>
+  <li>根节点到某一节点，路径上经过的字符连接起来，就是该节点对应的字符串。</li>
+  <li>每个单词的公共前缀作为一个字符节点保存。</li>
+  <li>叶子节点的指针是空的</li>
+</ul>
+
+<p>以下是具体的数据结构代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">type Node struct {
+</span><span class="line">    Link     map[string]*Node  #指针
+</span><span class="line">    Key      string                     #每个节点的字符
+</span><span class="line">    IsLeaf   bool                       #是否叶子节点 
+</span><span class="line">    Weight   float64                    #权重
+</span><span class="line">    LongWord string                     #从根节点到该节点的长字符
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>围绕这个数据结构做了
+构建树，删除节点，添加节点，获取子节点等</p>
+
+<h3 id="section">知识铺垫：</h3>
+<p>在用 Go 语言处理中文字符的时候，需要特别使用 []rune数组，看以下示范代码就知道了,他把中文处理成1个字符表现的编码方式了。正式我们下列处理Trie需要用到的。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">package main
+</span><span class="line">import "fmt"
+</span><span class="line">
+</span><span class="line">func main () {
+</span><span class="line">    m_str := "编程"
+</span><span class="line">    fmt.Println("fmt:", m_str)
+</span><span class="line">    m_str_rune := []rune(m_str)
+</span><span class="line">    fmt.Println("fmt:", m_str_rune)
+</span><span class="line">    m_str_byte := []byte(m_str)
+</span><span class="line">    fmt.Println("fmt:", m_str_byte)
+</span><span class="line">}
+</span><span class="line">
+</span><span class="line">$ ./test_rune
+</span><span class="line">fmt: 编程
+</span><span class="line">fmt: [32534 31243]
+</span><span class="line">fmt: [231 188 150 231 168 139]</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">测试结果：</h3>
+<p>导入100W条词条,搜索的反应是瞬秒，1ms返回响应，在4G的机器上，整个程序占用内存0.3%。</p>
+
+<hr />
+
+<p>每个成熟的互联网产品，背后都是工程师耗费一点一滴思维的结晶构建而成的。对待技术不得不敬畏。</p>
+
+<p><a href="https://github.com/zheng-ji/trietips">代码</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1035,93 +1166,6 @@ ServerB 就可以连接外网了。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-13T21:20:00+08:00" pubdate data-updated="true">Oct 13<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h3 id="section">看到的现象</h3>
-
-<p>今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下
-<img src="/images/2014/10/top.png" />
-但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。
-<img src="/images/2014/10/nestat.png" />
-而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢，不可能一个8核16G的机器系统自己占用了4G吧?</p>
-
-<p>带着这个疑问，查阅了资料，发现其中并非表明所看到的这么简单. 我们来看以下 使用 <code>free -m</code> 命令
-<img src="/images/2014/10/free.png" /></p>
-
-<h3 id="mem--">Mem 参数 解释</h3>
-<ul>
-  <li>total 内存总数: 15875 , total = used + free</li>
-  <li>used 已经使用的内存数: 11900</li>
-  <li>free 空闲的内存数: 3975</li>
-  <li>shared 当前已经废弃不用，总是0</li>
-  <li>buffers: Buffer Cache内存数: 145</li>
-  <li>cached: Page Cache内存数: 5561</li>
-</ul>
-
-<h3 id="bufferscache">-/+ buffers/cache的解惑</h3>
-<ul>
-  <li>-buffers/cache 的内存数: 6193 (大致等于第1行的 used - buffers - cached), 反映的是被程序实实在在吃掉的内存，</li>
-  <li>+buffers/cache 的内存数: 9682 (大致等于第1行的 free + buffers + cached), 反映的是可以挪用的内存总数</li>
-</ul>
-
-<h3 id="cache">两种cache</h3>
-<p>因为cpu速度明显快过内存， 为了提高磁盘存取效率, Linux做了一些精心的设计, 采取了两种主要Cache方式, 来做速度的过度, 这些Cache有效缩短了 I/O系统调用(如read,write,getdents)的时间。</p>
-
-<ul>
-  <li>Buffer Cache, 针对磁盘块的读写</li>
-  <li>Page Cache。针对文件inode的读写。</li>
-</ul>
-
-<h3 id="section-1">内存解读的区别</h3>
-
-<p>第1行<code>(mem)的used/free</code>与第2行<code>(-/+ buffers/cache) used/free</code>的区别在于角度的不同:</p>
-
-<ul>
-  <li>第一行因为对于OS，buffers/cached 都是属于被使用，所以他的可用内存是3975M,已用内存是11900MB,其中包括,内核（OS）使用 + 应用使用的+ buffers + cached.</li>
-  <li>第2行所指的是从应用程序角度来看，对于应用程序来说，buffers/cached 是可用的，是为了提高文件读取的性能而设，当应用程序要用到内存的时候，buffer/cached会很快地被回收。所以从应用程序的角度来说，</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">可用内存=系统free memory + buffers + cached.</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>所以，回到话题开头，虽然内存显示用了12.2G，正在被应用程序使用的是7.9G 还有5.6(cache+buffer) +  4G free 可用.内存原来在这里！</p>
-
-<p>获益匪浅 :) </p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1143,6 +1187,10 @@ ServerB 就可以连接外网了。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
@@ -1170,10 +1218,6 @@ ServerB 就可以连接外网了。</p>
     
       <li class="post">
         <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
       </li>
     
   </ul>

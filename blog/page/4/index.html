@@ -9,9 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="业务原来所在的Redis需要做迁移，感谢Redis，主从切换不算太复杂。
-为了可以更好地阐述过程，我们定义了： A 服务器，原来拥有 redis 数据库的机器 B 服务器，未来取代 A 服务器的 redis 数据库服务器 主从同步 把 B 服务器的 redis 配置更改为: 1
-slaveof &hellip;">
+  <meta name="description" content="看到的现象 今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下 但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。 而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +67,93 @@ slaveof &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/">内存都去哪儿啦</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-13T21:20:00+08:00" pubdate data-updated="true">Oct 13<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/10/13/nei-cun-du-qu-na-er-la/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="section">看到的现象</h3>
+
+<p>今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下
+<img src="/images/2014/10/top.png" />
+但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。
+<img src="/images/2014/10/nestat.png" />
+而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢，不可能一个8核16G的机器系统自己占用了4G吧?</p>
+
+<p>带着这个疑问，查阅了资料，发现其中并非表明所看到的这么简单. 我们来看以下 使用 <code>free -m</code> 命令
+<img src="/images/2014/10/free.png" /></p>
+
+<h3 id="mem--">Mem 参数 解释</h3>
+<ul>
+  <li>total 内存总数: 15875 , total = used + free</li>
+  <li>used 已经使用的内存数: 11900</li>
+  <li>free 空闲的内存数: 3975</li>
+  <li>shared 当前已经废弃不用，总是0</li>
+  <li>buffers: Buffer Cache内存数: 145</li>
+  <li>cached: Page Cache内存数: 5561</li>
+</ul>
+
+<h3 id="bufferscache">-/+ buffers/cache的解惑</h3>
+<ul>
+  <li>-buffers/cache 的内存数: 6193 (大致等于第1行的 used - buffers - cached), 反映的是被程序实实在在吃掉的内存，</li>
+  <li>+buffers/cache 的内存数: 9682 (大致等于第1行的 free + buffers + cached), 反映的是可以挪用的内存总数</li>
+</ul>
+
+<h3 id="cache">两种cache</h3>
+<p>因为cpu速度明显快过内存， 为了提高磁盘存取效率, Linux做了一些精心的设计, 采取了两种主要Cache方式, 来做速度的过度, 这些Cache有效缩短了 I/O系统调用(如read,write,getdents)的时间。</p>
+
+<ul>
+  <li>Buffer Cache, 针对磁盘块的读写</li>
+  <li>Page Cache。针对文件inode的读写。</li>
+</ul>
+
+<h3 id="section-1">内存解读的区别</h3>
+
+<p>第1行<code>(mem)的used/free</code>与第2行<code>(-/+ buffers/cache) used/free</code>的区别在于角度的不同:</p>
+
+<ul>
+  <li>第一行因为对于OS，buffers/cached 都是属于被使用，所以他的可用内存是3975M,已用内存是11900MB,其中包括,内核（OS）使用 + 应用使用的+ buffers + cached.</li>
+  <li>第2行所指的是从应用程序角度来看，对于应用程序来说，buffers/cached 是可用的，是为了提高文件读取的性能而设，当应用程序要用到内存的时候，buffer/cached会很快地被回收。所以从应用程序的角度来说，</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">可用内存=系统free memory + buffers + cached.</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>所以，回到话题开头，虽然内存显示用了12.2G，正在被应用程序使用的是7.9G 还有5.6(cache+buffer) +  4G free 可用.内存原来在这里！</p>
+
+<p>获益匪浅 :) </p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1372,121 +1457,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/28/wei-wen-yi-lu/">伪文青</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-04-28T12:18:00+08:00" pubdate data-updated="true">Apr 28<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/04/28/wei-wen-yi-lu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在深圳有感情的地方不多，深圳大学算是一个了，周六的晚上有吉他社的学生们在这里学习音乐，遗憾的是我最近才发现，如果一年前知道的话就不用自己“闭门造车”了。</p>
-
-<p>在华工的时候身边有几位哥们（uc,jh）玩吉他的时候，心生喜爱。2013年的5月份。某个炎热的傍晚，拨起琴弦，就再也停不下来了。</p>
-
-<p><em>2013-06-20</em> 老家的小孩子们在中考，我初次看<a href="http://www.youku.com/playlist_show/id_6096855.html">左轮吉他</a>，一连看了好多集。打下一些基本知识，我是个实践至上的人，所以迫不及待的玩了。</p>
-
-<h4 id="section">《同桌的你》 懵懵懂懂</h4>
-
-<p>我的启蒙曲子是《同桌的你》，现在回头看来，新手弹这首歌的确是难。里面有个横按,我当时竟然天真的相信，一定可以练习会的。这个时候遇到的门槛，也是很多初学者会遇到的。</p>
-
-<ul>
-  <li>看不懂谱</li>
-  <li>手指按弦会痛，按的吃力</li>
-  <li>和弦不熟悉，指法错位</li>
-  <li>转换迟钝，节拍乱</li>
-</ul>
-
-<p>左轮大师的建议是，<code>53231323</code>（数字表示弦的位置），对每个和弦不厌其烦地练习，直至左右手协调，这里不是轻妙淡写，需要花苦功夫，时间比较漫长，记得手指脱了3次皮，痛到麻木，麻木到成茧，然后可以53231323 任何一个和弦，可以试着（C-Am-G-E-Dm）。觉得流利了之后，就要玩点难的和弦，比如有横按，大横按，这个时候就要去玩，Bm7-F 等和弦。</p>
-
-<p>同桌的你，是4/4拍，相对缓慢，慢音乐，给新手和弦转换留下缓冲时间。这个时候如果下了苦功夫就可以弹会了。话说回来，喜欢也不叫苦，比如写代码，弹出来的那几分钟你会发自内心的高兴,即便听众只有你自己。</p>
-
-<h4 id="section-1">《董小姐》 躁起来</h4>
-<p>左立的吉他还有宋冬野的《董小姐》, 给了我沁人心脾的感受，那会每天下班回来就反复的操练,门窗关的严实，赶上剑灵正在火热上线，回来都11点了，折腾到2点是常有的事儿。高速成长的时期，人是不会疲倦的。董小姐是个很不错的歌曲。可以安抚你焦虑的内心，这首歌曲的弹奏可以熟悉普通的慢和弦。 
-我还跟宿舍的兄弟说，哪天我们码不了，去街头卖唱好么。 = =</p>
-
-<h4 id="section-2">《那些花儿》 感受节拍</h4>
-<p>大学毕业晚会，我们班有人表演《那些花儿》，范玮琪的歌曲青春，略带伤感。民谣式的蓝调歌曲很早就俘虏了我这种伪理性派，征服它需要很快的指法。好了，我需要去学习快节拍的拨弦转换。</p>
-
-<p>我发现，有规律的和旋，你弹的越快，肌肉记忆也会更好。肌肉像上了机械链条，一直在动。那时候早上起来先玩下快速弹奏，然后再刷牙，再看RSS。</p>
-
-<h4 id="section-3">《情非得已》 切音了</h4>
-<p>uc说过，如果需要学习jazz 风格的话，需要有切音技巧，我找来了庾澄庆的《情非得已》，看了下<a href="http://www.daweijita.com/?p=1958">大伟吉他</a> 这种相对高端点，其实也可以用手掌心切音。</p>
-
-<p>这首完整的曲子是我和jh哥哥一起玩的，很开心。一起成长的感觉很爽。</p>
-
-<h4 id="solo">《爱的罗曼史》 solo了</h4>
-<p>当年因为《蓝色生死恋》而风靡全球的曲子，第一段弹起来，记下和弦，弹奏不难，第二部份就蛋疼了，要死记硬背。。。这是我的弱项，求破。</p>
-
-<p>后来</p>
-
-<blockquote>
-  <ul>
-    <li>《晴天》</li>
-    <li>《遇见》</li>
-    <li>《朋友》</li>
-    <li>《海阔天空》</li>
-    <li>《天空之城》</li>
-    <li>《送别》</li>
-    <li>《再见》</li>
-    <li>《夜空中最亮的星》</li>
-    <li>《一万次悲伤》</li>
-    <li>《张三的歌》</li>
-    <li>《彩虹》</li>
-    <li>……….</li>
-  </ul>
-</blockquote>
-
-<p>已经成为一种寄托了。</p>
-
-<p><strong>Practice make Perfect, 没有捷径</strong></p>
-
-<p>互联网就是老师，然后让你的手指历经一次又一次磨练。慢慢可以自如转换，不需要看指板。随之而来的有乐感，包括节拍。我听觉不敏锐，需要一个APP来调弦。</p>
-
-<p>上个刺激的图吧,3.4w RMB 一把，想想就好。有钱到那种地步可以考虑下.努力赚钱~~
-<img src="/images/2014/04/guitar.jpg" /></p>
-
-<hr />
-<p>一辈子找到你喜欢的东西，而且持续做下去是挺幸福的,</p>
-
-<p>过程中，坚持与耐心是一种美德。这点跟我们程序员对技术的追求，我想是一样的,</p>
-
-<p>想象有一天，我可以在某个安静的大树下弹奏，慢慢老去,</p>
-
-<p>夕阳下的深大文山湖，有一位小朋友看着叔叔在弹，也许你猜到那位 SB 是谁了吧。</p>
-
-<p>2014-04-28 </p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1508,6 +1478,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
@@ -1535,10 +1509,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
       </li>
     
   </ul>

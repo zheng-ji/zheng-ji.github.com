@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-04-23T09:24:56+08:00</updated>
+  <updated>2016-04-24T21:00:58+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,102 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Ansible Dynamic Inventory]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/04/24/ansible-dynamic-inventory/"/>
+    <updated>2016-04-24T20:53:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/04/24/ansible-dynamic-inventory</id>
+    <content type="html"><![CDATA[<p>Ansible 在使用的过程中，如果机器数量比较固定，且变更不多的情况下，可在 /etc/ansible/hosts 文件里面配置固定的组合机器IP， 并给他起组的别名，执行 Ansible 脚本便可以通过别名找到相应的机器。</p>
+
+<p><code>
+[webservers]
+111.222.333.444 ansible_ssh_port=888
+</code></p>
+
+<p>假如你有很多台机器，且机器经常变更导致IP时常变换，你还想把IP逐个写入 /etc/ansible/hosts 就不现实了。你也许会问，若不把 IP 写进 /etc/ansible/hosts，那不是没法用 Ansible 指挥这些机器？
+感谢 Ansible Dynamic Inventory， 如果我们能通过编程等手段获取变更机器的IP，我们还是有办法实现的。</p>
+
+<h3 id="dynamic-inventory-">Dynamic Inventory 的原理</h3>
+
+<ul>
+  <li>通过编程的方式,也就是动态获取机器的 json 信息;</li>
+  <li>Ansible 通过解析这串 json 字符串;</li>
+</ul>
+
+<p><code>
+ansible -i yourprogram.py -m raw  -a 'cd /home'
+</code></p>
+
+<p>Ansible Dynamic Inventory 对程序返回的 json 的转义是这样的：</p>
+
+<p><code>
+{"devtest-asg": {"hosts": ["172.31.21.164"], "vars": {"ansible_ssh_port": 12306}}}
+</code></p>
+
+<p>翻译一下就是  /etc/ansible/hosts 中的:</p>
+
+<p><code>
+[devtest-asg]
+172.31.21.164 ansible_ssh_port=12306
+</code></p>
+
+<h3 id="section">一个实战的例子</h3>
+
+<p>官方文档对 Inventory 仅作概念性描述，阅读完后仍是一头雾水，不知如何下手。 让我们用一个例子来豁然开朗吧。 我们使用 AWS 的 AutoScaling Group，以下简称 ASG，ASG 会在某种自定义的条件下会自动开启和关闭机器，这给我们在辨别IP，定位机器的时候造成困扰。因此我们需要 Ansible Dynamic Inventory</p>
+
+<p>我们使用 AWS 的 boto 库来获取 ASG 的实例信息.以下程序(get_host.py)中要实现的方法就是列出返回机器信息的 json 串。</p>
+
+<p>```python
+#!/usr/bin/env python
+# -<em>- coding: utf-8 -</em>-
+import json
+import boto
+import boto.ec2
+import boto.ec2.autoscale</p>
+
+<p>AWS_REGION = ‘BBB’
+AWS_ACCESS_KEY = ‘xxxx’
+AWS_SECRET_KEY = ‘yyy’</p>
+
+<p>result = {}
+def getData():
+    conn_as = boto.ec2.autoscale.connect_to_region(
+            ‘cn-north-1’,
+            aws_access_key_id=AWS_ACCESS_KEY,
+            aws_secret_access_key=AWS_SECRET_KEY)
+    group = conn_as.get_all_groups(names=[‘devtest-asg’])[0]
+    conn_ec2 = boto.ec2.connect_to_region(
+            AWS_REGION,
+            aws_access_key_id=AWS_ACCESS_KEY,
+            aws_secret_access_key=AWS_SECRET_KEY)</p>
+
+<pre><code>instance_ids = [i.instance_id for i in group.instances]
+reservations = conn_ec2.get_all_instances(instance_ids)
+instances = [i for r in reservations for i in r.instances]
+
+result['devtest-asg'] = {}
+result['devtest-asg']['hosts'] = []
+for r in reservations:
+    for i in r.instances:
+        result['devtest-asg']['hosts'].append('%s' % i.private_ip_address)
+        result['devtest-asg']['vars'] = {'ansible_ssh_port': 36000}
+</code></pre>
+
+<p>def getlists():
+    getData()
+    print json.dumps(result)</p>
+
+<p>getlists()
+```</p>
+
+<p>执行以下命令就可以愉快地使用 Ansible 了，其中 devtest-asg 是 ASG 的别名：</p>
+
+<p><code>
+ansible -i get_host.py  devtest-asg -m raw -a 'ls /'
+</code></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Flume 实时收集 Nginx 日志]]></title>
@@ -367,124 +463,6 @@ sed -n ‘/5\/Dec\/2015/,/10\/Dec\/2010/ p’ access.log | goaccess -a</p>
 zcat access.log.*.gz | goaccess
 ```</p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Gre 隧道与 Keepalived]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived/"/>
-    <updated>2015-12-05T10:29:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived</id>
-    <content type="html"><![CDATA[<p>这一篇文章是做了不少功课的。</p>
-
-<ul>
-  <li><a href="#第一节">什么是 Gre 隧道</a></li>
-  <li><a href="#第二节">什么是 Vrrp </a></li>
-  <li><a href="#第三节">KeepAlived 是什么</a></li>
-  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
-  <li><a href="#第五节">附录</a></li>
-</ul>
-
-<h3 id="第一节">什么是 Gre 隧道 </h3>
-
-<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
-
-<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
-
-<ul>
-  <li>$server_A_ip 表示服务器A的IP</li>
-  <li>$server_B_ip 服务器B 的内网IP</li>
-</ul>
-
-<p>```
-# 在 A 机器上执行
-# 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
-sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
-sudo ip link set dev gretap1 up  # 启动该设备
-sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址</p>
-
-<h1 id="b-">在 B 机器上执行</h1>
-<p># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
-sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
-sudo ip link set dev gretap1 up  # 启动该设备
-sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址
-```</p>
-
-<p>如果想停止或者删除上述网卡</p>
-
-<p><code>
-ip link set gretap1 down
-ip tunnel del gretap1
-</code></p>
-
-<p>至此点到点得隧道建立。</p>
-
-<h3 id="第二节">什么是 vrrp 协议 </h3>
-
-<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
-
-<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
-
-<h3 id="第三节"> Keepalived 是什么 </h3>
-
-<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
-
-<ul>
-  <li>一个经典的案例</li>
-</ul>
-
-<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
-
-<h3 id="第四节">怎么玩 Keepalived</h3>
-
-<ul>
-  <li>安装</li>
-</ul>
-
-<p><code>
-sudo apt-get install keepalived
-</code></p>
-
-<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
-接着在 A 服务器上</p>
-
-<ul>
-  <li>配置</li>
-</ul>
-
-<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
-
-<p>```</p>
-
-<p>global_defs {
-    router_id LVS_DEVEL
-}</p>
-
-<p>vrrp_instance VI_1 {
-    state MASTER
-    interface gretap1 # 绑在建立起来的隧道上
-    virtual_router_id 51
-    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
-    priority 100          advert_int 1      # 广播时间间隔
-    authentication {  #  验证相关
-        auth_type PASS
-        auth_pass 1111
-    }
-    virtual_ipaddress {
-        $virtual_third_ip dev eth0
-    }
-}
-```</p>
-
-<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
-
-<h3 id="第五节"> 附录 </h3>
-
-<ul>
-  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
-  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
-  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
-</ul>
 ]]></content>
   </entry>
   

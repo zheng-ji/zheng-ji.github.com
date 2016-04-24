@@ -9,7 +9,11 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="来深圳已经四个多月了，我不会扯淡地说些恍如隔日，白驹过隙之云，就我真实的感受而言，这些日子发生了很多事情，感觉经历了不少事情。关键字是： MiniGame比赛，后苑生活，吉他，折腾捣鼓 本以为音乐会随着时光离我远去，原来它一直都在。小时候学过小提琴，后来因为羡慕同龄人可以一起踢球玩耍而渐渐荒废， &hellip;">
+  <meta name="description" content="该文章没有什么创造性营养，也没有什么技术沉淀，各位看官轻轻带过，仅仅经验之谈，看过用过的人都会，简单的事情就平滑地带过。怎么让索然无味的文章更好地被他人深入阅读,要么就是实用，要么就是深刻，不扯淡, 直奔主题。 查看表结构 1
+2
+3
+desc Tbl;
+show create table Tbl &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +71,230 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/">最近用到的 MySql 语句</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-05T23:01:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/12/05/zui-jin-yong-dao-de-mysql/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>该文章没有什么创造性营养，也没有什么技术沉淀，各位看官轻轻带过，仅仅经验之谈，看过用过的人都会，简单的事情就平滑地带过。怎么让索然无味的文章更好地被他人深入阅读,要么就是实用，要么就是深刻，不扯淡, 直奔主题。</p>
+
+<h3 id="section">查看表结构</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">desc Tbl;
+</span><span class="line">show create table Tbl;
+</span><span class="line">show full fields table Tbl;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果表有很多分区，导致很多打点刷屏，那么可以用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">desc Tbl/G;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>表太多的话，我的场景是2000张表,:(</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">SHOW TABLES LIKE '%tb%';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-1">查询数据库的字符集</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show variables like '%character%';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-2">指定字符集直连</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h10.145.135.234 -uoss -pxxx dbName --default-character-set=gbk;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-3">赋予权限</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show grants for 'xxx'@'xxx.xxx.xxx.xxx'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-4">如果想备份，或者复制表</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">create table newtb select * from oldtable</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-5">修改表字段</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter tbA modify fieldA int(11) unsigned default '0'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-6">移除字段</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter table t2 drop column c;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-7">修改主键</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter table tbA drop primary key;
+</span><span class="line">Alter table tbA add primary key(dtStatDate,File2)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="query">查询当前数据库的查询进程,干掉挂起的query</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">show processlist;
+</span><span class="line">kill pid</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="shell">直接在shell外部命令行执行:</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h10.112.111.111 -uxxx -pxxxx dbname -Ns -e"
+</span><span class="line">select distinct(iUin) from TableA where dtEventTime &gt;= '2013-05-05' 
+</span><span class="line">" &gt; records.txt;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-8">排除重复记录</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">INSERT IGNORE into
+</span><span class="line">Replace Into 是为了让主键替换原有的记录</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="load-data-infile">load data infile语句</h4>
+<p>从一个文本文件中以很高的速度读入一个表中。使用这个命令之前，mysqld进程（服务）必须已经在运行。为了安全原因，当读取位于服务器上的文本文件时，文件必须处于数据库目录或可被所有人读取。另外，为了对服务器上文件使用load data infile，在服务器主机上你必须有file的权限。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">load data infile "/home/Order txt" into table Orders(Order_Number, Order_Date, Customer_ID) terminated by',';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysqldump--access-denied-for-user-when-using-lock-tables">mysqldump 中解决 报”Access denied for user when using LOCK TABLES”</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">mysqldump -udbuser -p dbname --skip-lock-tables &gt; dbname.sql</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-9">监控数据库磁盘增长量</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">use information_schema;
+</span><span class="line">#库的大小
+</span><span class="line">select concat(round(sum(DATA_LENGTH/1024/1024),2),'MB') as data  from TABLES where table_schema='db1';</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-10">时间函数</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">FROM_UNIXTIME(iLoginTime,'%Y-%m-%d')
+</span><span class="line">unix_timestamp('2013-12-03');
+</span><span class="line">Date_SUB(OrderDate,INTERVAL 2 DAY)
+</span><span class="line">Date_ADD(OrderDate,INTERVAL 2 DAY)
+</span><span class="line">timestampdiff(week,’2009-01-24′,’2009-06-20′);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="no-existhaving">no exist,having</h4>
+<p>适合做留存用户分析</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">SELECT distinct field1
+</span><span class="line">FROM table a
+</span><span class="line">where date &lt;= 20130430 and
+</span><span class="line">not exists (
+</span><span class="line">        SELECT field1 FROM table b where date&gt;=20130501 and a.field1=b.field1
+</span><span class="line">)
+</span><span class="line">
+</span><span class="line">#举例子,可以计算第一次创建用户的人
+</span><span class="line">select * from TbRole having min(CreateTime) between 'xxx' and 'xxx' </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysql-">mysql 逻辑运算,好像在编程的样子</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">case condition1
+</span><span class="line">when result1 then 'xx'
+</span><span class="line">when result2 then 'xx'
+</span><span class="line">else result1 then 'xx'
+</span><span class="line">end as 'xx'
+</span><span class="line">
+</span><span class="line">ifnull(a,b) #如果a不为空的情况下执行a,否则执行b
+</span><span class="line">if(condition,a,b)#如果符合condition 执行a,否则执行b</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="group-by">妙用group by</h4>
+<p>可以在group by 里面做逻辑运算, 缩小逻辑范围</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select * From tableA group by (round(field1/100,0));</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-11">格式化字符串类型</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">concat('a','b')</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="mysql">mysql的临时变量’@’</h4>
+<p>以下sql是取各道具排前10的等级</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select * from (
+</span><span class="line">    select dtStatDate,iRoleLevel,iUserNum,
+</span><span class="line">    if(@templevel=a.iRoleLevel,@tno:=@tno+1,@tno:=1) as tno,@templevel:=a.iRoleLevel 
+</span><span class="line">    from tbl_a , (SELECT @tno:= 0,@templevel:=null) tbl_b
+</span><span class="line">    order by a.iRoleLevel asc,a.iUserNum desc
+</span><span class="line">) c
+</span><span class="line">where tno&lt;=10 order by iRoleLevel asc</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section-12">其他</h4>
+<p>union all 效率会比union高,因为union有去重功能,会耗时 </p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1634,69 +1862,6 @@ Oracle查询流程</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/07/15/feng-pei-zhi-lu/">封培之旅</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-07-15T19:32:00+08:00" pubdate data-updated="true">Jul 15<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/07/15/feng-pei-zhi-lu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>作为新入职的员工，参加了公司为期10天的封闭培训，此文记下这些日子的一些感悟。 因为 “思绪来地快，去地也快” by 云风。</p>
-
-<h4 id="section">遇到的人</h4>
-
-<p>因为缘分，我和其他6位同学组成了小组（肆无忌惮组），其中一位是武大的博士（windsunwang），一位是来广研微信的华工师兄(xiaochunguo)，有趣的是我们曾在网易面试的时候相遇，一位广研邮箱的中大师姐（vinajiang），琳琅天上的美术设计师（Mzt，鬼斧神功的画技，我们称之为大师），还有QQ空间的南大愤青，（杰哥），华科运维女（hazel）,大家一起完成每一天的任务，默契也在合作中慢慢养成。感受到了windsunwang的博学和严谨，xiaochunguo的冷静，Mzt的艺术家气息，vinajiang的细腻，hazel的积极。当然还少不了杰哥这个SB :) ，他说他封闭培训的收获就是大师学会画蜗牛，囧。在大伙身上感受到了久违的集体温暖</p>
-
-<p>我的室友：litten是位小清新的SNG前端工程师，毕业于华中科大，litten有想法也有激情，人很文静，很好相处，因为有着很多共同话题，每天晚上因为聊得太晚而导致早上起床很累。这样的日子，想必我今后会怀念这位短暂的室友吧。</p>
-
-<p>我们“班”里有很多个性鲜明的人，有的很主动高调，属于喜欢当领导的人，有的是很有实力的低调派，在需要的时候总是会一语惊人，腾讯的确是聚集了很多优秀的人才，大家的知识储备以及视野和专业度都很高。特别是两位产品经理。独特的视角和条理分明的逻辑，以及优秀的口才，让我钦佩。唯一有些遗憾的是，搞技术的人多少感觉不出。或许没有深入了解吧。</p>
-
-<h4 id="section-1">看到的事</h4>
-
-<p>封闭培训讲了不少所谓的职场课程，尽管我认为有些厚黑，但在职场的确需要适应，调整心态去接受吧少年。《体验式培训课》，以及《互联网行业发展》让我获益匪浅。“目标，计划，确认，执行”（Target Plan Chect Action）的指导方针应该是我们需要具备的思维方式。合作，沟通，领导在团队极其重要,特别是团队的规模到了一定的规模。主动的人总是应势站出来承担了责任，积极的热情，敬业的态度使得他们成为了耀眼的角色。培训过程中还是克服不少羞涩，拿起了话筒，在队友需要我的时候挺身而出，但总归还是不能像某些同学一样很老练地去表达。只要你细心观察，便能吸收到周围同学的正能量，比如博士跟我讲问卷设计的时候，深切感受到真正做过研究的人，他们严谨的逻辑思维让你觉得是如此的靠谱。
-#### 震撼的产品体验报告会</p>
-
-<p>我们做的是QQ空间的产品体验报告，最终只是得到了阳光普照奖。这次活动我细心观摩了真正的产品经理，或者有用心的同学是如何做这个Presentation的，其中一组同学的体验报告包涵了竟品分析，用户调研，原型设计，同时也用了很炫的展示手法，毫无悬念的拿走了第一名。用心做事的人是应该值得尊敬的。</p>
-
-<p>很多时候我们会感觉做产品其实只是耍耍花样，看到很多天花乱缀的文章为了一个小按钮而大书特书，有点没必要。如今看来，如果把握每一个需求，隐形要求你有丰富的知识储备，大量的用于调研（Custom Engagement）.如果你想你的方案令他人信服，你需要组织资源，撰写有料的报告，甚至做一个小Demo,如果可能的话做自些小测试。这些同学让我看到了很赞的能力。</p>
-
-<p>说到这里，我也看到了我们班有位微信的产品经理，在我与之交谈的过程中，由心的欣赏。除去淡定的临场发言的实力，更具闪光点的是其洞察力与组织能力，在谈及百度发展历程，以及产品发展定位，都能信手拈来，有理有据，中肯的道出个中要害，想必其阅读量很大。反思自己，虽然很多资料我也阅读过，但没有去总结形成自己的思想，只是在他人提及之后才恍然大悟。虽然我不是做产品的，“我只是了解了解就够了？”抱有这样的想法是可以么？如果程序员只是停留在代码中自娱自乐，没有思考产品，用户的东西，我想多半是没有灵魂的吧。以后要真的去沉淀才是。</p>
-
-<p>感觉腾讯能发展成今天这样子，的确是有其伟大之处。至少是招到了不少优秀的同学，曾经有人说腾讯是一个消耗人才的地方，不可否认大公司因流程体制都有通病，但我感受到，只有用心，通过不同的方式，可以开阔视野，如果你用心并去努力，还是能收获到。学习的涵义也应该慢慢变得多元化（沟通，情绪，产品），而不仅仅只是单一的技术。</p>
-
-<p>结尾想引用这次封陪之旅一位老师的话 “坚持是最好的美德” ：） 。问题很多，耐心勇敢去做你能尽到的改变吧,别泄气哈。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1718,6 +1883,10 @@ Oracle查询流程</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
@@ -1745,10 +1914,6 @@ Oracle查询流程</p>
     
       <li class="post">
         <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a>
       </li>
     
   </ul>
