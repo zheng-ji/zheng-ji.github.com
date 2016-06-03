@@ -146,14 +146,14 @@
 <span class="line-number">7</span>
 <span class="line-number">8</span>
 <span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">//</span><span class="err">创建</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">//</span><span class="err">创建</span> <span class="n">heartbeat</span> <span class="err">表</span>
 </span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
-</span><span class="line">            <span class="c1">--host=localhost -D monitor \</span>
+</span><span class="line">            <span class="c1">--host=localhost -D &lt;YourDatabase&gt; \</span>
 </span><span class="line">            <span class="c1">--create-table --update </span>
 </span><span class="line">
-</span><span class="line"><span class="o">//</span><span class="err">定时更新</span>
+</span><span class="line"><span class="o">//</span><span class="err">每隔</span><span class="mi">60</span><span class="n">s</span><span class="p">,</span><span class="err">定时更新状态，以守护进程的方式执行</span>
 </span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
-</span><span class="line">           <span class="c1">--host=localhost -D monitor\</span>
+</span><span class="line">           <span class="c1">--host=localhost -D &lt;YourDatabase&gt;\</span>
 </span><span class="line">           <span class="c1">--interval=60 --update --replace --daemonize</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 <p>它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
@@ -166,19 +166,19 @@
 </pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
 </span><span class="line"><span class="o">|</span> <span class="n">ts</span>                         <span class="o">|</span> <span class="n">server_id</span> <span class="o">|</span> <span class="n">file</span>             <span class="o">|</span> <span class="k">position</span>  <span class="o">|</span> <span class="n">relay_master_log_file</span> <span class="o">|</span> <span class="n">exec_master_log_pos</span> <span class="o">|</span>
 </span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
-</span><span class="line"><span class="o">|</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">03</span><span class="n">T22</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mi">29</span><span class="p">.</span><span class="mi">000720</span> <span class="o">|</span>         <span class="mi">3</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">004928</span> <span class="o">|</span> <span class="mi">716365913</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">002290</span>      <span class="o">|</span>           <span class="mi">291330290</span> <span class="o">|</span>
+</span><span class="line"><span class="o">|</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">03</span><span class="n">T22</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mi">29</span><span class="p">.</span><span class="mi">000720</span> <span class="o">|</span>         <span class="mi">6</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">004</span><span class="o">|</span> <span class="mi">716</span><span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">002</span><span class="o">|</span>           <span class="mi">291330290</span> <span class="o">|</span>
 </span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>接着在从库执行定期检测,并将结果重定向到文本</li>
+  <li>接着在从库以守护进程执行定期检测,并将结果重定向到文本</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">perl</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
-</span><span class="line">     <span class="c1">--host=localhost -D monitor --interval=60 \</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">     <span class="c1">--host=localhost -D &lt;YourDatabase&gt; --interval=60 \</span>
 </span><span class="line">     <span class="c1">--file=/tmp/output.txt --monitor --daemonize</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
@@ -188,7 +188,7 @@
 </pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="mi">29</span><span class="p">.</span><span class="mi">00</span><span class="n">s</span> <span class="p">[</span> <span class="mi">30</span><span class="p">.</span><span class="mi">20</span><span class="n">s</span><span class="p">,</span>  <span class="mi">6</span><span class="p">.</span><span class="mi">04</span><span class="n">s</span><span class="p">,</span>  <span class="mi">2</span><span class="p">.</span><span class="mi">01</span><span class="n">s</span> <span class="p">]</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2。01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
+<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2.01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
 </div>
 
 

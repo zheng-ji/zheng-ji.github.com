@@ -4,7 +4,7 @@
   <title><![CDATA[Category: DataBase | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/database/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-06-03T23:40:19+08:00</updated>
+  <updated>2016-06-03T23:49:00+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -53,33 +53,33 @@ Seconds_Behind_Master: 0
 </ul>
 
 <p>```
-//创建
+//创建 heartbeat 表
 pt-heartbeat –user=root –ask-pass \
-            –host=localhost -D monitor \
-            –create-table –update </p>
+            –host=localhost -D <yourdatabase> \
+            --create-table --update </yourdatabase></p>
 
-<p>//定时更新
+<p>//每隔60s,定时更新状态，以守护进程的方式执行
 pt-heartbeat –user=root –ask-pass \
-           –host=localhost -D monitor\
-           –interval=60 –update –replace –daemonize
+           –host=localhost -D <yourdatabase>\
+           --interval=60 --update --replace --daemonize
 ```
-它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
+它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</yourdatabase></p>
 
 <p><code>
 +----------------------------+-----------+------------------+-----------+-----------------------+---------------------+
 | ts                         | server_id | file             | position  | relay_master_log_file | exec_master_log_pos |
 +----------------------------+-----------+------------------+-----------+-----------------------+---------------------+
-| 2016-06-03T22:26:29.000720 |         3 | mysql-bin.004928 | 716365913 | mysql-bin.002290      |           291330290 |
+| 2016-06-03T22:26:29.000720 |         6 | mysql-bin.004| 716| mysql-bin.002|           291330290 |
 +----------------------------+-----------+------------------+-----------+-----------------------+---------------------+
 </code></p>
 
 <ul>
-  <li>接着在从库执行定期检测,并将结果重定向到文本</li>
+  <li>接着在从库以守护进程执行定期检测,并将结果重定向到文本</li>
 </ul>
 
 <p><code>
-perl /usr/bin/pt-heartbeat --user=root --ask-pass \
-     --host=localhost -D monitor --interval=60 \
+pt-heartbeat --user=root --ask-pass \
+     --host=localhost -D &lt;YourDatabase&gt; --interval=60 \
      --file=/tmp/output.txt --monitor --daemonize
 </code></p>
 
@@ -89,7 +89,7 @@ perl /usr/bin/pt-heartbeat --user=root --ask-pass \
 29.00s [ 30.20s,  6.04s,  2.01s ]
 </code></p>
 
-<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2。01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
+<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2.01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
 ]]></content>
   </entry>
   
