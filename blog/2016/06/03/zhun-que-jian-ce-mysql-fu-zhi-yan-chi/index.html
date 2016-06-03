@@ -1,0 +1,375 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>准确监控 MySQL 复制延迟 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="mysql pt-heartbeat">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">准确监控 MySQL 复制延迟</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-06-03T23:35:00+08:00" pubdate data-updated="true">Jun 3<span>rd</span>, 2016</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>MySQL 建立主从复制后，在 <code>Slave_IO_Running</code>,<code>Slave_SQL_Runing</code> 都是 Yes 的前提下，通过监控 <code>Second_Behind_Master</code> 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">mysql</span><span class="o">&gt;</span> <span class="k">show</span> <span class="n">slave</span> <span class="n">status</span><span class="err">\</span><span class="k">G</span><span class="p">;</span>
+</span><span class="line"><span class="o">***************************</span> <span class="mi">1</span><span class="p">.</span> <span class="k">row</span> <span class="o">***************************</span>
+</span><span class="line"><span class="n">Slave_IO_State</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">master</span> <span class="k">to</span> <span class="n">send</span> <span class="n">event</span>
+</span><span class="line"><span class="p">....</span>
+</span><span class="line"><span class="n">Slave_IO_Running</span><span class="p">:</span> <span class="n">Yes</span>
+</span><span class="line"><span class="n">Slave_SQL_Running</span><span class="p">:</span> <span class="n">Yes</span>
+</span><span class="line"><span class="n">Seconds_Behind_Master</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class="line"><span class="p">...</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>很遗憾，我们并不能这样去判断，因为你看到的有可能是假象。</p>
+
+<p>MySQL的同步是异步完成的，其中</p>
+
+<ul>
+  <li>IO thread 接收从主库的 binlog，然后在从库生成 relay log</li>
+  <li>SQL thead 解析 relay log 后在从库上进行重放</li>
+</ul>
+
+<p><code>Second_Behind_Master</code>(以下简称SBM) 是 SQL thread 在执行IO thread 生成的relay log的时间差。relay log中event的时间戳是主库上的时间戳，而SQL thread的时间戳是从库上的，SBM 代表的是从库延后主库的时间差。</p>
+
+<p>主库上执行了一个大的操作，这个操作在主库上没执行完毕的时候，从库的 SBM 会显示为0，而当主库执行完毕传到从库上开始执行的时候,SBM 就会显示很大，在网络状况不好的情况下，更是容易出现 SBM 在零和一个巨大的数值反复飘忽的现象。</p>
+
+<h3 id="pt-heartbeat-">pt-heartbeat 帮我们准确地检测</h3>
+
+<p>pt-heartbeat 是 percona-toolkit 中用来检测主从延迟的工具，需要在主库和从库同时配合才能完成</p>
+
+<ul>
+  <li>首先在主库创建监控的表，并定时更新</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">//</span><span class="err">创建</span>
+</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">            <span class="c1">--host=localhost -D monitor \</span>
+</span><span class="line">            <span class="c1">--create-table --update </span>
+</span><span class="line">
+</span><span class="line"><span class="o">//</span><span class="err">定时更新</span>
+</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">           <span class="c1">--host=localhost -D monitor\</span>
+</span><span class="line">           <span class="c1">--interval=60 --update --replace --daemonize</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span><span class="line"><span class="o">|</span> <span class="n">ts</span>                         <span class="o">|</span> <span class="n">server_id</span> <span class="o">|</span> <span class="n">file</span>             <span class="o">|</span> <span class="k">position</span>  <span class="o">|</span> <span class="n">relay_master_log_file</span> <span class="o">|</span> <span class="n">exec_master_log_pos</span> <span class="o">|</span>
+</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span><span class="line"><span class="o">|</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">03</span><span class="n">T22</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mi">29</span><span class="p">.</span><span class="mi">000720</span> <span class="o">|</span>         <span class="mi">3</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">004928</span> <span class="o">|</span> <span class="mi">716365913</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">002290</span>      <span class="o">|</span>           <span class="mi">291330290</span> <span class="o">|</span>
+</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>接着在从库执行定期检测,并将结果重定向到文本</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">perl</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">     <span class="c1">--host=localhost -D monitor --interval=60 \</span>
+</span><span class="line">     <span class="c1">--file=/tmp/output.txt --monitor --daemonize</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>文本的内容只有一行，每隔指定的时间就会被覆盖</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="mi">29</span><span class="p">.</span><span class="mi">00</span><span class="n">s</span> <span class="p">[</span> <span class="mi">30</span><span class="p">.</span><span class="mi">20</span><span class="n">s</span><span class="p">,</span>  <span class="mi">6</span><span class="p">.</span><span class="mi">04</span><span class="n">s</span><span class="p">,</span>  <span class="mi">2</span><span class="p">.</span><span class="mi">01</span><span class="n">s</span> <span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2。01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-06-03T23:35:00+08:00" pubdate data-updated="true">Jun 3<span>rd</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/database/'>DataBase</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/04/24/ansible-dynamic-inventory/" title="Previous Post: Ansible Dynamic Inventory">&laquo; Ansible Dynamic Inventory</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="准确监控 MySQL 复制延迟"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org">EverET</a>
+    </span>
+    <span>
+        <a href="http://forsigner.com">forsigner</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">Onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

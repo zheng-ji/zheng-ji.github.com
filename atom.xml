@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-04-24T21:00:58+08:00</updated>
+  <updated>2016-06-03T23:40:19+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,107 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[准确监控 MySQL 复制延迟]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/"/>
+    <updated>2016-06-03T23:35:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi</id>
+    <content type="html"><![CDATA[<p>MySQL 建立主从复制后，在 <code>Slave_IO_Running</code>,<code>Slave_SQL_Runing</code> 都是 Yes 的前提下，通过监控 <code>Second_Behind_Master</code> 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">mysql</span><span class="o">&gt;</span> <span class="k">show</span> <span class="n">slave</span> <span class="n">status</span><span class="err">\</span><span class="k">G</span><span class="p">;</span>
+</span><span class="line"><span class="o">***************************</span> <span class="mi">1</span><span class="p">.</span> <span class="k">row</span> <span class="o">***************************</span>
+</span><span class="line"><span class="n">Slave_IO_State</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">master</span> <span class="k">to</span> <span class="n">send</span> <span class="n">event</span>
+</span><span class="line"><span class="p">....</span>
+</span><span class="line"><span class="n">Slave_IO_Running</span><span class="p">:</span> <span class="n">Yes</span>
+</span><span class="line"><span class="n">Slave_SQL_Running</span><span class="p">:</span> <span class="n">Yes</span>
+</span><span class="line"><span class="n">Seconds_Behind_Master</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class="line"><span class="p">...</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>很遗憾，我们并不能这样去判断，因为你看到的有可能是假象。</p>
+
+<p>MySQL的同步是异步完成的，其中</p>
+
+<ul>
+  <li>IO thread 接收从主库的 binlog，然后在从库生成 relay log</li>
+  <li>SQL thead 解析 relay log 后在从库上进行重放</li>
+</ul>
+
+<p><code>Second_Behind_Master</code>(以下简称SBM) 是 SQL thread 在执行IO thread 生成的relay log的时间差。relay log中event的时间戳是主库上的时间戳，而SQL thread的时间戳是从库上的，SBM 代表的是从库延后主库的时间差。</p>
+
+<p>主库上执行了一个大的操作，这个操作在主库上没执行完毕的时候，从库的 SBM 会显示为0，而当主库执行完毕传到从库上开始执行的时候,SBM 就会显示很大，在网络状况不好的情况下，更是容易出现 SBM 在零和一个巨大的数值反复飘忽的现象。</p>
+
+<h3 id="pt-heartbeat-">pt-heartbeat 帮我们准确地检测</h3>
+
+<p>pt-heartbeat 是 percona-toolkit 中用来检测主从延迟的工具，需要在主库和从库同时配合才能完成</p>
+
+<ul>
+  <li>首先在主库创建监控的表，并定时更新</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">//</span><span class="err">创建</span>
+</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">            <span class="c1">--host=localhost -D monitor \</span>
+</span><span class="line">            <span class="c1">--create-table --update </span>
+</span><span class="line">
+</span><span class="line"><span class="o">//</span><span class="err">定时更新</span>
+</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">           <span class="c1">--host=localhost -D monitor\</span>
+</span><span class="line">           <span class="c1">--interval=60 --update --replace --daemonize</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span><span class="line"><span class="o">|</span> <span class="n">ts</span>                         <span class="o">|</span> <span class="n">server_id</span> <span class="o">|</span> <span class="n">file</span>             <span class="o">|</span> <span class="k">position</span>  <span class="o">|</span> <span class="n">relay_master_log_file</span> <span class="o">|</span> <span class="n">exec_master_log_pos</span> <span class="o">|</span>
+</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span><span class="line"><span class="o">|</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">03</span><span class="n">T22</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mi">29</span><span class="p">.</span><span class="mi">000720</span> <span class="o">|</span>         <span class="mi">3</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">004928</span> <span class="o">|</span> <span class="mi">716365913</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">002290</span>      <span class="o">|</span>           <span class="mi">291330290</span> <span class="o">|</span>
+</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>接着在从库执行定期检测,并将结果重定向到文本</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">perl</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">     <span class="c1">--host=localhost -D monitor --interval=60 \</span>
+</span><span class="line">     <span class="c1">--file=/tmp/output.txt --monitor --daemonize</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>文本的内容只有一行，每隔指定的时间就会被覆盖</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="mi">29</span><span class="p">.</span><span class="mi">00</span><span class="n">s</span> <span class="p">[</span> <span class="mi">30</span><span class="p">.</span><span class="mi">20</span><span class="n">s</span><span class="p">,</span>  <span class="mi">6</span><span class="p">.</span><span class="mi">04</span><span class="n">s</span><span class="p">,</span>  <span class="mi">2</span><span class="p">.</span><span class="mi">01</span><span class="n">s</span> <span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2。01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Ansible Dynamic Inventory]]></title>
@@ -316,11 +417,20 @@
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
+    <title type="html"><![CDATA[Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi]]></title>
     <link href="http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/"/>
-    <updated>2016-03-10T23:32:00+08:00</updated>
+    <updated>2016-03-10T00:00:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi</id>
-    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
+    <content type="html"><![CDATA[<p>q—
+layout: post
+title: “Redis 该选择哪种持久化配置”
+date: 2016-03-10 23:32
+comments: true
+categories: System
+description: Redsi AOF RDB
+—</p>
+
+<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
 
 <p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
 
@@ -2127,164 +2237,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 </span><span class="line">mysql&gt; start slave;</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>这样就重新追上了。以后还是要提高周围同事使用 MySQL 的优化意识啊。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[为服务端程序构建 Docker]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/04/05/yong-bao-docker/"/>
-    <updated>2015-04-05T20:24:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/04/05/yong-bao-docker</id>
-    <content type="html"><![CDATA[<p>Docker 的优点自从问世就一直被工业界热论。</p>
-
-<p>平时工作中，所部署的大多数<code>Python</code>项目都会用上 <a href="http://wiki.zheng-ji.info/Python/virtualenv-py.html">virtualenv</a>, 
-沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 <code>Golang</code> <code>C++</code> 的项目
-同样能使用上沙箱环境。得益于<code>Docker</code>，我们仍然可以做到。</p>
-
-<p>这个过程没有想象中的简单，需要一番折腾，我以最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础. 或许这不是最好的方法。</p>
-
-<h3 id="docker-">一览该 Docker 项目</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~/workspace/gocode/src/kafconsumer/docker$ tree
-</span><span class="line">.
-</span><span class="line">├── Dockerfile
-</span><span class="line">├── kafConsumer
-</span><span class="line">│   ├── consumer
-</span><span class="line">│   ├── etc
-</span><span class="line">│   │   ├── config.yml
-</span><span class="line">│   │   └── logger.xml
-</span><span class="line">│   └── script
-</span><span class="line">│       └── start.sh
-</span><span class="line">└── kafConsumer.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以上的截图，是一个完整的 <code>Docker</code> 项目，包含了：</p>
-
-<ul>
-  <li><code>Dockerfile</code>,</li>
-  <li><code>kafCounsumer</code>(服务端程序，里面附带的启动脚本，配置程序，以及二进制文件)，</li>
-  <li>还有它被压缩而成的 <code>kafConsumer.tar.gz</code></li>
-</ul>
-
-<hr />
-
-<h3 id="dockerfile-">Dockerfile 的内容</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">FROM ubuntu:14.04                                                         
-</span><span class="line">MAINTAINER zheng-ji &lt;zheng-ji.info&gt;                                     
-</span><span class="line">RUN echo Asia/Shanghai &gt; /etc/timezone                   
-</span><span class="line">RUN sed -i "s/archive\.ubuntu/mirrors.163/" /etc/apt/sources.list          
-</span><span class="line">RUN apt-get update                                                         
-</span><span class="line">COPY kafConsumer.tar.gz /                                                  
-</span><span class="line">RUN tar xvf kafConsumer.tar.gz                                         
-</span><span class="line">VOLUME /data                   
-</span><span class="line">WORKDIR /kafConsumer                                                   
-</span><span class="line">ENTRYPOINT ["./script/start.sh"]</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p><code>Dockerfile</code> 可以理解为<code>makefile</code> 之类的文件，Docker 可以依照文件中的内容，构建镜像.</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker -t build Server/KafConsumer .</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就生成了<code>Tag</code> 为 <code>Server/KafConsumer</code> 的镜像，待会儿我们会使用它</p>
-
-<p>以上 <code>Dockerfile</code> 的具体内容的意义是:</p>
-
-<blockquote>
-
-  <ul>
-    <li>第一行：拉取ubuntu 14:04的镜像源</li>
-    <li>第二行：维护者</li>
-    <li>第三行：调整时区</li>
-    <li>第四行：更新源地址</li>
-    <li>第五行：更新源</li>
-    <li>第六行：复制项目下的压缩包到虚拟机根目录</li>
-    <li>第七行：解压</li>
-    <li>第八行：项目中使用/data数据卷</li>
-    <li>第九行：进入工作目录</li>
-    <li>第十行：Docker的入口执行文件是start.sh</li>
-  </ul>
-</blockquote>
-
-<hr />
-
-<h3 id="section">入口文件的内容</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">#!/bin/bash
-</span><span class="line">ulimit -a
-</span><span class="line">if [ ! -d /data/ad ];  then
-</span><span class="line">    mkdir /data/ad
-</span><span class="line">fi
-</span><span class="line">exec ./consumer -c=etc/config.yml</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash, 使用exec 执行程序</p>
-
-<hr />
-
-<h3 id="section-1">启动镜像</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker run -i -t  -v /path/to/data:/data Server/kafConsumer</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>这样就执行了，-v 可以映射你的本地文件到虚拟机的某个数据卷，这样我们就能从外面看到程序产生的文件.</p>
-
-<h3 id="section-2">如果你想关闭或者重启该服务的怎么办</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps -a
-</span><span class="line">
-</span><span class="line">找到你的 Docker 容器
-</span><span class="line">
-</span><span class="line">CONTAINER ID    IMAGE           COMMAND                CREATED        STATUS        PORTS    NAMES
-</span><span class="line">5b39d0d5cb85    Server/kafkaconsumer:latest   "./script/start.sh"    3 hours ago    tender_bohr </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>启动或者关闭</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker start tender_bohr
-</span><span class="line">sudo docker stop tender_bohr</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<h3 id="daocloud--">Daocloud  加速</h3>
-
-<p>功夫墙的原因，国外很多镜像被墙，因此构建镜像很慢，使用 Daocloud 服务可以加速,注册后就有该服务了</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cat /etc/default/docker
-</span><span class="line">DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://xxxxxx.m.daocloud.io"</span></code></pre></td></tr></table></div></figure></notextile></div>
 ]]></content>
   </entry>
   

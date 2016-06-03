@@ -4,7 +4,7 @@
   <title><![CDATA[Category: DataBase | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/database/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-04-24T21:00:58+08:00</updated>
+  <updated>2016-06-03T23:40:19+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,86 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[准确监控 MySQL 复制延迟]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/"/>
+    <updated>2016-06-03T23:35:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi</id>
+    <content type="html"><![CDATA[<p>MySQL 建立主从复制后，在 <code>Slave_IO_Running</code>,<code>Slave_SQL_Runing</code> 都是 Yes 的前提下，通过监控 <code>Second_Behind_Master</code> 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？</p>
+
+<p><code>sql
+mysql&gt; show slave status\G;
+*************************** 1. row ***************************
+Slave_IO_State: Waiting for master to send event
+....
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
+Seconds_Behind_Master: 0
+...
+</code></p>
+
+<p>很遗憾，我们并不能这样去判断，因为你看到的有可能是假象。</p>
+
+<p>MySQL的同步是异步完成的，其中</p>
+
+<ul>
+  <li>IO thread 接收从主库的 binlog，然后在从库生成 relay log</li>
+  <li>SQL thead 解析 relay log 后在从库上进行重放</li>
+</ul>
+
+<p><code>Second_Behind_Master</code>(以下简称SBM) 是 SQL thread 在执行IO thread 生成的relay log的时间差。relay log中event的时间戳是主库上的时间戳，而SQL thread的时间戳是从库上的，SBM 代表的是从库延后主库的时间差。</p>
+
+<p>主库上执行了一个大的操作，这个操作在主库上没执行完毕的时候，从库的 SBM 会显示为0，而当主库执行完毕传到从库上开始执行的时候,SBM 就会显示很大，在网络状况不好的情况下，更是容易出现 SBM 在零和一个巨大的数值反复飘忽的现象。</p>
+
+<h3 id="pt-heartbeat-">pt-heartbeat 帮我们准确地检测</h3>
+
+<p>pt-heartbeat 是 percona-toolkit 中用来检测主从延迟的工具，需要在主库和从库同时配合才能完成</p>
+
+<ul>
+  <li>首先在主库创建监控的表，并定时更新</li>
+</ul>
+
+<p>```
+//创建
+pt-heartbeat –user=root –ask-pass \
+            –host=localhost -D monitor \
+            –create-table –update </p>
+
+<p>//定时更新
+pt-heartbeat –user=root –ask-pass \
+           –host=localhost -D monitor\
+           –interval=60 –update –replace –daemonize
+```
+它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
+
+<p><code>
++----------------------------+-----------+------------------+-----------+-----------------------+---------------------+
+| ts                         | server_id | file             | position  | relay_master_log_file | exec_master_log_pos |
++----------------------------+-----------+------------------+-----------+-----------------------+---------------------+
+| 2016-06-03T22:26:29.000720 |         3 | mysql-bin.004928 | 716365913 | mysql-bin.002290      |           291330290 |
++----------------------------+-----------+------------------+-----------+-----------------------+---------------------+
+</code></p>
+
+<ul>
+  <li>接着在从库执行定期检测,并将结果重定向到文本</li>
+</ul>
+
+<p><code>
+perl /usr/bin/pt-heartbeat --user=root --ask-pass \
+     --host=localhost -D monitor --interval=60 \
+     --file=/tmp/output.txt --monitor --daemonize
+</code></p>
+
+<p>文本的内容只有一行，每隔指定的时间就会被覆盖</p>
+
+<p><code>
+29.00s [ 30.20s,  6.04s,  2.01s ]
+</code></p>
+
+<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2。01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[my.cnf 配置依据]]></title>
@@ -411,65 +491,6 @@ curl -XGET localhost:9200/_search -d '
 
 <h3 id="section-3">性能概述</h3>
 <p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Percona 小箱里的pt-archiver]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/"/>
-    <updated>2015-01-21T23:27:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver</id>
-    <content type="html"><![CDATA[<p>在管理线上数据库，时常要做一些数据归档操作，在没有了解 <code>Percona toolkit</code> 之前，第一个想到的是在夜深人静的时候使用 <code>MySqlDump</code> 来完成这件事情。但它不是我们的优质选择，理由有：</p>
-
-<ul>
-  <li><code>MySqlDump</code> 只能备份在本机，不能直接做远端备份</li>
-  <li>导出数据量太大的时候会锁表, 即使它的速度很快，但是在线上服务这是很危险的操作</li>
-  <li>它仅仅只能导出，无法做到同时删除(可能不是太有必要)</li>
-</ul>
-
-<p>面对上述的场景，<code>Percona Toolkit</code> 让DBA 有了更好地选择，<a href="http://www.percona.com/doc/percona-toolkit/2.1/pt-archiver.html">pt-archiver</a> 应时而生。</p>
-
-<h2 id="pt-archiver-">pt-archiver 介绍：</h2>
-
-<p>根据官方文档的说法，几乎不会对线上的OTLP操作有影响：</p>
-
-<blockquote>
-  <p>The goal is a low-impact, forward-only job to nibble old data out of the table without impacting OLTP queries much</p>
-</blockquote>
-
-<p>它可以帮助我们将数据归档到文件, 另一个数据库，或者同一个数据库的另一个表, 亦或是用于合并两个表的内容。</p>
-
-<h2 id="section">用法介绍：</h2>
-
-<p><code>
-pt-archiver [OPTION...] --source DSN --where WHERE
-</code></p>
-
-<p>归档的文件方便使用 load data infile 命令导入数据。另外你还可以用它来执行 delete 操作。这个工具默认的会删除源中的数据，使用的时候请注意。</p>
-
-<p>假如我们将数据库里符合条件的记录归档到文件，并不做删除操作。</p>
-
-<p><code>
-pt-archiver --ask-pass --progress 100000 --no-delete --no-check-charset --source h=localhost,u=root,D=blog,t=comment--file /home/ubuntu/tmp/comment--where 'time &lt; "2013-12-31h"'
-</code></p>
-
-<p>注意的选项参数：</p>
-
-<p><code>
---ask-pass        提示要求输密码
---progress num    执行num行在界面通知我们
---source h,D,t    数据源
---no-delete       加上这个参数并不会执行删除操作
---dry-run         仅仅将执行语句打印在终端，事实上并不执行。可以用于检测执行过程
---where           执行语句，需要用冒号包围起来
---limit           批量操作的数量，合理提高这个数值可以加快archive速度
-</code></p>
-
-<h3 id="section-1">小总结</h3>
-
-<p>通过开启 mysql 的 <code>general log</code>, 可以发现pt-archiver 执行时，是分批commit 的事务，因此执行效率会慢，在8核16G 内存的生产环境机器备份 1kw 条记录, 耗时150 分钟。 但基本不对服务造成影响，而且可以不用深夜进行, 值得一用。</p>
-
-<p>最近攒了好多好工具和经验，要好好整理搬上来和大家分享才是。</p>
 ]]></content>
   </entry>
   

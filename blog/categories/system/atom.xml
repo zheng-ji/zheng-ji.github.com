@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-04-24T21:00:58+08:00</updated>
+  <updated>2016-06-03T23:40:19+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -240,109 +240,6 @@ bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf \
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
-    <link href="http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/"/>
-    <updated>2016-03-10T23:32:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi</id>
-    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
-
-<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
-
-<ul>
-  <li><a href="#第一节">什么是 Snapshot</a></li>
-  <li><a href="#第二节">什么是 AOF </a></li>
-  <li><a href="#第三节">选择哪种药丸</a></li>
-</ul>
-
-<h3 id="第一节">什么是 Snapshot</h3>
-
-<p>Snapshot 将内存中数据以结构化的方式序列化到 rdb 文件中，是默认的持久化方式，便于解析引擎快速解析和内存实施。快照得由间隔时间，变更次数同时符合才会触发， 该过程中并不阻塞客户端请求，copy-on-write 方式也意味着极端情况下可能会导致实际数据2倍内存的使用量。它首先将数据写入临时文件，结束后，将临时文件重名为 dump.rdb。可以使用 <code>redis-check-dump</code> 用来检测完整性</p>
-
-<p>只有快照结束后才会将旧的文件替换成新的，因此任何时候 RDB 文件都是完整的。如果在触发 snapshot 之前，server 失效。会导致上一个时间点之后的数据未能序列化到 rdb 文件，安全性上稍弱。 </p>
-
-<p>我们可手动执行 save 或 bgsave 命令让 redis 执行快照。两个命令的区别在于:</p>
-
-<ul>
-  <li>save 是由主进程进行快照操作，会阻塞其它请求;</li>
-  <li>bgsave 会通过 fork 子进程进行快照操作;</li>
-</ul>
-
-<p>RDB 文件默认是经过压缩的二进制文件，占用的空间会小于内存中的数据，更加利于传输。设置如下，可以关闭快照功能</p>
-
-<p><code>
-save ""
-</code></p>
-
-<h4 id="section">相关配置</h4>
-
-<p><code>
-# snapshot触发的时机，save &lt;seconds&gt; &lt;changes&gt;， 比如600秒有2个操作
-save 600 2
-# 当snapshot 时出现错误无法继续时，是否阻塞客户端变更操作 
-stop-writes-on-bgsave-error yes 
-# 是否启用rdb文件压缩，默认为 yes cpu消耗，快速传输  
-rdbcompression yes  
-# rdb文件名称  
-dbfilename dump.rdb  
-</code></p>
-
-<h3 id="第二节">什么是 AOF</h3>
-
-<p>Append-only file，将 <code>操作 + 数据</code> 以格式化指令的方式追加到操作日志文件的尾部，在 append 操作返回后， 已经写入到文件或者即将写入，才进行实际的数据变更，日志文件保存了历史的操作过程；当 server 需要数据恢复时，可以直接回放此日志文件，即可还原所有的操作过程。 如果你期望数据更少的丢失，那么可以采用 AOF 模式。可以用 redis-check-aof 检测文件是否完整。</p>
-
-<p>AOF 就是日志会记录变更操(例如：set/del等)，会导致AOF文件非常的庞大，意味着server失效后，数据恢复的过程将会很长；事实上，一条数据经过多次变更，将会产生多条AOF记录，其实只要保存当前的状态，历史的操作记录是可以抛弃的， 由此催生了 AOF ReWrite。</p>
-
-<h4 id="aof-rewrite">什么是 AOF Rewrite</h4>
-
-<p>其实是压缩 AOF 文件的过程，Redis 采取了类似 Snapshot 的方式：基于 <code>copy-on-write</code>，全量遍历内存中数据，然后逐个序列到 aof 文件中。因此 AOF Rewrite 能够正确反应当前内存数据的状态， Rewrite 过程中，新的变更操作将仍然被写入到原 AOF 文件中，同时这些新的变更操作也会被收集起来， 并不阻塞客户端请求。</p>
-
-<h4 id="section-1">相关配置</h4>
-
-<p>```
-##只有在yes下，aof重写/文件同步等特性才会生效<br />
-appendonly no  </p>
-
-<h2 id="aof">指定aof文件名称</h2>
-<p>appendfilename appendonly.aof  </p>
-
-<h2 id="aofalways-everysec-noeverysec">指定aof操作中文件同步策略，有三个合法值：always everysec no，默认为everysec</h2>
-<p>appendfsync everysec  </p>
-
-<h2 id="aof-rewriteappendfsync-no-yes-no">在aof-rewrite期间，appendfsync 是否暂缓文件同步，no 表示不暂缓，yes 表示暂缓，默认为no</h2>
-<p>no-appendfsync-on-rewrite no  </p>
-
-<h2 id="aofrewrite-aofrewrite64mb512mb">aof文件rewrite触发的最小文件尺寸 只有大于此aof文件大于此尺寸是才会触发rewrite，默认64mb，建议512mb</h2>
-<p>auto-aof-rewrite-min-size 64mb  </p>
-
-<h2 id="rewriterewriteaof">相对于上一次rewrite，本次rewrite触发时aof文件应该增长的百分比</h2>
-<p>auto-aof-rewrite-percentage 100<br />
-```</p>
-
-<h4 id="appendfsync-">appendfsync 方式：</h4>
-
-<ul>
-  <li>always：每一条 aof 记录都立即同步到文件，这是最安全的方式，但是更多的磁盘操作和阻塞延迟，IO 开支较大。</li>
-  <li>everysec：每秒同步一次，性能和安全也是redis推荐的方式。如果服务器故障，有可能导致最近一秒内aof记录丢失。</li>
-  <li>no：redis并不直接调用文件同步，而是交给操作系统来处理，操作系统可以根据buffer填充情况等择机触发同步；性能较好，在物理服务器故障时，数据丢失量会因OS配置有关。</li>
-</ul>
-
-<h3 id="第三节">选择哪种药丸</h3>
-
-<ul>
-  <li>AOF更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</li>
-  <li>Snapshot，安全性较差，它是正常时期数据备份及 master-slave 数据同步的最佳手段，文件尺寸较小，恢复数度较快。</li>
-</ul>
-
-<h4 id="section-2">主从架构的环境下的选择</h4>
-
-<ul>
-  <li>通常 master 使用AOF，slave 使用 Snapshot，master 需要确保数据完整性，slave 提供只读服务.</li>
-  <li>如果你的网络稳定性差， 物理环境糟糕情况下，那么 master， slave均采取 AOF，这个在 master， slave角色切换时，可以减少时间成本；</li>
-</ul>
-]]></content>
-  </entry>
-  
-  <entry>
     <title type="html"><![CDATA[ 实时监控 nginx qps 的拓展]]></title>
     <link href="http://zheng-ji.github.com/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"/>
     <updated>2016-01-07T12:59:00+08:00</updated>
@@ -463,6 +360,124 @@ sed -n ‘/5\/Dec\/2015/,/10\/Dec\/2010/ p’ access.log | goaccess -a</p>
 zcat access.log.*.gz | goaccess
 ```</p>
 
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Gre 隧道与 Keepalived]]></title>
+    <link href="http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived/"/>
+    <updated>2015-12-05T10:29:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2015/12/05/gre-tuning-and-keepalived</id>
+    <content type="html"><![CDATA[<p>这一篇文章是做了不少功课的。</p>
+
+<ul>
+  <li><a href="#第一节">什么是 Gre 隧道</a></li>
+  <li><a href="#第二节">什么是 Vrrp </a></li>
+  <li><a href="#第三节">KeepAlived 是什么</a></li>
+  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
+  <li><a href="#第五节">附录</a></li>
+</ul>
+
+<h3 id="第一节">什么是 Gre 隧道 </h3>
+
+<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
+
+<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
+
+<ul>
+  <li>$server_A_ip 表示服务器A的IP</li>
+  <li>$server_B_ip 服务器B 的内网IP</li>
+</ul>
+
+<p>```
+# 在 A 机器上执行
+# 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
+sudo ip link set dev gretap1 up  # 启动该设备
+sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址</p>
+
+<h1 id="b-">在 B 机器上执行</h1>
+<p># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
+sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
+sudo ip link set dev gretap1 up  # 启动该设备
+sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址
+```</p>
+
+<p>如果想停止或者删除上述网卡</p>
+
+<p><code>
+ip link set gretap1 down
+ip tunnel del gretap1
+</code></p>
+
+<p>至此点到点得隧道建立。</p>
+
+<h3 id="第二节">什么是 vrrp 协议 </h3>
+
+<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
+
+<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
+
+<h3 id="第三节"> Keepalived 是什么 </h3>
+
+<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
+
+<ul>
+  <li>一个经典的案例</li>
+</ul>
+
+<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
+
+<h3 id="第四节">怎么玩 Keepalived</h3>
+
+<ul>
+  <li>安装</li>
+</ul>
+
+<p><code>
+sudo apt-get install keepalived
+</code></p>
+
+<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
+接着在 A 服务器上</p>
+
+<ul>
+  <li>配置</li>
+</ul>
+
+<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
+
+<p>```</p>
+
+<p>global_defs {
+    router_id LVS_DEVEL
+}</p>
+
+<p>vrrp_instance VI_1 {
+    state MASTER
+    interface gretap1 # 绑在建立起来的隧道上
+    virtual_router_id 51
+    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
+    priority 100          advert_int 1      # 广播时间间隔
+    authentication {  #  验证相关
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        $virtual_third_ip dev eth0
+    }
+}
+```</p>
+
+<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
+
+<h3 id="第五节"> 附录 </h3>
+
+<ul>
+  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
+  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
+  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
+</ul>
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="看到的现象 今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下 但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。 而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢， &hellip;">
+  <meta name="description" content="最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 Duplicated Key entry Error, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,121 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/10/23/mysql-unique-index/">唯一索引引发的思考</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-23T23:18:00+08:00" pubdate data-updated="true">Oct 23<span>rd</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/10/23/mysql-unique-index/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近需要改动线上一个有千万条记录的表，涉及到加字段操作，这个表有索引，按照经验，为了加速修改表结构,去掉索引。由于我删除的是Unique Index, 而服务一直在写,程序依赖数据库的唯一索引去重,导致瞬间有重复数据,唯一索引重新加上时会报 <code>Duplicated Key entry Error</code>,</p>
+
+<h3 id="section">回放事件</h3>
+
+<p>我们的数据表，之前是有 <code>UNIQUE INDEX(cuid, aid)</code>, 因为去掉索引，服务持续写入，导致有重复记录，所幸的是，这是一个统计表, 不影响功能，所以需要找出重复的记录</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">select cuid,aid from (
+</span><span class="line">    select cuid, aid,count(1) as num
+</span><span class="line">    from register_chn 
+</span><span class="line">    group by cuid,aid having num &gt; 1
+</span><span class="line">) t;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>显示有8条记录,如果手动删除,是很慢且愚蠢的做法,还是用 SQL 执行,镇定之后执行</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">delete from register_chn where (cuid,aid) in (
+</span><span class="line">    select cuid,aid from (
+</span><span class="line">        select cuid, aid,count(1) as num
+</span><span class="line">        from register_chn
+</span><span class="line">        group by cuid,aid having num &gt; 1
+</span><span class="line">    ) t
+</span><span class="line">);</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>影响了８条记录.然后瞬间加上索引.所幸是成功了, 事实上当时的合理操作应该是用事务。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">BEGIN;
+</span><span class="line">delete from register_chn where (cuid,aid) in (
+</span><span class="line">    select cuid,aid from (
+</span><span class="line">        select cuid, aid,count(1) as num
+</span><span class="line">        from register_chn
+</span><span class="line">        group by cuid,aid having num &gt; 1
+</span><span class="line">    ) t
+</span><span class="line">);
+</span><span class="line">alter table register_chn add unique index(cuid, aid);
+</span><span class="line">COMMINT;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">引发的思考</h3>
+
+<p>后来想想, 上述方法虽然解决问题了, 但是有点碰运气成分。如果频繁快速地产生重复记录,也许就没那么好运了,事实上可以执行以下 SQL:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">alter ignore table register_chn add unique index(cuid, aid)；</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果你以为很简单,那就错了。这个方法在 MySQL 5.0 上使用是没问题的，但是在5.6 之前是有bug的，亲自测试Percona 版本5.5, 的确会失败
+官方的解决方法是：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">set session old_alter_table = on;
+</span><span class="line">alter ignore table register_chn add unique index(cuid, aid);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在有主备的情况,记得执行前设置一下</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">set session sql_log_bin=off. </span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>以免备库报错。同样还需要在备库重复一下主库的操作, 这也算是一个不太完美的解决思路。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1394,69 +1509,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/03/mac-an-zhuang-go/">Mac 安装 Go</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-05-03T09:32:00+08:00" pubdate data-updated="true">May 3<span>rd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/05/03/mac-an-zhuang-go/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>修改 <code>~.zshrc</code>, 添加以下环境变量</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">export GOROOT=$HOME/go
-</span><span class="line">export GOBIN=$GOROOT/bin
-</span><span class="line">export PATH=$PATH:$GOBIN
-</span><span class="line">export GOPATH=/Users/zj/workspace/gocode</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>开始安装,耗时有点久
-保证你的电脑安装有 hg, 如果没有, 请执行 </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo easy_install mercurial
-</span><span class="line">hg clone -u release https://code.google.com/p/go
-</span><span class="line">cd go/src
-</span><span class="line">./all.bash</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>开始检验, 执行 go , 出现一系列 Usage信息就算通过了 ：）。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1480,6 +1532,10 @@ mysql&gt; SHOW SLAVE STATUS \G
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
       </li>
     
@@ -1488,7 +1544,7 @@ mysql&gt; SHOW SLAVE STATUS \G
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
+        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi</a>
       </li>
     
       <li class="post">
@@ -1505,10 +1561,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
       </li>
     
   </ul>

@@ -9,10 +9,15 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Ansible 在使用的过程中，如果机器数量比较固定，且变更不多的情况下，可在 /etc/ansible/hosts 文件里面配置固定的组合机器IP， 并给他起组的别名，执行 Ansible 脚本便可以通过别名找到相应的机器。 1
+  <meta name="description" content="MySQL 建立主从复制后，在 Slave_IO_Running,Slave_SQL_Runing 都是 Yes 的前提下，通过监控 Second_Behind_Master 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？ 1
 2
-[webservers]
-111.222.333.444 &hellip;">
+3
+4
+5
+6
+7
+8
+mysql&gt; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -70,6 +75,137 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-06-03T23:35:00+08:00" pubdate data-updated="true">Jun 3<span>rd</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>MySQL 建立主从复制后，在 <code>Slave_IO_Running</code>,<code>Slave_SQL_Runing</code> 都是 Yes 的前提下，通过监控 <code>Second_Behind_Master</code> 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">mysql</span><span class="o">&gt;</span> <span class="k">show</span> <span class="n">slave</span> <span class="n">status</span><span class="err">\</span><span class="k">G</span><span class="p">;</span>
+</span><span class="line"><span class="o">***************************</span> <span class="mi">1</span><span class="p">.</span> <span class="k">row</span> <span class="o">***************************</span>
+</span><span class="line"><span class="n">Slave_IO_State</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">master</span> <span class="k">to</span> <span class="n">send</span> <span class="n">event</span>
+</span><span class="line"><span class="p">....</span>
+</span><span class="line"><span class="n">Slave_IO_Running</span><span class="p">:</span> <span class="n">Yes</span>
+</span><span class="line"><span class="n">Slave_SQL_Running</span><span class="p">:</span> <span class="n">Yes</span>
+</span><span class="line"><span class="n">Seconds_Behind_Master</span><span class="p">:</span> <span class="mi">0</span>
+</span><span class="line"><span class="p">...</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>很遗憾，我们并不能这样去判断，因为你看到的有可能是假象。</p>
+
+<p>MySQL的同步是异步完成的，其中</p>
+
+<ul>
+  <li>IO thread 接收从主库的 binlog，然后在从库生成 relay log</li>
+  <li>SQL thead 解析 relay log 后在从库上进行重放</li>
+</ul>
+
+<p><code>Second_Behind_Master</code>(以下简称SBM) 是 SQL thread 在执行IO thread 生成的relay log的时间差。relay log中event的时间戳是主库上的时间戳，而SQL thread的时间戳是从库上的，SBM 代表的是从库延后主库的时间差。</p>
+
+<p>主库上执行了一个大的操作，这个操作在主库上没执行完毕的时候，从库的 SBM 会显示为0，而当主库执行完毕传到从库上开始执行的时候,SBM 就会显示很大，在网络状况不好的情况下，更是容易出现 SBM 在零和一个巨大的数值反复飘忽的现象。</p>
+
+<h3 id="pt-heartbeat-">pt-heartbeat 帮我们准确地检测</h3>
+
+<p>pt-heartbeat 是 percona-toolkit 中用来检测主从延迟的工具，需要在主库和从库同时配合才能完成</p>
+
+<ul>
+  <li>首先在主库创建监控的表，并定时更新</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">//</span><span class="err">创建</span>
+</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">            <span class="c1">--host=localhost -D monitor \</span>
+</span><span class="line">            <span class="c1">--create-table --update </span>
+</span><span class="line">
+</span><span class="line"><span class="o">//</span><span class="err">定时更新</span>
+</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">           <span class="c1">--host=localhost -D monitor\</span>
+</span><span class="line">           <span class="c1">--interval=60 --update --replace --daemonize</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span><span class="line"><span class="o">|</span> <span class="n">ts</span>                         <span class="o">|</span> <span class="n">server_id</span> <span class="o">|</span> <span class="n">file</span>             <span class="o">|</span> <span class="k">position</span>  <span class="o">|</span> <span class="n">relay_master_log_file</span> <span class="o">|</span> <span class="n">exec_master_log_pos</span> <span class="o">|</span>
+</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span><span class="line"><span class="o">|</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">03</span><span class="n">T22</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mi">29</span><span class="p">.</span><span class="mi">000720</span> <span class="o">|</span>         <span class="mi">3</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">004928</span> <span class="o">|</span> <span class="mi">716365913</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">002290</span>      <span class="o">|</span>           <span class="mi">291330290</span> <span class="o">|</span>
+</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>接着在从库执行定期检测,并将结果重定向到文本</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">perl</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
+</span><span class="line">     <span class="c1">--host=localhost -D monitor --interval=60 \</span>
+</span><span class="line">     <span class="c1">--file=/tmp/output.txt --monitor --daemonize</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>文本的内容只有一行，每隔指定的时间就会被覆盖</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="mi">29</span><span class="p">.</span><span class="mi">00</span><span class="n">s</span> <span class="p">[</span> <span class="mi">30</span><span class="p">.</span><span class="mi">20</span><span class="n">s</span><span class="p">,</span>  <span class="mi">6</span><span class="p">.</span><span class="mi">04</span><span class="n">s</span><span class="p">,</span>  <span class="mi">2</span><span class="p">.</span><span class="mi">01</span><span class="n">s</span> <span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2。01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -438,7 +574,7 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a></h1>
+      <h1 class="entry-title"><a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi</a></h1>
     
     
       <p class="meta">
@@ -454,7 +590,7 @@
   
 
 
-<time datetime="2016-03-10T23:32:00+08:00" pubdate data-updated="true">Mar 10<span>th</span>, 2016</time>
+<time datetime="2016-03-10T00:00:00+08:00" pubdate data-updated="true">Mar 10<span>th</span>, 2016</time>
         
         
           | <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/#comments">Comments</a>
@@ -464,7 +600,16 @@
   </header>
 
 
-  <div class="entry-content"><p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
+  <div class="entry-content"><p>q—
+layout: post
+title: “Redis 该选择哪种持久化配置”
+date: 2016-03-10 23:32
+comments: true
+categories: System
+description: Redsi AOF RDB
+—</p>
+
+<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
 
 <p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
 
@@ -1469,181 +1614,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-09-10T23:10:00+08:00" pubdate data-updated="true">Sep 10<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>定位服务器问题时,  我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言, 就是一把瑞士军刀, 灵活小巧, 武艺多端.</p>
-
-<ul>
-  <li><a href="#第一节">安装</a></li>
-  <li><a href="#第二节">常用操作</a></li>
-  <li><a href="#第三节">高效的实战</a></li>
-</ul>
-
-<h3 id="第一节">安装</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
-</span><span class="line">curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/stable/deb/draios.list
-</span><span class="line">apt-get update
-</span><span class="line">apt-get -y install sysdig</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第二节">常用操作</h3>
-
-<p>sysdig 有很多 chisel, chisel 意为 铲子, 可以理解为定位某类问题的工具, sysdig 采用 Lua 编写的。</p>
-
-<ul>
-  <li>查看 chisel 列表</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -cl  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看具体某个 chisel 的提示</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -i spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>使用某个 chisel</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>过滤器可以帮助我们从各种输出信息中, 筛选出我们需要的, 比如 
-<code>proc.name=foo</code> , 
-如果你记住不了太多过滤器也无妨,  我们可以借助如下命令查看过滤器</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -l</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>记录定位信息到文本, 以及从文本读取信息</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -w tracefile.cap
-</span><span class="line">sysdig -r tracefile.dump proc.name=sshd</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第三节">高效的实战</h3>
-
-<ul>
-  <li>服务器上经常需要查看哪个服务带宽占用使用较高, 特别是被 DDOS 的时候。</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c topprocs_net</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看某个IP的通讯数据,并以ASCII 码输出</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s2000 -A -c echo_fds fd.cip=127.0.0.1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看非请求 redis-server 的其他请求进程和句柄</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -p"%proc.name %fd.name" "evt.type=accept and proc.name!=redis-server"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看访问该服务器的所有 GET 请求数据</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds fd.port=80 and evt.buffer contains GET</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看访问该服务器的 SQL 语句</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds evt.buffer contains SELECT</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看磁盘读写最高的进程</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topprocs_file</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看延迟最大的系统调用</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topscalls_time</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看具体文件的操作细节</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -A -c echo_fds "fd.filename=syslog"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>查看 IO 延迟大于 1ms 的文件</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c fileslower 1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>监视某个文件是否被操作, 从安全出发想象空间很大哦</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig evt.type=open and fd.name contains /etc</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<p><a href="http://www.sysdig.org/wiki/">Sysdig 官网</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1665,6 +1635,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
       </li>
     
@@ -1673,7 +1647,7 @@
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
+        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi</a>
       </li>
     
       <li class="post">
@@ -1690,10 +1664,6 @@
     
       <li class="post">
         <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
       </li>
     
   </ul>

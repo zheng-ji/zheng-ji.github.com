@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择 Ansible 来做自动化批量操作。 之前有记录一些 Ansible 入门的使用,请看这里, 这半年的积累, &hellip;">
+  <meta name="description" content="定位服务器问题时, 我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,181 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/">Sysdig 值得拥有</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-09-10T23:10:00+08:00" pubdate data-updated="true">Sep 10<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/09/10/sysdig-zhi-de-yong-you/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>定位服务器问题时,  我们需要各式各样的武器, 诸如 iftop, ifstat, netstat, tcpdump, iostat。dstat 等, 因此工具箱需要装满很多工具, 在面对问题的时候才能显得不费吹灰之力, 迅速定位问题并解决, 保障服务稳定运行。Sysdig 的横空出世, 对我们而言, 就是一把瑞士军刀, 灵活小巧, 武艺多端.</p>
+
+<ul>
+  <li><a href="#第一节">安装</a></li>
+  <li><a href="#第二节">常用操作</a></li>
+  <li><a href="#第三节">高效的实战</a></li>
+</ul>
+
+<h3 id="第一节">安装</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add -
+</span><span class="line">curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/stable/deb/draios.list
+</span><span class="line">apt-get update
+</span><span class="line">apt-get -y install sysdig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">常用操作</h3>
+
+<p>sysdig 有很多 chisel, chisel 意为 铲子, 可以理解为定位某类问题的工具, sysdig 采用 Lua 编写的。</p>
+
+<ul>
+  <li>查看 chisel 列表</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -cl  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看具体某个 chisel 的提示</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -i spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用某个 chisel</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c spy_logs</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>过滤器可以帮助我们从各种输出信息中, 筛选出我们需要的, 比如 
+<code>proc.name=foo</code> , 
+如果你记住不了太多过滤器也无妨,  我们可以借助如下命令查看过滤器</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -l</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>记录定位信息到文本, 以及从文本读取信息</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -w tracefile.cap
+</span><span class="line">sysdig -r tracefile.dump proc.name=sshd</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第三节">高效的实战</h3>
+
+<ul>
+  <li>服务器上经常需要查看哪个服务带宽占用使用较高, 特别是被 DDOS 的时候。</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c topprocs_net</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看某个IP的通讯数据,并以ASCII 码输出</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s2000 -A -c echo_fds fd.cip=127.0.0.1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看非请求 redis-server 的其他请求进程和句柄</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -p"%proc.name %fd.name" "evt.type=accept and proc.name!=redis-server"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看访问该服务器的所有 GET 请求数据</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds fd.port=80 and evt.buffer contains GET</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看访问该服务器的 SQL 语句</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -s 2000 -A -c echo_fds evt.buffer contains SELECT</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看磁盘读写最高的进程</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topprocs_file</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看延迟最大的系统调用</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -c topscalls_time</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看具体文件的操作细节</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sysdig -A -c echo_fds "fd.filename=syslog"</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>查看 IO 延迟大于 1ms 的文件</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig -c fileslower 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>监视某个文件是否被操作, 从安全出发想象空间很大哦</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo sysdig evt.type=open and fd.name contains /etc</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p><a href="http://www.sysdig.org/wiki/">Sysdig 官网</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1182,194 +1357,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/04/05/yong-bao-docker/">为服务端程序构建 Docker</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-04-05T20:24:00+08:00" pubdate data-updated="true">Apr 5<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/04/05/yong-bao-docker/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Docker 的优点自从问世就一直被工业界热论。</p>
-
-<p>平时工作中，所部署的大多数<code>Python</code>项目都会用上 <a href="http://wiki.zheng-ji.info/Python/virtualenv-py.html">virtualenv</a>, 
-沙箱隔离带来的好处不言而喻。我也希望静态编译的服务，比如 <code>Golang</code> <code>C++</code> 的项目
-同样能使用上沙箱环境。得益于<code>Docker</code>，我们仍然可以做到。</p>
-
-<p>这个过程没有想象中的简单，需要一番折腾，我以最近写的 KafkServer 为例，叙述我是怎么构建的，需要读者具备一定的 Docker 基础. 或许这不是最好的方法。</p>
-
-<h3 id="docker-">一览该 Docker 项目</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji:~/workspace/gocode/src/kafconsumer/docker$ tree
-</span><span class="line">.
-</span><span class="line">├── Dockerfile
-</span><span class="line">├── kafConsumer
-</span><span class="line">│   ├── consumer
-</span><span class="line">│   ├── etc
-</span><span class="line">│   │   ├── config.yml
-</span><span class="line">│   │   └── logger.xml
-</span><span class="line">│   └── script
-</span><span class="line">│       └── start.sh
-</span><span class="line">└── kafConsumer.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以上的截图，是一个完整的 <code>Docker</code> 项目，包含了：</p>
-
-<ul>
-  <li><code>Dockerfile</code>,</li>
-  <li><code>kafCounsumer</code>(服务端程序，里面附带的启动脚本，配置程序，以及二进制文件)，</li>
-  <li>还有它被压缩而成的 <code>kafConsumer.tar.gz</code></li>
-</ul>
-
-<hr />
-
-<h3 id="dockerfile-">Dockerfile 的内容</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">FROM ubuntu:14.04                                                         
-</span><span class="line">MAINTAINER zheng-ji &lt;zheng-ji.info&gt;                                     
-</span><span class="line">RUN echo Asia/Shanghai &gt; /etc/timezone                   
-</span><span class="line">RUN sed -i "s/archive\.ubuntu/mirrors.163/" /etc/apt/sources.list          
-</span><span class="line">RUN apt-get update                                                         
-</span><span class="line">COPY kafConsumer.tar.gz /                                                  
-</span><span class="line">RUN tar xvf kafConsumer.tar.gz                                         
-</span><span class="line">VOLUME /data                   
-</span><span class="line">WORKDIR /kafConsumer                                                   
-</span><span class="line">ENTRYPOINT ["./script/start.sh"]</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p><code>Dockerfile</code> 可以理解为<code>makefile</code> 之类的文件，Docker 可以依照文件中的内容，构建镜像.</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker -t build Server/KafConsumer .</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这样就生成了<code>Tag</code> 为 <code>Server/KafConsumer</code> 的镜像，待会儿我们会使用它</p>
-
-<p>以上 <code>Dockerfile</code> 的具体内容的意义是:</p>
-
-<blockquote>
-
-  <ul>
-    <li>第一行：拉取ubuntu 14:04的镜像源</li>
-    <li>第二行：维护者</li>
-    <li>第三行：调整时区</li>
-    <li>第四行：更新源地址</li>
-    <li>第五行：更新源</li>
-    <li>第六行：复制项目下的压缩包到虚拟机根目录</li>
-    <li>第七行：解压</li>
-    <li>第八行：项目中使用/data数据卷</li>
-    <li>第九行：进入工作目录</li>
-    <li>第十行：Docker的入口执行文件是start.sh</li>
-  </ul>
-</blockquote>
-
-<hr />
-
-<h3 id="section">入口文件的内容</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">#!/bin/bash
-</span><span class="line">ulimit -a
-</span><span class="line">if [ ! -d /data/ad ];  then
-</span><span class="line">    mkdir /data/ad
-</span><span class="line">fi
-</span><span class="line">exec ./consumer -c=etc/config.yml</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这是一个shell的启动文件，因此一定要在开头写明 #!/bin/bash, 使用exec 执行程序</p>
-
-<hr />
-
-<h3 id="section-1">启动镜像</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker run -i -t  -v /path/to/data:/data Server/kafConsumer</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>这样就执行了，-v 可以映射你的本地文件到虚拟机的某个数据卷，这样我们就能从外面看到程序产生的文件.</p>
-
-<h3 id="section-2">如果你想关闭或者重启该服务的怎么办</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker ps -a
-</span><span class="line">
-</span><span class="line">找到你的 Docker 容器
-</span><span class="line">
-</span><span class="line">CONTAINER ID    IMAGE           COMMAND                CREATED        STATUS        PORTS    NAMES
-</span><span class="line">5b39d0d5cb85    Server/kafkaconsumer:latest   "./script/start.sh"    3 hours ago    tender_bohr </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>启动或者关闭</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo docker start tender_bohr
-</span><span class="line">sudo docker stop tender_bohr</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<h3 id="daocloud--">Daocloud  加速</h3>
-
-<p>功夫墙的原因，国外很多镜像被墙，因此构建镜像很慢，使用 Daocloud 服务可以加速,注册后就有该服务了</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cat /etc/default/docker
-</span><span class="line">DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://xxxxxx.m.daocloud.io"</span></code></pre></td></tr></table></div></figure></notextile></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1393,6 +1380,10 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
       </li>
     
@@ -1401,7 +1392,7 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
       </li>
     
       <li class="post">
-        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
+        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi</a>
       </li>
     
       <li class="post">
@@ -1418,10 +1409,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     
       <li class="post">
         <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a>
       </li>
     
   </ul>
