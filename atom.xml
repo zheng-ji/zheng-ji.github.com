@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-06-03T23:49:00+08:00</updated>
+  <updated>2016-06-05T11:44:54+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -417,20 +417,11 @@
   </entry>
   
   <entry>
-    <title type="html"><![CDATA[Gai Xuan Ze Na Chong Redischi Jiu Hua Pei Zhi]]></title>
+    <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
     <link href="http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/"/>
-    <updated>2016-03-10T00:00:00+08:00</updated>
+    <updated>2016-03-10T23:32:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi</id>
-    <content type="html"><![CDATA[<p>q—
-layout: post
-title: “Redis 该选择哪种持久化配置”
-date: 2016-03-10 23:32
-comments: true
-categories: System
-description: Redsi AOF RDB
-—</p>
-
-<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
+    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
 
 <p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
 
