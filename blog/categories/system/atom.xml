@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-06-05T11:44:54+08:00</updated>
+  <updated>2016-07-17T16:20:03+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,112 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[环境变量的那些事]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/07/16/bash-jia-zai-shun-xu/"/>
+    <updated>2016-07-16T11:35:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/07/16/bash-jia-zai-shun-xu</id>
+    <content type="html"><![CDATA[<ul>
+  <li><a href="#第一节">四种模式下的环境变量加载</a></li>
+  <li><a href="#第二节">跨机器SSH 传递环境变量</a></li>
+</ul>
+
+<h3 id="第一节">四种模式下的环境变量加载</h3>
+
+<p>名词解析</p>
+
+<ol>
+  <li>login shell: 指用户以非图形化界面 ssh登陆到机器上时获得的第一个 shell。 </li>
+  <li>interactive: 交互式，有输入提示符，它的标准输入输出和错误输出都会显示在控制台上。</li>
+</ol>
+
+<ul>
+  <li>interactive + login shell</li>
+</ul>
+
+<p>比如登陆机器后的第一个 shell 就是这种场景。它首先加载 /etc/profile，然后再依次去加载下列三个配置文件之一，一旦找到其中一个便不再接着寻找</p>
+
+<p><code>
+~/.bash_profile
+~/.bash_login
+~/.profile
+</code></p>
+
+<p>设计如此多的配置是为了兼容 bourne shell 和 C shell，尽量杜绝使用 .bash_login，如果已创建，需要创建 .bash_profile 覆盖</p>
+
+<ul>
+  <li>noninteractive + login shell</li>
+</ul>
+
+<p>bash -l script.sh 就是这种场景。<code>-l</code> 参数是将shell作为一个login shell启动，配置文件的加载与第一种完全一样。</p>
+
+<ul>
+  <li>interactive + non-login shell</li>
+</ul>
+
+<p>在一个已有shell中运行bash，此时会打开一个交互式的shell，因为不再需要登陆，所以不是login shell。启动 shell 时会去查找并加载</p>
+
+<p><code>
+/etc/bash.bashrc
+~/.bashrc 
+</code></p>
+
+<ul>
+  <li>non-interactive + non-login shell</li>
+</ul>
+
+<p>比如执行脚本 bash script.sh 或者 ssh user@remote command。这两种都是创建一个shell，执行完脚本之后便退出，不再需要与用户交互。它会去寻找环境变量BASH_ENV，将变量的值作为文件名进行查找，如果找到便加载它。</p>
+
+<p>从网上看到一个清晰的图</p>
+
+<p><code>
++----------------+--------+-----------+---------------+
+|                | login  |interactive|non-interactive|
+|                |        |non-login  |non-login      |
++----------------+--------+-----------+---------------+
+|/etc/profile    |   A    |           |               |
++----------------+--------+-----------+---------------+
+|/etc/bash.bashrc|        |    A      |               |
++----------------+--------+-----------+---------------+
+|~/.bashrc       |        |    B      |               |
++----------------+--------+-----------+---------------+
+|~/.bash_profile |   B1   |           |               |
++----------------+--------+-----------+---------------+
+|~/.bash_login   |   B2   |           |               |
++----------------+--------+-----------+---------------+
+|~/.profile      |   B3   |           |               |
++----------------+--------+-----------+---------------+
+|BASH_ENV        |        |           |       A       |
++----------------+--------+-----------+---------------+
+</code>
+—-</p>
+
+<h3 id="第二节">跨机器传递环境变量</h3>
+
+<p>假设要传递的变量叫做 $VARNAME</p>
+
+<p>客户端机器的 <code>/etc/ssh_config</code> 添加 </p>
+
+<p><code>
+SendEnv VARNAME
+</code></p>
+
+<p>服务端机器的 <code>/etc/sshd_config</code> 添加</p>
+
+<p><code>
+AcceptEnv VARNAME
+</code></p>
+
+<p>客户端机器的 $VARNAME 就可以通过 ssh 传递到服务端机器，继续使用.</p>
+
+<hr />
+
+<h3 id="section">参考</h3>
+
+<p><a href="http://feihu.me/blog/2014/env-problem-when-ssh-executing-command-on-remote/">ssh连接远程主机执行脚本的环境变量问题</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Ansible Dynamic Inventory]]></title>
@@ -408,60 +514,6 @@ Average Req Time:   0 secs
 Requests Per Secs:  0.69444453182781
 5xx num:    0
 </code></p>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Nginx 日志利器 GoAccess]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/"/>
-    <updated>2015-12-10T23:28:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess</id>
-    <content type="html"><![CDATA[<p>我们经常需要从 Nginx 日志分析得出很多有价值的东西，分析的方法是各种 shell, awk, python, 现在 <a href="https://github.com/allinurl/goaccess">GoAccess</a> 给你另外一种选择, 值得拥有。</p>
-
-<ul>
-  <li>安装
-用以下的方式安装，才能得到新版的 GoAccess, 功能更健全</li>
-</ul>
-
-<p><code>
-$ echo "deb http://deb.goaccess.io $(lsb_release -cs) main"|sudo tee -a /etc/apt/sources.list
-$ wget -O - http://deb.goaccess.io/gnugpg.key | sudo apt-key add -
-$ sudo apt-get update
-$ sudo apt-get install goaccess
-</code></p>
-
-<ul>
-  <li>推荐配置</li>
-</ul>
-
-<p>安装完成之后，会生成一份 <code>/etc/goaccess.conf</code> 稍作编辑，这就是默认的配置，免去了后续每次都要定义格式</p>
-
-<p><code>
-time-format %T   # 只有这种方式才能解决 0.0us 的显示问题
-date-format %d/%b/%Y
-log-format %h %^[%d:%t %^] "%r" %s %b "%R" "%u" %T
-</code></p>
-
-<ul>
-  <li>使用</li>
-</ul>
-
-<p>输出报表，报表中，我们可以看到最常访问的 IP, 接口，以及每个接口使用带宽，平均响应时长，状态码等，对业务分析有较好的便利性</p>
-
-<p>```
-终端显示
-goaccess -f access.log </p>
-
-<p>输出报表，报表中，我们可以看到top ip, 接口，以及接口使用带宽，平均响应时长，状态码等
-goaccess -f access.log &gt; report.html</p>
-
-<p>具体某段时间的输出
-sed -n ‘/5\/Dec\/2015/,/10\/Dec\/2010/ p’ access.log | goaccess -a</p>
-
-<p>处理已经压缩的日志
-zcat access.log.*.gz | goaccess
-```</p>
 
 ]]></content>
   </entry>

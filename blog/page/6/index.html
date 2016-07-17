@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="昨晚参加腾讯周年晚会,同事在YY今晚的明星是孙燕姿,可惜最后没有如他所愿”遇见”女神.当晚应邀表演的是同为15周年生日的羽泉.对于从来没有参加过大型演唱会的小白来说,人生又圆满了一点。 在见到 ponyMa 等人时我并没有兴奋。反而是深居简入的 AllenZhang 张小龙,让我小激动了一把, &hellip;">
+  <meta name="description" content="Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话: 当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过, &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,124 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/06/re-geng-xin/">热更新</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-06T20:58:00+08:00" pubdate data-updated="true">Jan 6<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/01/06/re-geng-xin/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Server 端程序很多时候需要修改配置，这个时候如果重启服务就显得很不友好，代价也高。Nginx和Django，采用的是平滑启动.自动热更新,折腾的东西中遇到这样一个诉求，用python实现的话:</p>
+
+<ol>
+  <li>当修改配置后,通过对比py的修改时间，来推断该模块是否被修改过,从而reload指定模块就可以在不重启服务的情况下读取修改的配置,</li>
+  <li>sys.module[‘modname’]返回的是该模块的pyc文件，而该文件是没有修改时间的，所以计算修改时间需要取py文件的属性</li>
+</ol>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">auto_reload</span><span class="p">():</span>
+</span><span class="line">    <span class="n">mods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;test_config&quot;</span><span class="p">]</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">mods</span><span class="p">:</span>
+</span><span class="line">        <span class="k">try</span><span class="p">:</span>
+</span><span class="line">            <span class="n">module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">mod</span><span class="p">]</span>
+</span><span class="line">        <span class="k">except</span><span class="p">:</span>
+</span><span class="line">            <span class="k">continue</span>
+</span><span class="line">        <span class="n">filename</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">__file__</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">filename</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">):</span>
+</span><span class="line">            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.pyc&quot;</span><span class="p">,</span> <span class="s">&quot;.py&quot;</span><span class="p">)</span>
+</span><span class="line">            <span class="n">mod_time</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</span><span class="line">        <span class="k">if</span> <span class="ow">not</span> <span class="s">&quot;loadtime&quot;</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">__dict__</span><span class="p">:</span>
+</span><span class="line">            <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="mi">0</span> <span class="c"># first load&#39;s time  1*</span>
+</span><span class="line">            <span class="k">try</span><span class="p">:</span>
+</span><span class="line">                <span class="k">if</span> <span class="n">mod_time</span> <span class="o">&gt;</span> <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span><span class="p">:</span>
+</span><span class="line">                    <span class="nb">reload</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+</span><span class="line">                <span class="k">except</span><span class="p">:</span>
+</span><span class="line">                    <span class="k">pass</span>
+</span><span class="line">        <span class="n">module</span><span class="o">.</span><span class="n">loadtime</span> <span class="o">=</span> <span class="n">mod_time</span> <span class="c"># 2*</span>
+</span><span class="line">
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span class="line">    <span class="kn">import</span> <span class="nn">time</span>
+</span><span class="line">    <span class="kn">import</span> <span class="nn">my_config</span>
+</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="bp">None</span>
+</span><span class="line">    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+</span><span class="line">        <span class="n">auto_reload</span><span class="p">()</span>
+</span><span class="line">        <span class="k">if</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span> <span class="o">!=</span> <span class="n">tmp</span><span class="p">:</span>
+</span><span class="line">        <span class="k">print</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
+</span><span class="line">        <span class="n">tmp</span> <span class="o">=</span> <span class="n">test_config</span><span class="o">.</span><span class="n">address</span>
+</span><span class="line">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>test_config.py</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">address</span> <span class="o">=</span> <span class="s">&quot;127.0.0.1&quot;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1572,132 +1690,6 @@ agentzh 提供了一个很方便的开发包，如下：<a href="https://github.
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/">MiniGame 服务端设计</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-08-20T18:54:00+08:00" pubdate data-updated="true">Aug 20<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>最近和小伙伴们在做一个游戏。有机会单挑服务端了。被信任是有压力也有动力 ：），可以尝试各种好玩的技术的感觉是很爽。Jerry 和Cat 所主导的客户端，Mzt的美术都很给力。作为云风的忠实粉，可以独立设计游戏服务器后台，我对这样的挑战期待已久。</p>
-
-<h4 id="section">逻辑架构图</h4>
-<p><img src="/images/2013/08/minigame.png" /></p>
-
-<p>主要由三大逻辑层组成：
-+ 连接（接入）服务器模块:   ConnServer
-+ 游戏服务器模块 ：        GameServer
-+ 缓存服务器模块：         CacheServer
-  (附：我们自己编写了静态资源的服务器功能，提供给用户下载Apk的功能)</p>
-
-<ul>
-  <li>
-    <p>接入服务器模块
-服务器Socket建立，建立玩家通讯连接，为每一位连上服务器的玩家建立一个线程。
-服务器维护一个连接列表。采用map 的方式记录每一位玩家的连接信息。</p>
-  </li>
-  <li>
-    <p>游戏服务器模块：
-  这是处理游戏业务逻辑的主要模块。它包括了消息包解析器服务（Parser），游戏大厅服务（GameRoom），账户体系服务（Account）,消息中心服务（MsgCenter）,心跳服务（Heartbeat）.日志功能模块（log）</p>
-  </li>
-  <li>消息包解析器服务（Parser）:主要实现了消息状态机。解析收到的客户端的数据包的协议号，然后将消息路由到不同功能模块去处理。</li>
-  <li>账户体系服务（Account）：提供用户注册和登陆管理的模块</li>
-  <li>游戏大厅服务（GameRoom）：采用Redis 内存数据库，构造消息队列。模拟游戏大厅，并对玩家进行配对筛选，构造set类型的匹配对完成1对1 的对战模式</li>
-  <li>消息中心服务（MsgCenter）:完成游戏过程中玩家信息的交互。</li>
-  <li>心跳服务（Heartbeat）：这是一个相对独立的进程，每7秒遍历用户信息，完成心跳检测，清理无效的过期数据，保持游戏数据的一致性.</li>
-  <li>日志功能：打印程序中的日志。</li>
-  <li>
-    <p>静态资源下载器（downloader）：采用tornado拓展编写web服务，提供Apk静态资源下载的模块</p>
-  </li>
-  <li>缓存服务器模块
-  现阶段游戏对服务的要求不需要做到持久化的保存，于是服务器没有采用mysql之类的范式数据库。我们的数据收发一直处于频繁状态，于是我们采用了Redis这种分布式的内存数据库来实现我们的数据缓存模块，后续会介绍数据的键值设计</li>
-</ul>
-
-<h4 id="section-1">类图</h4>
-<p><img src="/images/2013/08/class.png" /></p>
-
-<ul>
-  <li>cache数据库的设计：
-利用Redis的数据特性,新增一个用户保证用户ID的原子性。</li>
-  <li>counter: 对新用户的注册执行自增操作，从而保证账号Id 唯一</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">说明 key value
-</span><span class="line">实例 counter 1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>用户账号：
-Key设计为 user：name:用户名’，Value用户ID，
-为保证用户可以同时通过id 查找名字 ，也设计了 ‘user:id:ID值’值为用户名</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">说明 key                    value
-</span><span class="line">实例 User:name:zhengji         1
-</span><span class="line">实例 User:id:1                 zhengji</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>玩家通讯缓存设计：
-Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">说明 key              value
-</span><span class="line">实例 user:zhengji:msg 100, 2,   1324256778.89</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>玩家匹配对设计
-在游戏大厅的功能里，我们采用了redis的list模拟了玩家等待队列的功能 在真正匹配到玩家对的时候，使用table_xx 来记录玩家匹配信息,它是一个set的类型,在游戏退出的时候会被驱动去清除该表的信息</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">说明   key      value
-</span><span class="line">实例 Table_1 ‘jerry,zhengji’</span></code></pre></td></tr></table></div></figure></notextile></div>
-<pre><code>    为标志每个玩家的table号，我们使用了另外一个键值对 Table:玩家名：tableindex.
-</code></pre>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">说明   key       value
-</span><span class="line">实例 Table:zhengji 1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1719,6 +1711,10 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
@@ -1746,10 +1742,6 @@ Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
     
       <li class="post">
         <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 lua 拓展</a>
       </li>
     
   </ul>

@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>haproxy - MySQl 的负载均衡 - 织网</title>
+  <title>环境变量的那些事 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="haproxy mysql">
-  <meta name="keywords" content="haproxy">
+  <meta name="description" content="ssh">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/02/03/haproxy-plus-mysql">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/07/16/bash-jia-zai-shun-xu">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Haproxy - MySQl 的负载均衡</h1>
+      <h1 class="entry-title">环境变量的那些事</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2015-02-03T23:17:00+08:00" pubdate data-updated="true">Feb 3<span>rd</span>, 2015</time>
+<time datetime="2016-07-16T11:35:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2016</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,24 +96,59 @@
   </header>
 
 
-<div class="entry-content"><p>服务器上每个PHP进程占用一个数据库链接，当有 n 台服务器, 每台服务器用用100 * m 个PHP 进程的时候，数据库的压力是有点小大。</p>
-
-<p>为了解决这个问题, 可以有的选择是：</p>
-
-<ul>
-  <li>业内炒的比较火的有，奇虎<a href="https://github.com/Qihoo360/Atlas">Atlas</a>, 淘宝前架构师写的<a href="http://weibo.com/dbatools">OneProxy</a>, 官方的MySQL-Proxy;</li>
-  <li>从连接层解决负载均衡的压力，Haproxy 所擅长的事情</li>
+<div class="entry-content"><ul>
+  <li><a href="#第一节">四种模式下的环境变量加载</a></li>
+  <li><a href="#第二节">跨机器SSH 传递环境变量</a></li>
 </ul>
 
-<p>对于第一个选择，同事做过调研，使用起来不太放心。官方库就无人维护, 于是，最后选择了 Haproxy 来承担数据库的前端代理.链接数下降明显。</p>
+<h3 id="第一节">四种模式下的环境变量加载</h3>
 
-<hr />
+<p>名词解析</p>
 
-<h3 id="section">一些关键的配置</h3>
+<ol>
+  <li>login shell: 指用户以非图形化界面 ssh登陆到机器上时获得的第一个 shell。 </li>
+  <li>interactive: 交互式，有输入提示符，它的标准输入输出和错误输出都会显示在控制台上。</li>
+</ol>
 
-<p>参考<a href="http://www.sysads.co.uk/2014/08/install-haproxy-1-5-6-on-ubuntu-14-04/">连接</a>:</p>
+<ul>
+  <li>interactive + login shell</li>
+</ul>
 
-<p>以下是配置内容</p>
+<p>比如登陆机器后的第一个 shell 就是这种场景。它首先加载 /etc/profile，然后再依次去加载下列三个配置文件之一，一旦找到其中一个便不再接着寻找</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">~/.bash_profile
+</span><span class="line">~/.bash_login
+</span><span class="line">~/.profile</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>设计如此多的配置是为了兼容 bourne shell 和 C shell，尽量杜绝使用 .bash_login，如果已创建，需要创建 .bash_profile 覆盖</p>
+
+<ul>
+  <li>noninteractive + login shell</li>
+</ul>
+
+<p>bash -l script.sh 就是这种场景。<code>-l</code> 参数是将shell作为一个login shell启动，配置文件的加载与第一种完全一样。</p>
+
+<ul>
+  <li>interactive + non-login shell</li>
+</ul>
+
+<p>在一个已有shell中运行bash，此时会打开一个交互式的shell，因为不再需要登陆，所以不是login shell。启动 shell 时会去查找并加载</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/etc/bash.bashrc
+</span><span class="line">~/.bashrc </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>non-interactive + non-login shell</li>
+</ul>
+
+<p>比如执行脚本 bash script.sh 或者 ssh user@remote command。这两种都是创建一个shell，执行完脚本之后便退出，不再需要与用户交互。它会去寻找环境变量BASH_ENV，将变量的值作为文件名进行查找，如果找到便加载它。</p>
+
+<p>从网上看到一个清晰的图</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -130,46 +165,50 @@
 <span class="line-number">13</span>
 <span class="line-number">14</span>
 <span class="line-number">15</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen mysql-cluster
-</span><span class="line">    bind 127.0.0.1:3306  # 连接本地3306 到后端的DB
-</span><span class="line">    mode tcp
-</span><span class="line">    option mysql-check user haproxy_check # haproxy_check 是该haproxy用户
-</span><span class="line">    balance roundrobin
-</span><span class="line">    server mysql-1 10.0.0.1:3306 check # 后端DB
-</span><span class="line">    server mysql-2 10.0.0.2:3306 check # 后端DB
-</span><span class="line">
-</span><span class="line">listen 0.0.0.0:8080 # 监控页面
-</span><span class="line">    mode http
-</span><span class="line">    stats enable
-</span><span class="line">    stats uri /
-</span><span class="line">    stats realm Strictly\ Private
-</span><span class="line">    stats auth A_Username:YourPassword
-</span><span class="line">    stats auth Another_User:passwd</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|                | login  |interactive|non-interactive|
+</span><span class="line">|                |        |non-login  |non-login      |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|/etc/profile    |   A    |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|/etc/bash.bashrc|        |    A      |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.bashrc       |        |    B      |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.bash_profile |   B1   |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.bash_login   |   B2   |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.profile      |   B3   |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|BASH_ENV        |        |           |       A       |
+</span><span class="line">+----------------+--------+-----------+---------------+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<hr />
 
-<p>值得注意的是，我们需要在DB 里面添加用户 haproxy_check,使得它有权限访问这个数据库。一开始我习惯用</p>
+<h3 id="第二节">跨机器传递环境变量</h3>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">假设我的内网ip是 192.168.1.5
-</span><span class="line">create user 'haproxy_check'@'192.168.1.5' identified by 'xxx';
-</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>事实上这样连接 haproxy 会报：</p>
+<p>假设要传递的变量叫做 $VARNAME</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">mysql -h127.0.0.1 -uusername -p
-</span><span class="line">lost connection to mysql server at 'reading initial communication packet'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>后来老实按照 digitalocean 的文章修改成</p>
+<p>客户端机器的 <code>/etc/ssh_config</code> 添加 </p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">INSERT INTO mysql.user (Host,User) values ('192.168.1.5','haproxy_check');
-</span><span class="line">flush privileges;</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class=""><span class="line">SendEnv VARNAME</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>测试就通过了.好奇怪，在我的理解中很不应该, 明天继续看看为什么会这么奇怪。</p>
+<p>服务端机器的 <code>/etc/sshd_config</code> 添加</p>
 
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">AcceptEnv VARNAME</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>客户端机器的 $VARNAME 就可以通过 ssh 传递到服务端机器，继续使用.</p>
+
+<hr />
+
+<h3 id="section">参考</h3>
+
+<p><a href="http://feihu.me/blog/2014/env-problem-when-ssh-executing-command-on-remote/">ssh连接远程主机执行脚本的环境变量问题</a></p>
 </div>
 
 
@@ -192,12 +231,12 @@
   
 
 
-<time datetime="2015-02-03T23:17:00+08:00" pubdate data-updated="true">Feb 3<span>rd</span>, 2015</time>
+<time datetime="2016-07-16T11:35:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2016</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/database/'>DataBase</a>
+    <a class='category' href='/blog/categories/system/'>System</a>
   
 </span>
 
@@ -213,15 +252,33 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2015/01/31/da-jian-elasticsearchyu-kibana/" title="Previous Post: 搭建elasticsearch与kibana">&laquo; 搭建elasticsearch与kibana</a>
+        <a class="basic-alignment left" href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/" title="Previous Post: 准确监控 MySQL 复制延迟">&laquo; 准确监控 MySQL 复制延迟</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2015/02/08/trie-suggestion/" title="Next Post: 实现一个智能提示框功能">实现一个智能提示框功能 &raquo;</a>
       
     </p>
   </footer>
 </article>
 
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="环境变量的那些事"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
 
 </div>
 
