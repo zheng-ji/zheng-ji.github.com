@@ -9,7 +9,12 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="四种模式下的环境变量加载 跨机器SSH 传递环境变量 四种模式下的环境变量加载 名词解析 login shell: 指用户以非图形化界面 ssh登陆到机器上时获得的第一个 shell。 interactive: 交互式，有输入提示符，它的标准输入输出和错误输出都会显示在控制台上。 &hellip;">
+  <meta name="description" content="有时候我们需要处理耗时的操作，同时又要保持较快的响应速度，就需要借助异步队列的帮助。Celery 作为异步队列服务，想必是很多人和我一样的选择。用法在官方文档也详细介绍，不再赘述。 这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。 main.py 的内容 1
+2
+3
+4
+5
+6 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +72,152 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-07-23T20:19:00+08:00" pubdate data-updated="true">Jul 23<span>rd</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/07/23/celeryde-crontabshi-jian/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>有时候我们需要处理耗时的操作，同时又要保持较快的响应速度，就需要借助异步队列的帮助。Celery 作为异步队列服务，想必是很多人和我一样的选择。用法在官方文档也详细介绍，不再赘述。</p>
+
+<p>这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。</p>
+
+<p>main.py 的内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">lib</span> <span class="kn">import</span> <span class="n">distribute</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">celery.schedules</span> <span class="kn">import</span> <span class="n">crontab</span>
+</span><span class="line">
+</span><span class="line"><span class="n">app</span> <span class="o">=</span> <span class="n">distribute</span><span class="o">.</span><span class="n">app</span>
+</span><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span class="line">    <span class="n">CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;every-minute&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="line">            <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="s">&#39;test_cron&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="s">&#39;schedule&#39;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">&quot;*&quot;</span><span class="p">),</span>
+</span><span class="line">            <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">},</span>
+</span><span class="line">    <span class="n">CELERY_INCLUDE</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;apps.tasks&quot;</span><span class="p">,)</span>
+</span><span class="line"><span class="p">)</span>
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">app</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>实际工作单元,我放在 apps 目录下的 <code>tasks.py</code> 文件中</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">lib.distribute</span> <span class="kn">import</span> <span class="n">app</span>
+</span><span class="line"><span class="nd">@app.task</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test_cron&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">mul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>上述是一个简单的 Crontab 应用，它仅需要以下命令就能执行,
+其中  <code>--beat</code> 表示 crontab 的应用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">worker</span> <span class="o">--</span><span class="n">beat</span> <span class="o">-</span><span class="n">l</span> <span class="n">info</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>起初我想把异步队列和定时任务放在一起,就加上了一句 CELERY_QUEUES 的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span class="line">    <span class="o">//</span> <span class="err">添加的部分</span>
+</span><span class="line">    <span class="n">CELERY_QUEUES</span><span class="o">=</span><span class="p">(</span>
+</span><span class="line">        <span class="n">Queue</span><span class="p">(</span>
+</span><span class="line">          <span class="s">&#39;test&#39;</span><span class="p">,</span> <span class="n">Exchange</span><span class="p">(</span><span class="s">&#39;test_exchange&#39;</span><span class="p">),</span>
+</span><span class="line">           <span class="n">routing_key</span><span class="o">=</span><span class="s">&#39;test_queue&#39;</span>
+</span><span class="line">        <span class="p">),</span>
+</span><span class="line">    <span class="p">),</span>
+</span><span class="line">    <span class="n">CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;every-minute&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="line">            <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="s">&#39;test_cron&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="s">&#39;schedule&#39;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">&quot;*&quot;</span><span class="p">),</span>
+</span><span class="line">            <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">},</span>
+</span><span class="line">    <span class="n">CELERY_INCLUDE</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;apps.tasks&quot;</span><span class="p">,)</span>
+</span><span class="line"><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>同样用上述命令开启worker，发现这个时候 Crontab 不能工作了，后来看到官方的文档：</p>
+
+<blockquote>
+  <p>celery beat and celery worker as separate services instead. </p>
+</blockquote>
+
+<p>也就是说 Celery 的 Beat 需要和其他异步worker 分开，单独执行。</p>
+
+<p>相关代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/celery_proj">链接</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1373,283 +1524,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/">记录使用 Flask 的点滴</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-10-06T13:21:00+08:00" pubdate data-updated="true">Oct 6<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/10/06/ji-lu-shi-yong-flaskde-dian-di/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>喜欢 Flask 经典的 RestFul 设计风格，以及它与 Gevent 的优雅结合，可以帮助我们轻松构建异步非阻塞应用，烂笔头记下一些较好的实践。</p>
-
-<ul>
-  <li><a href="#第一节">消息反馈</a></li>
-  <li><a href="#第二节">Flask 上下文</a></li>
-  <li><a href="#第三节">注册 JinJia 模板过滤器</a></li>
-  <li><a href="#第四节">itsdangerous 生成过期时间 Json 签名</a></li>
-  <li><a href="#第五节">一种较好的项目组织方式</a></li>
-  <li><a href="#第六节">BluePrint 的好</a></li>
-  <li><a href="#第七节">Json 返回</a></li>
-  <li><a href="#第八节">自定义出错页面</a></li>
-  <li><a href="#第九节">WTF 跨站脚本防御</a></li>
-</ul>
-
-<h3 id="第一节">消息反馈</h3>
-
-<p>Flask 提供了一个非常简单的方法来使用闪现系统向用户反馈信息。
-闪现系统使得在一个请求结束的时候记录一个信息，然后在且仅仅在下一个请求中访问这个数据。这通常配合一个布局模板实现</p>
-
-<p><a href="http://docs.jinkan.org/docs/flask/patterns/flashing.html">文档链接</a></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># 视图函数需要调用
-</span><span class="line">flash('your response message for user')
-</span><span class="line">
-</span><span class="line"># 前端页面调用
-</span><span class="line">for message in get_flashed_messages()
-</span><span class="line">就可以输出反馈信息</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第二节">Flask 上下文</h3>
-
-<p>有两种上下文：程序上下文，请求上下文</p>
-
-<ul>
-  <li>current_app： 程序级别上下文，当前激活程序的实例。</li>
-  <li>g: 请求级别的上下文</li>
-  <li>request: 是请求级别的上下文，封装了客户端发出的 Http 请求中的内容</li>
-  <li>session: 用户会话，用于存储请求之间需要记住的键值对</li>
-</ul>
-
-<h3 id="第三节">注册 JinJia 模板过滤</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">def reverse_filter(s):
-</span><span class="line">    return s[::-1]
-</span><span class="line">
-</span><span class="line">app.jinja_env.filters['reverse'] = reverse_filter</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第四节">itsdangerous 生成过期时间 Json 签名</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">serialaizer = Serializer(SECRET_KEY, expires_in=EXPIRES)
-</span><span class="line">info = {'id':'xxx'}
-</span><span class="line">session = serialaizer.dumps(info)
-</span><span class="line">
-</span><span class="line"># 判断 session 时间
-</span><span class="line">info = None
-</span><span class="line">try:
-</span><span class="line">    info = serialaizer.loads(session)
-</span><span class="line">except Exception:
-</span><span class="line">    return jsonify(ERR_SESS_TIMEOUT)</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>用途：生成一个有时间限制的签名，用于API 访问的验证码，如果过期，提醒用户重新登录</p>
-
-<h3 id="第五节">一种较好的项目组织方式</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">▾ app/
-</span><span class="line">    ▾ controlers/
-</span><span class="line">        ▾ admin/                    #管理后台的蓝图控制器
-</span><span class="line">            ▾ forms/                #表单限制文件
-</span><span class="line">                __init__.py　　　　　
-</span><span class="line">                xx.py　　　         # blueprint 文件
-</span><span class="line">            __init__.py
-</span><span class="line">            administrator.py
-</span><span class="line">        ▾ api/                      # API 控制器
-</span><span class="line">            __init__.py
-</span><span class="line">        ▾ site/                     # 站点控制器
-</span><span class="line">            __init__.py             # blueprint 文件
-</span><span class="line">            xx.py
-</span><span class="line">        __init__.py
-</span><span class="line">        error.py
-</span><span class="line">    ▸ models/         # SQLAlchemy 的各类模型
-</span><span class="line">    ▸ static/         # 需要的静态资源，css, js, imgs
-</span><span class="line">    ▾ templates/　　　# 前端页面，跟 controller 分类一一对应
-</span><span class="line">        ▸ admin/
-</span><span class="line">        ▸ error/
-</span><span class="line">        ▸ site/
-</span><span class="line">    ▸ utilities/　　　　#  功能函数
-</span><span class="line">      __init__.py       #　初始化app需要的各种插件，比如 redis, db, 注册蓝图
-</span><span class="line">run.py                  #　相当于 main 函数,创建 app, 执行app.run() 函数
-</span><span class="line">settings.py             #　配置文件</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第六节">BluePrint 的好 </h3>
-
-<p>每个 Blueprint 就像独立的 Application, 可以管理自己的模板, 路由, 反向路由url_for, 甚至是静态文件，最后统一挂载到 Application 下。从头到尾都是 RestFul。</p>
-
-<p>在创建 app (app/<strong>init</strong>.py) 的时候调用如下:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">from app.controllers.site.console import console 
-</span><span class="line">app.register_blueprint(console, url_prefix='/console')</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>视图文件 (app/controllers/site/console.py):</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">console = BLueprint('console', __name__)</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第七节">Json 返回</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">from flask import jsonify
-</span><span class="line">return jsonify({'code': 0})</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第八节">自定义出错页面</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">@app.errorhandler(404)
-</span><span class="line">def not_found(error):
-</span><span class="line">    return render_template('404.html'), 404
-</span><span class="line">
-</span><span class="line">@app.errorhandler(500)
-</span><span class="line">def crash(error):
-</span><span class="line">    return render_template('5xx.html'), 500</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第九节">WTF 跨站脚本防御</h3>
-
-<p>Flask-WTF 能保护表单免受跨站请求伪造的攻击,恶意网站把请求发送到被攻击者已经登录的其他玩战会引发 CSRF 攻击</p>
-
-<ul>
-  <li>app config 文件中，开启 CSRF 开关并配置密钥</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">CSRF_ENABLED = True
-</span><span class="line">SECRET_KEY = 'you-will-never-guess'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>表单的定义</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">from flask.ext.wtf import Form, TextField, BooleanField
-</span><span class="line">from flask.ext.wtf import Required
-</span><span class="line">class LoginForm(Form):
-</span><span class="line">    openid = TextField('openid', validators = [Required()])
-</span><span class="line">    remember_me = BooleanField('remember_me', default = False)</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>页面渲染</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">&lt;form action="" method="post" name="login"&gt;
-</span><span class="line">    form.hidden_tag()
-</span><span class="line">    &lt;p&gt; Please enter your OpenID:form.openid(size=80)&lt;br&gt;&lt;/p&gt;
-</span><span class="line">    &lt;p&gt;form.remember_me &lt;/p&gt;
-</span><span class="line">    &lt;p&gt;&lt;input type="submit" value="Sign In"&gt;&lt;/p&gt;
-</span><span class="line">&lt;/form&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>控制器函数</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">@app.route('/login', methods = ['GET', 'POST'])
-</span><span class="line">def login():
-</span><span class="line">    form = LoginForm()
-</span><span class="line">    if form.validate_on_submit():
-</span><span class="line">        flash('Login requested for OpenID="' + form.openid.data))
-</span><span class="line">        return redirect('/index')
-</span><span class="line">    return render_template('login.html', title = 'Sign In',form = form)</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>我们在配置中开启了CSRF(跨站伪造请求)功能，模板参数 form.hidden_tag() 会被替换成一个具有防止CSRF功能的隐藏表单字段。 在开启了CSRF功能后，所有模板的表单中都需要添加这个模板参数</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1669,6 +1543,10 @@
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
@@ -1696,10 +1574,6 @@
     
       <li class="post">
         <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
       </li>
     
   </ul>

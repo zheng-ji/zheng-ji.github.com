@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-07-17T16:20:03+08:00</updated>
+  <updated>2016-07-23T20:28:55+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,87 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Celery的Crontab实践]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/07/23/celeryde-crontabshi-jian/"/>
+    <updated>2016-07-23T20:19:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/07/23/celeryde-crontabshi-jian</id>
+    <content type="html"><![CDATA[<p>有时候我们需要处理耗时的操作，同时又要保持较快的响应速度，就需要借助异步队列的帮助。Celery 作为异步队列服务，想必是很多人和我一样的选择。用法在官方文档也详细介绍，不再赘述。</p>
+
+<p>这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。</p>
+
+<p>main.py 的内容</p>
+
+<p>```py
+from celery import Celery
+from lib import distribute
+from celery.schedules import crontab</p>
+
+<p>app = distribute.app
+app.conf.update(
+    CELERYBEAT_SCHEDULE = {
+        ‘every-minute’: {
+            ‘task’: ‘test_cron’,
+            ‘schedule’: crontab(minute=”*”),
+            ‘args’: (16, 13),
+        }
+    },
+    CELERY_INCLUDE=(“apps.tasks”,)
+)
+if <strong>name</strong> == ‘<strong>main</strong>’:
+    app.start()
+```</p>
+
+<p>实际工作单元,我放在 apps 目录下的 <code>tasks.py</code> 文件中</p>
+
+<p><code>py
+from lib.distribute import app
+@app.task(name="test_cron")
+def mul(x, y):
+    return x * y
+</code></p>
+
+<p>上述是一个简单的 Crontab 应用，它仅需要以下命令就能执行,
+其中  <code>--beat</code> 表示 crontab 的应用</p>
+
+<p><code>
+python main.py worker --beat -l info
+</code></p>
+
+<p>起初我想把异步队列和定时任务放在一起,就加上了一句 CELERY_QUEUES 的配置</p>
+
+<p><code>py
+app.conf.update(
+    // 添加的部分
+    CELERY_QUEUES=(
+        Queue(
+          'test', Exchange('test_exchange'),
+           routing_key='test_queue'
+        ),
+    ),
+    CELERYBEAT_SCHEDULE = {
+        'every-minute': {
+            'task': 'test_cron',
+            'schedule': crontab(minute="*"),
+            'args': (16, 13),
+        }
+    },
+    CELERY_INCLUDE=("apps.tasks",)
+)
+</code></p>
+
+<p>同样用上述命令开启worker，发现这个时候 Crontab 不能工作了，后来看到官方的文档：</p>
+
+<blockquote>
+  <p>celery beat and celery worker as separate services instead. </p>
+</blockquote>
+
+<p>也就是说 Celery 的 Beat 需要和其他异步worker 分开，单独执行。</p>
+
+<p>相关代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/celery_proj">链接</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[记录使用 Flask 的点滴]]></title>
@@ -328,7 +409,7 @@ conn.do(‘SETBIT’, key, index, 1) # 将该hash值对应的位赋值为1</p>
 
 <p>先上图吧：</p>
 
-<p><img src="/images/2015/02/suggest.png"></p>
+<p>{% img /images/2015/02/suggest.png %}</p>
 
 <p>是的，就是这样一个类似百度框的联想提升功能，让我纠结了几个晚上，在实现成功的那一瞬间，着实感受到编程之美。很享受为了一个小idea折腾的酣畅淋漓的过程。</p>
 
@@ -344,7 +425,7 @@ conn.do(‘SETBIT’, key, index, 1) # 将该hash值对应的位赋值为1</p>
 
 <h3 id="trie">讲一讲<code>trie</code>树吧</h3>
 
-<p><img src="/images/2015/02/triestruct.png"></p>
+<p>{% img /images/2015/02/triestruct.png %}</p>
 
 <ul>
   <li>根节点不包含字符，除根节点外的每一个子节点都包含一个字符。</li>
@@ -398,44 +479,6 @@ fmt: [231 188 150 231 168 139]
 <p>每个成熟的互联网产品，背后都是工程师耗费一点一滴思维的结晶构建而成的。对待技术不得不敬畏。</p>
 
 <p><a href="https://github.com/zheng-ji/trietips">代码</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Go Protobuf]]></title>
-    <link href="http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf/"/>
-    <updated>2014-07-12T17:39:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2014/07/12/goan-zhuang-protobuf</id>
-    <content type="html"><![CDATA[<p>protobuf 是谷歌出品的，质量就无需质疑了，广泛运用于工业界
-优点简而言之是：</p>
-
-<ul>
-  <li>二进制，速度快，便于拓展；</li>
-  <li>自动生成代码接口，支持多语言</li>
-</ul>
-
-<p>对于第一点, 貌似优秀的开源代码没这么干都不好意思开放。</p>
-
-<h3 id="section">安装</h3>
-
-<p>比较蛋疼,折腾一小段时间。</p>
-
-<p>```
-go get code.google.com/p/goprotobuf/{proto, protoc-gen-go}</p>
-
-<p>go install code.google.com/p/goprotobuf/proto</p>
-
-<p>sudo apt-get install protobuf-compiler
-```</p>
-
-<h3 id="section-1">使用</h3>
-
-<p>是在项目内部新建一个proto.文件, 然后执行</p>
-
-<p><code>
-protoc --go_out=. xxx.proto
-</code></p>
-
 ]]></content>
   </entry>
   

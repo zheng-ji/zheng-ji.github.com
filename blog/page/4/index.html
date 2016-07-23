@@ -9,11 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="简单简述下我遇到的问题: 现在局域网有2台机器, 其中一台机器(下文我们称之为ServerA)可以访问外网,有独立IP,而另外一台机器(ServerB)访问不了外网, 需要想办法让 ServerB 也能上网。 ServerA 操作 1
-2
-3
-vi /etc/sysctl.conf
-net. &hellip;">
+  <meta name="description" content="需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。 php-fpm 参数配置 关于 php-fpm 的配置,Ubuntu系统中 /etc/php5/fpm/pool.d目录下, Centos是 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -71,6 +67,134 @@ net. &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
+
+<h3 id="php-fpm-">php-fpm 参数配置</h3>
+
+<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
+</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
+</span><span class="line">pm = static # 使用静态进程管理
+</span><span class="line">pm.max_children = 128
+</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑 <code>/etc/default/php5-fpm</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="nginx-">Nginx 配合参数</h3>
+
+<ul>
+  <li>启用irqbalance</li>
+</ul>
+
+<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
+</span><span class="line">shell&gt; service irqbalance start
+</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>为nginx 绑定 cpu</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
+</span><span class="line">worker_processes  8;
+</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>连接数调整，</li>
+</ul>
+
+<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
+</span><span class="line">fs.file-max = 6553600
+</span><span class="line">
+</span><span class="line">vim /etc/security/limits.conf
+</span><span class="line">* soft nofile 655360
+</span><span class="line">* hard nofile 655360
+</span><span class="line">
+</span><span class="line">vim /etc/nginx/nginx.conf
+</span><span class="line">
+</span><span class="line">worker_rlimit_nofile 300000;
+</span><span class="line">events {
+</span><span class="line">    worker_connections 300000;
+</span><span class="line">    use epoll;
+</span><span class="line">}
+</span><span class="line">http {
+</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -896,581 +1020,6 @@ mysql&gt; SHOW SLAVE STATUS \G
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/05/13/nginx-pitfall/">[译]nginx Pitfall</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-05-13T22:26:00+08:00" pubdate data-updated="true">May 13<span>th</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/05/13/nginx-pitfall/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天看完<a href="http://wiki.nginx.org/Pitfalls">Nginx Pitfall</a>,热血用了一个下午翻译了的，以下是正文</p>
-
-<h2 id="nginx-">Nginx 陷阱</h2>
-
-<p>无论你是nginx的新用户还是老用户都会遇到nginx的一些陷阱，下面我们着重描述这些陷阱，以及如何避免犯错。这些问题多次出现在 #nginx channel on Freenode#上</p>
-
-<h3 id="section">[是指南教我这么做的]</h3>
-
-<p>不要轻易相信网上其他的配置指引，除非你知道这样做的真正意义，并且知道怎么清除它们。很多配置其实写的很糟糕，我们根据互联网上的错误配置收集到的陷阱，它们并非来自刻意搜索，而是来自网络上的疑惑问答，这些问题收到的共同回复是，他们因为看了一些错误配置指引所以不同意我们的方法。写此文的目的是为了阐述我们的观点，如果你也遇到如下问题，该文章正好为你准备。</p>
-
-<h3 id="root-location">[Root 放置在Location块内]</h3>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">  server_name www.domain.com;
-</span><span class="line">  location / <span class="o">{</span>
-</span><span class="line">    root /var/www/nginx-default/;
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line">  location /foo <span class="o">{</span>
-</span><span class="line">    root /var/www/nginx-default/;
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line">  location /bar <span class="o">{</span>
-</span><span class="line">    root /var/www/nginx-default/;
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>该配置可以正常工作，把 root 放在 location块内可以完美的运行，但是当你开始添加location快，你就发现问题了。如果你给每个loaction 块添加 root，一旦有一个 location 块没有匹配到,那么他就失去了 root ,让我们来看看正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">  server_name www.domain.com;
-</span><span class="line">  root /var/www/nginx-default/;
-</span><span class="line">  location / <span class="o">{</span>
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line">  location /foo <span class="o">{</span>
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line">  location /bar <span class="o">{</span>
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="index-">[多条 index 指令]</h3>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">http <span class="o">{</span>
-</span><span class="line">  index index.php index.htm index.html;
-</span><span class="line">  server <span class="o">{</span>
-</span><span class="line">    server_name www.domain.com;
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">      index index.php index.htm index.html;
-</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line">  server <span class="o">{</span>
-</span><span class="line">    server_name domain.com;
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">      index index.php index.htm index.html;
-</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">    location /foo <span class="o">{</span>
-</span><span class="line">      index index.php;
-</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>为什么要重复多条不需要的 index 指令？事实上只需要用一次，它仅仅需要放置在 <code>http{}</code> 块内，后面的配置会继承它。</p>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">http <span class="o">{</span>
-</span><span class="line">  index index.php index.htm index.html;
-</span><span class="line">  server <span class="o">{</span>
-</span><span class="line">    server_name www.domain.com;
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line">  server <span class="o">{</span>
-</span><span class="line">    server_name domain.com;
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">    location /foo <span class="o">{</span>
-</span><span class="line">      <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">  <span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="if">[使用if]</h3>
-<p>这里有小段篇幅是关于使用<code>if</code> 表达式，我们需要检查所谓的 “是否有害”，让我们看看那些错误的配置</p>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">  server_name domain.com *.domain.com;
-</span><span class="line">  <span class="k">if</span> <span class="o">(</span><span class="nv">$host</span> ~* ^www<span class="se">\.</span><span class="o">(</span>.+<span class="o">))</span> <span class="o">{</span>
-</span><span class="line">    <span class="nb">set</span> <span class="nv">$raw_domain</span> <span class="nv">$1</span>;
-</span><span class="line">    rewrite ^/<span class="o">(</span>.*<span class="o">)</span><span class="nv">$ $raw_domain</span>/<span class="nv">$1</span> permanent;
-</span><span class="line">    <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>这里明显有问题，第一条 <code>if</code> 指令就引起我们的注意，为什么是不好的配置呢, 你是否阅读过 <a href="http://wiki.nginx.org/IfIsEvil">是否有害</a>。</p>
-
-<p>使用if 指令，nginx 会强制检查所有到来的请求，检测每一条指令是否有危害，这是极度低效的。使用两个 server 配置可以避免上述问题。</p>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">  server_name www.domain.com;
-</span><span class="line">  <span class="k">return </span>301 <span class="nv">$scheme</span>://domain.com<span class="nv">$request_uri</span>;
-</span><span class="line"><span class="o">}</span>
-</span><span class="line">server <span class="o">{</span>
-</span><span class="line">  server_name domain.com;
-</span><span class="line">  <span class="o">[</span>...<span class="o">]</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这种方法不仅是配置易读，而且降低了 nginx 的处理负担。我们摆脱了<code>if</code>指令的陷阱，我们也使用了 <code>$scheme</code> 代替了 URI scheme 是 http 还是 https 的硬编码.</p>
-
-<h3 id="section-1">[判断文件是否存在]</h3>
-
-<p>使用 <code>if</code> 指令确保文件是否存在，是糟糕的实践，如果你有机会接触较新的 nginx 版本，查看下<code>try_files</code> 指令，该指令更适合做该事情。</p>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">  root /var/www/domain.com;
-</span><span class="line">  location / <span class="o">{</span>
-</span><span class="line">    <span class="k">if</span> <span class="o">(</span>!-f <span class="nv">$request_filename</span><span class="o">)</span> <span class="o">{</span>
-</span><span class="line">      <span class="nb">break</span>;
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">  root /var/www/domain.com;
-</span><span class="line">  location / <span class="o">{</span>
-</span><span class="line">    try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.html;
-</span><span class="line">  <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>我们做的改变是，我们不使用<code>if</code>指令，而是使用 <code>try_files</code>,如果<code>$uri</code>不存在，尝试 <code>$uri/</code> 如果不存在，就使用默认的文件 <code>index.html</code></p>
-
-<p>这个场景中，将会测试$uri是否存在，如果存在调用该服务，反之则会测试该目录是否存在，如果不存在就会调用 <code>index.html</code>，前提是<code>index.html</code>是存在的。这时候仅仅是简单的加载该页面。</p>
-
-<h3 id="section-2">[包的前端控制器模式]</h3>
-
-<p>“前端控制器模式”的设计很流行并广泛应用于 PHP 软件包，不乏很多比它更复杂的例子，使用 Drupal, Joomla 等，你只需要使用</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php?q<span class="o">=</span><span class="nv">$uri</span>&amp;<span class="nv">$args</span>;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>注意： - 参数名会依据你所使用的包不同而做相应的改变</p>
-
-<ul>
-  <li><code>q</code>用于Drupal, Joomla, WordPress</li>
-  <li><code>page</code> 用于CMS Made Simple</li>
-</ul>
-
-<p>一些软件甚至不需要查询字符串，可以通过<code>REQUEST_URI</code>获取（比如WordPress就支持）</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>当然，你的情况可能有所不一样，你可能需要更复杂的配置。对于简单的站点，该配置已经完美的支持，通常我们都是由浅入深地学习一样东西 。</p>
-
-<p>如果你不关心目录是否存在，你可以决定跳过该目录检查,并且移 <code>$uri/</code></p>
-
-<h3 id="php">[传递不受控制的请求给PHP]</h3>
-<p>很多 PHP web 站点的 Nginx 配置要求，每一个URI需要附带<code>.php</code>给 PHP 解释器，注意到这里有一个关于PHP设置的严重安全隐患，因为它允许第三方执行任意代码。</p>
-
-<p>比如</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
-</span><span class="line">  fastcgi_pass backend;
-</span><span class="line">  ...
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这里每一个关于.php的请求将会传给 <code>FastCGI</code> 后端，这是PHP默认配置，在不知道文件的具体路径下,试图通过该配置执行该文件。</p>
-
-<p>举个例子，如果请求 <code>/forum/avatar/1232.jpg/file.php</code>不存在， PHP 解释器将会返回 <code>forum/avatar/1232.jpg</code>，如果该文件有内嵌php代码，就会相应地被执行了。</p>
-
-<p>避免上述情况的配置选项是：</p>
-
-<ul>
-  <li>设置 php.ini 里的 <code>cgi.fix_pathinfo=0</code>，该配置使得 php 解释器仅仅执行具体制定的文件，停止执行不存在的文件。</li>
-  <li>确保 nginx 指定具体的php可执行文件</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="o">(</span>file_a|file_b|file_c<span class="o">)</span><span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
-</span><span class="line">  fastcgi_pass backend;
-</span><span class="line">  ...
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<ul>
-  <li>禁止执行用户上传目录中的php文件 </li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">location /uploaddir <span class="o">{</span>
-</span><span class="line">  location ~ <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span><span class="k">return </span>403;<span class="o">}</span>
-</span><span class="line">  ...
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>使用 <code>try_files</code>指令，过滤掉有问题的条件</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
-</span><span class="line">  try_files <span class="nv">$uri</span> <span class="o">=</span>404;
-</span><span class="line">  fastcgi_pass backend;
-</span><span class="line">  ...
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>使用嵌套块过滤有问题的条件</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">location ~* <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
-</span><span class="line">  location ~ <span class="se">\.</span>.*/.*<span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span><span class="k">return </span>404;<span class="o">}</span>
-</span><span class="line">  fastcgi_pass backend;
-</span><span class="line">  ...
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="fastcgi-">[脚本文件名中的 FastCGI 路径]</h3>
-<p>外界很多配置指引依靠绝对路径来获取你的信息，在PHP配置块内经常存在，当你从软件仓库中安装 nginx,他的配置文件中会有 “include fastcgi_params”,该文件在 nginx 文件夹 /etc/nginx 的目录下。</p>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">fastcgi_param  SCRIPT_FILENAME    <span class="nv">$document_root$fastcgi_script_name</span>;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">fastcgi_param  SCRIPT_FILENAME    /var/www/yoursite.com/<span class="nv">$fastcgi_script_name</span>;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p><code>$document_root</code> 在哪里呢？他在<code>server</code>块中<code>root</code>指令，如果你的<code>root</code> 指令配置不存在， 请回头看看 <code>第一个陷阱</code>。</p>
-
-<h3 id="section-3">[麻烦的重写]</h3>
-<p>不要感到沮丧，你很容易被正则表达式迷糊住。事实上，我们可以努力让配置干净简洁不添加毫不相干的东西。</p>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">rewrite ^/<span class="o">(</span>.*<span class="o">)</span><span class="nv">$ </span>http://domain.com/<span class="nv">$1</span> permanent;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">rewrite ^ http://domain.com<span class="nv">$request_uri</span>? permanent;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line"><span class="k">return </span>301 http://domain.com<span class="nv">$request_uri</span>;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>反复看这几个例子，OK，第一个重写捕获斜线前完整的URI。通过使用内置的变量 <code>$request_uri</code> 我们可以有效地避免做任何捕获或匹配,并通过返回指令,我们可以完全避免对正则表达式的使用。</p>
-
-<h3 id="http">[重写时丢失<code>http://</code>]</h3>
-<p>很简单，重写都是相互关联的，除非你特意设置nginx。重写规则挺简单的，仅仅添加一条规则。</p>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line"> rewrite ^/blog<span class="o">(</span>/.*<span class="o">)</span><span class="nv">$ </span>blog.domain.com<span class="nv">$1</span> permanent;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">rewrite ^/blog<span class="o">(</span>/.*<span class="o">)</span><span class="nv">$ </span>http://blog.domain.com<span class="nv">$1</span> permanent;
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>上述看到的例子，我们仅仅是给该条规则添加了<code>http://</code>，便实现了重写，很简单，也很实用。</p>
-
-<h3 id="section-4">[代理一切]</h3>
-
-<p>不好的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">    server_name example.org;
-</span><span class="line">    root /var/www/site;
-</span><span class="line">
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">        include fastcgi_params;
-</span><span class="line">        fastcgi_param SCRIPT_FILENAME <span class="nv">$document_root$fastcgi_script_name</span>;
-</span><span class="line">        fastcgi_pass unix:/tmp/phpcgi.socket;
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这个例子中，你转发请求给php,如果是 apache 服务器会这么干。但是 nginx 服务器不需要这样做，<code>try_files</code>指令会按顺序检测文件。这意味着nginx可以首先寻找需要测试的静态文件，如果找不到才返回用户指定的文件。通过这样的方式，php解释器不会执行任意php文件，除非你拥有该请求路径的php文件，而且能帮你节约资源，特别是当你直接通过php请求一个大小为1MB的图片1千次。</p>
-
-<p>正确的配置</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">    server_name example.org;
-</span><span class="line">    root /var/www/site;
-</span><span class="line">
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">        try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ @proxy;
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">
-</span><span class="line">    location @proxy <span class="o">{</span>
-</span><span class="line">        include fastcgi.conf;
-</span><span class="line">        fastcgi_pass unix:/tmp/php-fpm.sock;
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>或者</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">server <span class="o">{</span>
-</span><span class="line">    server_name example.org;
-</span><span class="line">    root /var/www/site;
-</span><span class="line">
-</span><span class="line">    location / <span class="o">{</span>
-</span><span class="line">        try_files <span class="nv">$uri</span> <span class="nv">$uri</span>/ /index.php;
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">
-</span><span class="line">    location ~ <span class="se">\.</span>php<span class="nv">$ </span><span class="o">{</span>
-</span><span class="line">        include fastcgi.conf;
-</span><span class="line">        fastcgi_pass unix:/tmp/php-fpm.sock;
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果被请求的 URI 存在就可以被 nginx 返回，如果不存在，那么是否存在一个具有index文件的目录里，同时，我们是否已经为该请求配置上了 index 指令。如果仍然不存在，重写规则将发送<code>index.php</code>到你的后端，只有当nginx前端不能处理你的请求，才会让后端服务参与进来。</p>
-
-<p>想想有你的请求中有多少是静态资源，比如图片，css，javascript,我们可以通过上述方式的配置来节约这些资源。</p>
-
-<h3 id="section-5">[配置改变，并没有生效]</h3>
-
-<p>你的配置很完美，但是你依然捶胸顿足。问题出现在你的浏览器缓存上，当你加载一些东西，浏览器会保存下来，也会记住了它是如何请求服务的，如果你使用 <code>types{}</code>块，你会遇到如下问题。</p>
-
-<p>修复</p>
-
-<p>[选项1] 在火狐中按下 <code>Ctrl+Shift+Delet</code> ,检测缓存，并且清空。其他的浏览器自行搜索清空缓存的方法，每一次修改配置，记得清空缓存，除非你确认不需要这么做，这一步骤会帮你避免很多头痛。</p>
-
-<p>在火狐中，你也可以选择一个更长久的解决方法，在URI搜索条内，输入<code>about:config</code>,然后搜索 <code>browser.cache.check_doc_frequency</code> ，设置其值为1，这样没加载一次包就会检测。</p>
-
-<p>[选项2] 使用 <code>curl</code>
-如果还行不通，而且你是在<code>vritualbox</code> 虚拟机里面运行 nginx,那么，可能是 <code>sendfile()</code> 惹得祸，你只需要注释掉 sendfile 指令，或者将其设置为 <code>off</code>,这个指令在<code>nginx.conf</code>里。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line">sendfile off
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="http-1">[HTTP头部丢失]</h3>
-
-<p>如果你没有显性设置 </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="bash"><span class="line"> underscores_in_headers on
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>nginx 将会默认用下划线去掉http头部（这符合http标准），这么做是为了防止在映射CGI头信息时候有歧义。这个过程中破折号和下划线都被映射成了下划线。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1492,6 +1041,10 @@ mysql&gt; SHOW SLAVE STATUS \G
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
@@ -1519,10 +1072,6 @@ mysql&gt; SHOW SLAVE STATUS \G
     
       <li class="post">
         <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
       </li>
     
   </ul>

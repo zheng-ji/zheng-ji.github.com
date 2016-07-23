@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Celery的Crontab实践 - 织网</title>
+  <meta name="author" content="zheng-ji">
+
+  
+  <meta name="description" content="celery crontab">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/07/23/celeryde-crontabshi-jian">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.useso.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+<!--<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">织网</a></h1>
+  
+    <h2>身体和灵魂，总有一个在路上</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:zheng-ji.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/about">About</a></li>
+  <li><a href="http://wiki.zheng-ji.info">Wiki</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Celery的Crontab实践</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-07-23T20:19:00+08:00" pubdate data-updated="true">Jul 23<span>rd</span>, 2016</time>
+        
+        
+          | <a href="#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>有时候我们需要处理耗时的操作，同时又要保持较快的响应速度，就需要借助异步队列的帮助。Celery 作为异步队列服务，想必是很多人和我一样的选择。用法在官方文档也详细介绍，不再赘述。</p>
+
+<p>这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。</p>
+
+<p>main.py 的内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">lib</span> <span class="kn">import</span> <span class="n">distribute</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">celery.schedules</span> <span class="kn">import</span> <span class="n">crontab</span>
+</span><span class="line">
+</span><span class="line"><span class="n">app</span> <span class="o">=</span> <span class="n">distribute</span><span class="o">.</span><span class="n">app</span>
+</span><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span class="line">    <span class="n">CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;every-minute&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="line">            <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="s">&#39;test_cron&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="s">&#39;schedule&#39;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">&quot;*&quot;</span><span class="p">),</span>
+</span><span class="line">            <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">},</span>
+</span><span class="line">    <span class="n">CELERY_INCLUDE</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;apps.tasks&quot;</span><span class="p">,)</span>
+</span><span class="line"><span class="p">)</span>
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">app</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>实际工作单元,我放在 apps 目录下的 <code>tasks.py</code> 文件中</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">lib.distribute</span> <span class="kn">import</span> <span class="n">app</span>
+</span><span class="line"><span class="nd">@app.task</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test_cron&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">mul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>上述是一个简单的 Crontab 应用，它仅需要以下命令就能执行,
+其中  <code>--beat</code> 表示 crontab 的应用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">worker</span> <span class="o">--</span><span class="n">beat</span> <span class="o">-</span><span class="n">l</span> <span class="n">info</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>起初我想把异步队列和定时任务放在一起,就加上了一句 CELERY_QUEUES 的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span class="line">    <span class="o">//</span> <span class="err">添加的部分</span>
+</span><span class="line">    <span class="n">CELERY_QUEUES</span><span class="o">=</span><span class="p">(</span>
+</span><span class="line">        <span class="n">Queue</span><span class="p">(</span>
+</span><span class="line">          <span class="s">&#39;test&#39;</span><span class="p">,</span> <span class="n">Exchange</span><span class="p">(</span><span class="s">&#39;test_exchange&#39;</span><span class="p">),</span>
+</span><span class="line">           <span class="n">routing_key</span><span class="o">=</span><span class="s">&#39;test_queue&#39;</span>
+</span><span class="line">        <span class="p">),</span>
+</span><span class="line">    <span class="p">),</span>
+</span><span class="line">    <span class="n">CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;every-minute&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="line">            <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="s">&#39;test_cron&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="s">&#39;schedule&#39;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">&quot;*&quot;</span><span class="p">),</span>
+</span><span class="line">            <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">},</span>
+</span><span class="line">    <span class="n">CELERY_INCLUDE</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;apps.tasks&quot;</span><span class="p">,)</span>
+</span><span class="line"><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>同样用上述命令开启worker，发现这个时候 Crontab 不能工作了，后来看到官方的文档：</p>
+
+<blockquote>
+  <p>celery beat and celery worker as separate services instead. </p>
+</blockquote>
+
+<p>也就是说 Celery 的 Beat 需要和其他异步worker 分开，单独执行。</p>
+
+<p>相关代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/celery_proj">链接</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">zheng-ji</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-07-23T20:19:00+08:00" pubdate data-updated="true">Jul 23<span>rd</span>, 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/programe/'>Programe</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2016/07/16/bash-jia-zai-shun-xu/" title="Previous Post: 环境变量的那些事">&laquo; 环境变量的那些事</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+
+  <section>
+    <h1>Comments</h1>
+    <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+<div class="ds-thread" data-title="Celery的Crontab实践"></div>
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+(function() {
+ var ds = document.createElement('script');
+ ds.type = 'text/javascript';ds.async = true;
+ ds.src = 'http://static.duoshuo.com/embed.js';
+ ds.charset = 'UTF-8';
+ (document.getElementsByTagName('head')[0]
+  || document.getElementsByTagName('body')[0]).appendChild(ds);
+ })();
+</script>
+<!-- Duoshuo Comment END -->
+
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+<h1>Categories</h1>
+<ul id="categories">
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+</ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+<h1>友情链接</h1>
+<ul>
+    <span>
+        <a href="http://everet.org">EverET</a>
+    </span>
+    <span>
+        <a href="http://forsigner.com">forsigner</a>
+    </span>
+    <span>
+        <a href="http://blog.onlyice.net">Onlyice</a>
+    </span>
+</ul>
+</section>
+
+<section>
+<h1>最近评论</h1>
+<ul class="ds-recent-comments" data-num-items="10">
+</ul>
+<!--多说js加载开始，一个页面只需要加载一次 -->
+<script type="text/javascript">
+    var duoshuoQuery = {short_name:"zhengji"};
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';
+        ds.async = true;ds.src = 'http://static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!--多说js加载结束，一个页面只需要加载一次 -->
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2016 - zheng-ji -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+  <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
+  </script>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

@@ -9,28 +9,13 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="现象
-周日早晨收到 ganglia 报警, 内容是： 1
-MySQL_Slave_SQL is 0.00
-意味着从库同步有问题了。这时候进入从库看看状态 1
-show slave status\G; 看到 1
+  <meta name="description" content="我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 IP：1.2.3.4 的机器上部署Postfix服务，让它可以发邮件 安装 1
+sudo apt-get install postfix 配置 编辑 /etc/postfix/main.cnf 1
 2
 3
 4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
-17
-18 &hellip;">
+5 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -88,6 +73,118 @@ show slave status\G; 看到 1
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/05/17/da-jian-postfix/">搭建 Postfix</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-05-17T00:25:00+08:00" pubdate data-updated="true">May 17<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/05/17/da-jian-postfix/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
+现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
+
+<h3 id="section">安装</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install postfix</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">配置</h3>
+
+<p>编辑 <code>/etc/postfix/main.cnf</code></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+</span><span class="line">biff = no
+</span><span class="line">append_dot_mydomain = no
+</span><span class="line">readme_directory = no
+</span><span class="line">smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+</span><span class="line">smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+</span><span class="line">smtpd_use_tls=yes
+</span><span class="line">smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+</span><span class="line">smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+</span><span class="line">myhostname = mail.zheng-ji.info 邮箱服务器域名
+</span><span class="line">alias_maps = hash:/etc/aliases
+</span><span class="line">alias_database = hash:/etc/aliases
+</span><span class="line">myorigin = $myhostname
+</span><span class="line">mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
+</span><span class="line">mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
+</span><span class="line">relay_domains = $mydestination
+</span><span class="line">inet_interfaces = all
+</span><span class="line">inet_protocols = all</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-2">授权</h3>
+
+<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">A 记录指向 1.2.3.4
+</span><span class="line">MX 记录也指向 1.2.3.4
+</span><span class="line">TXT 记录 v=spf1 ip4:1.2.3.4 ~all</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>以上操作是防止被认为垃圾邮件。</p>
+
+<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
+编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">5.6.7.8  OK</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>重启并授权生效</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service postfix restart
+</span><span class="line">postmap access</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1189,134 +1286,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/">Nginx与php-fpm系统参数配置</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-11-02T15:46:00+08:00" pubdate data-updated="true">Nov 2<span>nd</span>, 2014</time>
-        
-        
-          | <a href="/blog/2014/11/02/nginxyu-phpxi-tong-can-shu-pei-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>需要为机器调配参数了, 早些时候看过不少文章, 但没经历过始终不深刻, 以下讲的是在 8core 8G，Centos 配置 php-fpm 与 NGINX。</p>
-
-<h3 id="php-fpm-">php-fpm 参数配置</h3>
-
-<p>关于 php-fpm 的配置,Ubuntu系统中 <code>/etc/php5/fpm/pool.d</code>目录下, Centos是<code>/etc/php-fpm.d</code>目录下编辑<code>www.conf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">listen = /var/run/php5-fpm.sock
-</span><span class="line">listen.backlog = -1 (on FreeBSD -1 unlimit)
-</span><span class="line">pm = static # 使用静态进程管理
-</span><span class="line">pm.max_children = 128
-</span><span class="line">request_terminate_timeout = 8s #设置太大，会导致work进程过多，来不及kill掉</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 <code>/etc/default/php5-fpm</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ulimit -n 655360</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="nginx-">Nginx 配合参数</h3>
-
-<ul>
-  <li>启用irqbalance</li>
-</ul>
-
-<p>由于精简系统的服务没有开启irqbalance，irqbalance现在被证实为非常有必要的服务，他的主要功能是可以合理的调配使用各个 CPU 核心，特别是对于目前主流多核心的 CPU，简单的说就是能够把压力均匀的分配到各个 CPU 核心上，对提升性能有很大的帮助。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">shell&gt; yum -y install irqbalance
-</span><span class="line">shell&gt; service irqbalance start
-</span><span class="line">cat /proc/irqbalance #查看中断的分布</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>为nginx 绑定 cpu</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">worker_processes  8;
-</span><span class="line">worker_cpu_affinity 00000001 00000010 00000100 00001000 00010000 00100000 01000000 10000000;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>连接数调整，</li>
-</ul>
-
-<p>nginx发起的连接数，远远超过了 php-fpm 所能处理的数目，导致端口（或socket）频繁被锁，造成堵塞。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">vi /etc/sysctl.conf 进行了微调
-</span><span class="line">fs.file-max = 6553600
-</span><span class="line">
-</span><span class="line">vim /etc/security/limits.conf
-</span><span class="line">* soft nofile 655360
-</span><span class="line">* hard nofile 655360
-</span><span class="line">
-</span><span class="line">vim /etc/nginx/nginx.conf
-</span><span class="line">
-</span><span class="line">worker_rlimit_nofile 300000;
-</span><span class="line">events {
-</span><span class="line">    worker_connections 300000;
-</span><span class="line">    use epoll;
-</span><span class="line">}
-</span><span class="line">http {
-</span><span class="line">    keepalive_timeout  0; #关闭keepalive_timeout, 快速释放系统资源
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>从查到的资料看起来 8 核 理論值的最大連線數 = <code>worker_processes * worker_connections / 8</code></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1338,6 +1307,10 @@ Kibana 是一个与之配套的 web 界面。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
@@ -1365,10 +1338,6 @@ Kibana 是一个与之配套的 web 界面。</p>
     
       <li class="post">
         <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a>
       </li>
     
   </ul>

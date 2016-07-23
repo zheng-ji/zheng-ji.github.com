@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-07-17T16:20:03+08:00</updated>
+  <updated>2016-07-23T20:27:34+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,122 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Celery的Crontab实践]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/07/23/celeryde-crontabshi-jian/"/>
+    <updated>2016-07-23T20:19:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/07/23/celeryde-crontabshi-jian</id>
+    <content type="html"><![CDATA[<p>有时候我们需要处理耗时的操作，同时又要保持较快的响应速度，就需要借助异步队列的帮助。Celery 作为异步队列服务，想必是很多人和我一样的选择。用法在官方文档也详细介绍，不再赘述。</p>
+
+<p>这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。</p>
+
+<p>main.py 的内容</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">lib</span> <span class="kn">import</span> <span class="n">distribute</span>
+</span><span class="line"><span class="kn">from</span> <span class="nn">celery.schedules</span> <span class="kn">import</span> <span class="n">crontab</span>
+</span><span class="line">
+</span><span class="line"><span class="n">app</span> <span class="o">=</span> <span class="n">distribute</span><span class="o">.</span><span class="n">app</span>
+</span><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span class="line">    <span class="n">CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;every-minute&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="line">            <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="s">&#39;test_cron&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="s">&#39;schedule&#39;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">&quot;*&quot;</span><span class="p">),</span>
+</span><span class="line">            <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">},</span>
+</span><span class="line">    <span class="n">CELERY_INCLUDE</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;apps.tasks&quot;</span><span class="p">,)</span>
+</span><span class="line"><span class="p">)</span>
+</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+</span><span class="line">    <span class="n">app</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>实际工作单元,我放在 apps 目录下的 <code>tasks.py</code> 文件中</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">lib.distribute</span> <span class="kn">import</span> <span class="n">app</span>
+</span><span class="line"><span class="nd">@app.task</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test_cron&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">mul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>上述是一个简单的 Crontab 应用，它仅需要以下命令就能执行,
+其中  <code>--beat</code> 表示 crontab 的应用</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">python</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">worker</span> <span class="o">--</span><span class="n">beat</span> <span class="o">-</span><span class="n">l</span> <span class="n">info</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>起初我想把异步队列和定时任务放在一起,就加上了一句 CELERY_QUEUES 的配置</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span class="line">    <span class="o">//</span> <span class="err">添加的部分</span>
+</span><span class="line">    <span class="n">CELERY_QUEUES</span><span class="o">=</span><span class="p">(</span>
+</span><span class="line">        <span class="n">Queue</span><span class="p">(</span>
+</span><span class="line">          <span class="s">&#39;test&#39;</span><span class="p">,</span> <span class="n">Exchange</span><span class="p">(</span><span class="s">&#39;test_exchange&#39;</span><span class="p">),</span>
+</span><span class="line">           <span class="n">routing_key</span><span class="o">=</span><span class="s">&#39;test_queue&#39;</span>
+</span><span class="line">        <span class="p">),</span>
+</span><span class="line">    <span class="p">),</span>
+</span><span class="line">    <span class="n">CELERYBEAT_SCHEDULE</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;every-minute&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class="line">            <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="s">&#39;test_cron&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="s">&#39;schedule&#39;</span><span class="p">:</span> <span class="n">crontab</span><span class="p">(</span><span class="n">minute</span><span class="o">=</span><span class="s">&quot;*&quot;</span><span class="p">),</span>
+</span><span class="line">            <span class="s">&#39;args&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">},</span>
+</span><span class="line">    <span class="n">CELERY_INCLUDE</span><span class="o">=</span><span class="p">(</span><span class="s">&quot;apps.tasks&quot;</span><span class="p">,)</span>
+</span><span class="line"><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>同样用上述命令开启worker，发现这个时候 Crontab 不能工作了，后来看到官方的文档：</p>
+
+<blockquote>
+  <p>celery beat and celery worker as separate services instead. </p>
+</blockquote>
+
+<p>也就是说 Celery 的 Beat 需要和其他异步worker 分开，单独执行。</p>
+
+<p>相关代码<a href="https://github.com/zheng-ji/ToyCollection/tree/master/celery_proj">链接</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[环境变量的那些事]]></title>
@@ -2179,88 +2295,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
   <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[搭建 Postfix]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix/"/>
-    <updated>2015-05-17T00:25:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/05/17/da-jian-postfix</id>
-    <content type="html"><![CDATA[<p>我们需要搭建邮件服务，采用Postfix服务, 坑点不少，遂记录。
-现在我们决定在 <code>IP：1.2.3.4</code> 的机器上部署<code>Postfix</code>服务，让它可以发邮件</p>
-
-<h3 id="section">安装</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install postfix</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">配置</h3>
-
-<p>编辑 <code>/etc/postfix/main.cnf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
-</span><span class="line">biff = no
-</span><span class="line">append_dot_mydomain = no
-</span><span class="line">readme_directory = no
-</span><span class="line">smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
-</span><span class="line">smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
-</span><span class="line">smtpd_use_tls=yes
-</span><span class="line">smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
-</span><span class="line">smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-</span><span class="line">myhostname = mail.zheng-ji.info 邮箱服务器域名
-</span><span class="line">alias_maps = hash:/etc/aliases
-</span><span class="line">alias_database = hash:/etc/aliases
-</span><span class="line">myorigin = $myhostname
-</span><span class="line">mydestination = mail.zheng-ji.info, localhost.localdomain, localhost
-</span><span class="line">mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128, hash:/etc/postfix/access 可以使用这个邮箱服务的外部地址
-</span><span class="line">relay_domains = $mydestination
-</span><span class="line">inet_interfaces = all
-</span><span class="line">inet_protocols = all</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-2">授权</h3>
-
-<p>为了让邮件能真正到达对方邮箱而不被视为垃圾邮件， 我们需要进行DNS权威认证</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">A 记录指向 1.2.3.4
-</span><span class="line">MX 记录也指向 1.2.3.4
-</span><span class="line">TXT 记录 v=spf1 ip4:1.2.3.4 ~all</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以上操作是防止被认为垃圾邮件。</p>
-
-<p>外部需要访问该Postfix 服务发送邮件，需要有access权限,
-编辑/etc/postfix/access, 假设 <code>IP:5.6.7.8</code> 的机器想访问该服务</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">5.6.7.8  OK</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>重启并授权生效</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo service postfix restart
-</span><span class="line">postmap access</span></code></pre></td></tr></table></div></figure></notextile></div>
 ]]></content>
   </entry>
   
