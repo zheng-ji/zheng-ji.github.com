@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="喜欢 Flask 经典的 RestFul 设计风格，以及它与 Gevent 的优雅结合，可以帮助我们轻松构建异步非阻塞应用，烂笔头记下一些较好的实践。 消息反馈 Flask 上下文 注册 JinJia 模板过滤器 itsdangerous 生成过期时间 Json 签名 一种较好的项目组织方式 &hellip;">
+  <meta name="description" content="Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 感谢 agentzh, lua-nginx-module, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,119 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 Lua 拓展</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-10-29T22:45:00+08:00" pubdate data-updated="true">Oct 29<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
+感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
+
+<h2 id="nginxlua">编译 nginx_lua</h2>
+
+<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
+
+<ul>
+  <li>下载安装</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
+</span><span class="line">tar zxvf LuaJIT-2.0.4.tar.gz
+</span><span class="line">cd LuaJIT-2.0.4
+</span><span class="line">make
+</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置环境变量</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">export LUAJIT_LIB=/usr/local/lib
+</span><span class="line">export LUAJIT_INC=/usr/local/include/luajit-2.0</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>然后编译ngx-lua-module.so</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>设置动态库</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
+</span><span class="line">&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="tengine-">在 Tengine 中启用</h3>
+
+<p><code>nginx.conf</code> 中先加载动态库</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">dso {
+</span><span class="line">    load ngx_load_module;
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>在 nginx.conf 中添加</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache on/off;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
+
+<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
+
+<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
+<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
+
+<hr />
+
+<p>注：
+静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1415,93 +1528,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/">轻巧实时统计用户数</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-06-11T23:14:00+08:00" pubdate data-updated="true">Jun 11<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2 id="section">背景</h2>
-
-<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
-业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
-是时候要改造方案了。</p>
-
-<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
-
-<h2 id="section-1">两个方案的选择</h2>
-
-<ul>
-  <li>Plan A：</li>
-</ul>
-
-<p>将每天的 <code>IP+UA</code> 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
-但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UA</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
-
-<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
-
-<ul>
-  <li>Plan B:</li>
-</ul>
-
-<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">conn = redis()
-</span><span class="line">index = hash(UA+IP)
-</span><span class="line">key = "xxx_2015-05-10"
-</span><span class="line">conn.do('SETBIT', key, index, 1) # 将该hash值对应的位赋值为1
-</span><span class="line">
-</span><span class="line">realtime_uv = conn.do('BITCOUNT', key) # 得到实时的uv</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
-于是欣然选择 Plan B</p>
-
-<h2 id="section-2">一些链接</h2>
-
-<ul>
-  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
-  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
-  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
-</ul>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1517,12 +1543,16 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/programe'>programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
@@ -1550,10 +1580,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
     
       <li class="post">
         <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
       </li>
     
   </ul>

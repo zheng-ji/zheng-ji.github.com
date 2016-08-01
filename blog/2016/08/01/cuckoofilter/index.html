@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title> Expect 与系统自动交互 - 织网</title>
+  <title>CuckooFilter，BloomFilter的优化 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="expect语言">
-  <meta name="keywords" content="expect语言">
+  <meta name="description" content="BloomFilter CuckooFilter">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/03/13/expect-yu-xi-tong-zi-dong-jiao-hu">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2016/08/01/cuckoofilter">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -70,7 +70,7 @@
   
   <header>
     
-      <h1 class="entry-title">Expect 与系统自动交互</h1>
+      <h1 class="entry-title">CuckooFilter，BloomFilter的优化</h1>
     
     
       <p class="meta">
@@ -86,7 +86,7 @@
   
 
 
-<time datetime="2014-03-13T23:05:00+08:00" pubdate data-updated="true">Mar 13<span>th</span>, 2014</time>
+<time datetime="2016-08-01T19:48:00+08:00" pubdate data-updated="true">Aug 1<span>st</span>, 2016</time>
         
         
           | <a href="#comments">Comments</a>
@@ -96,72 +96,39 @@
   </header>
 
 
-<div class="entry-content"><p>在<code>linux</code>下 做一些操作的时候，比如使用 <em>scp</em>, <em>telnet</em> 等命令，通常系统会让你输入密码，你只好乖乖地停下来输入。倘若你希望批量执行一个脚本中得所有命令，系统执行到某句命令的时候停下来让你输入密码，就比较囧了。于是你感慨，如果是一气呵成多省事啊。</p>
+<div class="entry-content"><p>面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 <code>Bloom Filter</code>. 而 <code>Cuckoo Filter</code> 是它的优化变种。借此也用 Golang 实践了这个算法。</p>
 
-<p>这个时候，你可以使用 <em>expect</em> 语言帮我们解决问题。</p>
-
-<h3 id="section">官方定义</h3>
-<blockquote>
-  <p>Expect是一个用来实现自动交互功能的软件套件 (Expect [is a] software suite for automating interactive tools)</p>
-</blockquote>
-
-<p>expect 是 <a href="http://en.wikipedia.org/wiki/Don_Libes">Don Libes</a> 编写的免费编程工具语言, 由expect-send对组成：</p>
-
-<p>expect等待输出中输出特定的字符，通常是一个提示符，然后发送特定的响应。</p>
-
-<hr />
-
-<p>先来个 helloworld, 注意需要在exp脚本前面加上 <code>#!/usr/bin/expect</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
-</span><span class="line">send_user <span class="s2">&quot;hello world&quot;</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这里的 send_user 类似 echo </p>
-
-<h3 id="section-1">常见用法</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="nb">set </span>i 0
-</span><span class="line"><span class="nb">set </span>user <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>timeout 300
-</span><span class="line"><span class="nb">set </span>i 0
-</span><span class="line"><span class="k">while</span> <span class="o">{</span> <span class="nv">$i</span> &lt; 10 <span class="o">}</span> <span class="o">{</span>
-</span><span class="line">    puts <span class="nv">$i</span>;
-</span><span class="line">    incr i;
-</span><span class="line"><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以上分别是:</p>
+<p><code>Bloom Filter</code> 的位图模式有两个问题：</p>
 
 <ul>
-  <li>将0赋值给变量i;</li>
-  <li>获取脚本的第一个参数给变量user;</li>
-  <li>设置超时时间是300秒</li>
-  <li>循环使用，不多说</li>
+  <li>误报，它能判断元素一定不存在，但只能判断可能存在，因为存在其它元素被映射到部分相同位上，导致该位置1，那么一个不存在的元素可能会被误报成存在；</li>
+  <li>漏报，如果删除了某个元素，导致该映射位被置0，那么本来存在的元素会被漏报成不存在。 </li>
 </ul>
 
-<hr />
-
-<p>在 expect脚本中, 最亮点的是 spawn 会启动一个进程，由 expect 和 send 组合负责跟该进程交互, in short </p>
+<p><code>Cuckoo Filter</code>，可以确保该元素存在的必然性，又可以在不违背此前提下删除任意元素，仅仅比 <code>Bloom Filter</code> 牺牲了微量空间效率。 它的的数据模型: </p>
 
 <ul>
-  <li>expect捕获进程需要什么信息</li>
-  <li>send将这个信息发给进程</li>
-  <li>expect eof与spawn对应，表示捕获终端输出信息的终止，即进程已结束</li>
-  <li>expect都是使用 {}，且{, }使用时，前后需要留空格。 只要其中一项符合，就会执行该项，类似switch</li>
+  <li>每个元素对应两个哈希算法，在哈希碰撞时会启用备用哈希算法。</li>
+  <li>每一个桶是有4路的，每个槽对应一个指纹。</li>
 </ul>
 
-<p>看完以下代码相信你就明白其魅力了 ：）</p>
+<p><img src="https://cloud.githubusercontent.com/assets/1414745/17103421/c97635e0-52b0-11e6-83ac-1b1fdbb5d31c.png" alt="model" /></p>
+
+<h2 id="feature">Feature</h2>
+
+<ul>
+  <li>支持删除操作</li>
+  <li>支持快速查找，支持 O(1) 查找速度</li>
+  <li>高效的空间利用，四路槽的表，可以有95% 的空间利用率</li>
+  <li>可替代布隆过滤器</li>
+</ul>
+
+<h2 id="installation">Installation</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">go get github.com/zheng-ji/goCuckoo</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="example">Example</h2>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -183,39 +150,39 @@
 <span class="line-number">18</span>
 <span class="line-number">19</span>
 <span class="line-number">20</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c">#!/usr/bin/expect</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kn">import</span> <span class="p">(</span>
+</span><span class="line">	<span class="s">&quot;fmt&quot;</span>
+</span><span class="line">	<span class="s">&quot;github.com/zheng-ji/goCuckoo&quot;</span>
+</span><span class="line"><span class="p">)</span>
 </span><span class="line">
-</span><span class="line"><span class="nb">set </span>timeout 10
-</span><span class="line"><span class="nb">set </span>host <span class="o">[</span>lindex <span class="nv">$argv</span> 0<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>username <span class="o">[</span>lindex <span class="nv">$argv</span> 1<span class="o">]</span>
-</span><span class="line"><span class="nb">set </span>password <span class="o">[</span>lindex <span class="nv">$argv</span> 2<span class="o">]</span>
+</span><span class="line"><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="c1">// speicify capacity </span>
+</span><span class="line">	<span class="nx">filter</span> <span class="o">:=</span> <span class="nx">cuckoo</span><span class="p">.</span><span class="nx">NewCuckooFilter</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">spawn ssh <span class="nv">$username</span>@<span class="nv">$host</span>
-</span><span class="line">expect <span class="o">{</span>
-</span><span class="line">    <span class="s2">&quot;(yes/no)?&quot;</span> <span class="o">{</span>
-</span><span class="line">        send <span class="s2">&quot;yes\n&quot;</span>
-</span><span class="line">        expect <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span> send <span class="s2">&quot;$password\n&quot;</span> <span class="o">}</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line">    <span class="s2">&quot;*assword:&quot;</span> <span class="o">{</span>
-</span><span class="line">        send <span class="s2">&quot;$password\n&quot;</span>
-</span><span class="line">    <span class="o">}</span>
-</span><span class="line"><span class="o">}</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;zheng-ji&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;coder&quot;</span><span class="p">))</span>
 </span><span class="line">
-</span><span class="line">expect <span class="s2">&quot;$&quot;</span>
-</span><span class="line">expect eof
+</span><span class="line">	<span class="k">if</span> <span class="nx">filter</span><span class="p">.</span><span class="nx">Find</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;exist&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Not exist&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Del</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">filter</span><span class="p">.</span><span class="nx">Size</span><span class="p">())</span>
+</span><span class="line"><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>使用时, 执行如下脚本命令.  其中<code>expect</code> 捕获到 “*assword:”, 发送 <code>$password</code> 变量,  捕获到<code>$</code>符号，表示登陆成功，结束 spawn 进程</p>
+<h2 id="section">参考</h2>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line">./autosh.exp xxx<span class="o">(</span>ip地址<span class="o">)</span> xxx<span class="o">(</span>用户名<span class="o">)</span> xxx<span class="o">(</span>密码<span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<hr />
-
-<p>感觉这样的脚本在自动化运维可以有很多运用之处, 至少让你可以在执行需要交互命令的时候跑去喝茶。
-Happy Hacking :-)</p>
-
+<ul>
+  <li><a href="http://www.cs.cmu.edu/~binfan/papers/conext14_cuckoofilter.pdf">CMU Paper</a></li>
+  <li><a href="http://www.cs.cmu.edu/~binfan/papers/conext14_cuckoofilter.pptx">CMU PPT</a></li>
+  <li><a href="http://coolshell.cn/articles/17225.html">CoolShell Article</a></li>
+</ul>
 </div>
 
 
@@ -238,12 +205,12 @@ Happy Hacking :-)</p>
   
 
 
-<time datetime="2014-03-13T23:05:00+08:00" pubdate data-updated="true">Mar 13<span>th</span>, 2014</time>
+<time datetime="2016-08-01T19:48:00+08:00" pubdate data-updated="true">Aug 1<span>st</span>, 2016</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/programe/'>Programe</a>
+    <a class='category' href='/blog/categories/programe/'>programe</a>
   
 </span>
 
@@ -259,10 +226,8 @@ Happy Hacking :-)</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/02/24/socketnian-bao/" title="Previous Post: socket黏包引发的YY">&laquo; socket黏包引发的YY</a>
+        <a class="basic-alignment left" href="/blog/2016/07/23/celeryde-crontabshi-jian/" title="Previous Post: Celery的Crontab实践">&laquo; Celery的Crontab实践</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/04/22/liu-xia-liao-xie-dong-xi/" title="Next Post: 留下了些东西">留下了些东西 &raquo;</a>
       
     </p>
   </footer>
@@ -272,7 +237,7 @@ Happy Hacking :-)</p>
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="Expect 与系统自动交互"></div>
+<div class="ds-thread" data-title="CuckooFilter，BloomFilter的优化"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-07-23T20:27:34+08:00</updated>
+  <updated>2016-08-01T19:55:38+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,101 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[CuckooFilter，BloomFilter的优化]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/08/01/cuckoofilter/"/>
+    <updated>2016-08-01T19:48:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/08/01/cuckoofilter</id>
+    <content type="html"><![CDATA[<p>面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 <code>Bloom Filter</code>. 而 <code>Cuckoo Filter</code> 是它的优化变种。借此也用 Golang 实践了这个算法。</p>
+
+<p><code>Bloom Filter</code> 的位图模式有两个问题：</p>
+
+<ul>
+  <li>误报，它能判断元素一定不存在，但只能判断可能存在，因为存在其它元素被映射到部分相同位上，导致该位置1，那么一个不存在的元素可能会被误报成存在；</li>
+  <li>漏报，如果删除了某个元素，导致该映射位被置0，那么本来存在的元素会被漏报成不存在。 </li>
+</ul>
+
+<p><code>Cuckoo Filter</code>，可以确保该元素存在的必然性，又可以在不违背此前提下删除任意元素，仅仅比 <code>Bloom Filter</code> 牺牲了微量空间效率。 它的的数据模型: </p>
+
+<ul>
+  <li>每个元素对应两个哈希算法，在哈希碰撞时会启用备用哈希算法。</li>
+  <li>每一个桶是有4路的，每个槽对应一个指纹。</li>
+</ul>
+
+<p><img src="https://cloud.githubusercontent.com/assets/1414745/17103421/c97635e0-52b0-11e6-83ac-1b1fdbb5d31c.png" alt="model" /></p>
+
+<h2 id="feature">Feature</h2>
+
+<ul>
+  <li>支持删除操作</li>
+  <li>支持快速查找，支持 O(1) 查找速度</li>
+  <li>高效的空间利用，四路槽的表，可以有95% 的空间利用率</li>
+  <li>可替代布隆过滤器</li>
+</ul>
+
+<h2 id="installation">Installation</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">go get github.com/zheng-ji/goCuckoo</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="example">Example</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kn">import</span> <span class="p">(</span>
+</span><span class="line">	<span class="s">&quot;fmt&quot;</span>
+</span><span class="line">	<span class="s">&quot;github.com/zheng-ji/goCuckoo&quot;</span>
+</span><span class="line"><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="c1">// speicify capacity </span>
+</span><span class="line">	<span class="nx">filter</span> <span class="o">:=</span> <span class="nx">cuckoo</span><span class="p">.</span><span class="nx">NewCuckooFilter</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;zheng-ji&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;coder&quot;</span><span class="p">))</span>
+</span><span class="line">
+</span><span class="line">	<span class="k">if</span> <span class="nx">filter</span><span class="p">.</span><span class="nx">Find</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;exist&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Not exist&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Del</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">filter</span><span class="p">.</span><span class="nx">Size</span><span class="p">())</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section">参考</h2>
+
+<ul>
+  <li><a href="http://www.cs.cmu.edu/~binfan/papers/conext14_cuckoofilter.pdf">CMU Paper</a></li>
+  <li><a href="http://www.cs.cmu.edu/~binfan/papers/conext14_cuckoofilter.pptx">CMU PPT</a></li>
+  <li><a href="http://coolshell.cn/articles/17225.html">CoolShell Article</a></li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Celery的Crontab实践]]></title>
@@ -22,7 +117,7 @@
 
 <p>这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。</p>
 
-<p>main.py 的内容</p>
+<p>以下是 <code>main.py</code> 的内容</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -2238,63 +2333,6 @@ read_buffer_size,join_buffer_size 都是对单个链接而言。</p>
 </pre></td><td class="code"><pre><code class=""><span class="line">show global status like 'key_read%';</span></code></pre></td></tr></table></div></figure></notextile></div>
 <p>key_cache_miss_rate = key_Read / key_read_request * 100% 小于 1% 是很好的，
 意味着1000个请求有一个直接读硬盘。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[轻巧实时统计用户数]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/"/>
-    <updated>2015-06-11T23:14:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu</id>
-    <content type="html"><![CDATA[<h2 id="section">背景</h2>
-
-<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
-业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
-是时候要改造方案了。</p>
-
-<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
-
-<h2 id="section-1">两个方案的选择</h2>
-
-<ul>
-  <li>Plan A：</li>
-</ul>
-
-<p>将每天的 <code>IP+UA</code> 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
-但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UA</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
-
-<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
-
-<ul>
-  <li>Plan B:</li>
-</ul>
-
-<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">conn = redis()
-</span><span class="line">index = hash(UA+IP)
-</span><span class="line">key = "xxx_2015-05-10"
-</span><span class="line">conn.do('SETBIT', key, index, 1) # 将该hash值对应的位赋值为1
-</span><span class="line">
-</span><span class="line">realtime_uv = conn.do('BITCOUNT', key) # 得到实时的uv</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
-于是欣然选择 Plan B</p>
-
-<h2 id="section-2">一些链接</h2>
-
-<ul>
-  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
-  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
-  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
-</ul>
-
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="阅读完《Google C++ Style》记录些小要点，很多开源代码都是按照这个规则编码，在了解这些原则之后，个人感觉阅读开源代码应该会省很多力气。 有头文件都应该使用 #define 防止头文件被多重包含, 命名格式当是: _H 能用前置声明的地方尽量不使用 #include &hellip;">
+  <meta name="description" content="关于博客 大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +67,69 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/30/xiu-qi-xiao-bo/">修葺小博</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-30T23:20:00+08:00" pubdate data-updated="true">May 30<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/05/30/xiu-qi-xiao-bo/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="section">关于博客</h4>
+
+<p>大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。</p>
+
+<p>今天好好地修理一翻博客，顿觉从建博至今，写了很多垃圾文章，甚发觉以前很幼稚（包括想法与文字），本想删除劣迹，但这些文章终究是自己一步步成长的印记，所以让它们保留着。折腾了一天wp源码（修改css代码，添加一些有用的插件）还是很欢乐的。得益于广泛阅读和折腾，技术的广度是够的，但深度却明显不足。后续宁愿慢点也要做深度思考，尽可能写出博文。</p>
+
+<h4 id="section-1">关于技术</h4>
+
+<p>以后这个博客记录的更多会是后端开发的感悟，来源于自己浓厚的兴趣使然，喜欢服务端编程。虽然我在TX没有机会接触这样的开发（多少有些遗憾吧，但我希望去大公司开拓眼界，以后真的能做这样的工作，故不能放弃积累）。全凭一腔热血和毅力折腾，我所做的方法是，查看前人的技术成长，自己给自己提需求(比较傻)。偶有所得便会放上Github。诚如我所言，深度思考，学过的理要尽可能实现出来。宁愿慢点以获得真正的收获！</p>
+
+<p>如今已不再觉得学习某些技术会很厉害，真正具备的是思考，学习的能力。这都离不开扎实的基础！欣喜的是，我发现只要你去尝试并坚持努力，这些都可以提高的。</p>
+
+<p>接触到身边很多程序员：”CopyCat,重复劳动，眼界狭隘，缺乏思考”，内心感到难受。@ruitao说过；”不可能要求这世界所有人都有一样的想法，他们已经被磨去了棱角。“ （PS：@ruitao是一个Geek&amp;&amp;工具控,我的偶像：））。所幸的是我可以自我修炼，信息的畅通大大降低了学习门槛，一直欣赏一种人，知道自己需要什么并坚持想法的去学习，不为了所谓“外部评价”。很感恩认识到一些爱好技术，追求效率的朋友，和志同道合的人分享是件很幸福的事.</p>
+
+<h4 id="section-2">致将要逝去的大学时光</h4>
+
+<p>这个月与好友们泡在一起，俺学会了lol，虽然绝对菜B，但仍能感受到大伙在一起的狂欢激情。这些日子，我尽可能地尝试以前想做的事情，比如弹起吉他。感觉人生又完满了一点。认识多了几个热爱搞技术的朋友，能和他们一起侃共同的话题真的很爽。或许因为大家都有不安分的心以及共同的愿景吧。
+转入正题：leveldb的内存设计思想</p>
+
+<p>在研究leveldb的源代码，觉得他的内存池实现很收启发。学习leveldb的内存设计思想。</p>
+
+<p>如果是频繁的申请内存，不连续，会造成内存碎片。但Leveldb采用了内存池的概念，一次性申请4M的内存。下次读取的内存小于内存池的容量，直接获取，否则，重新申请内存块：
+* 如果申请的字节数，bytes &gt;= 1M，则申请内存为 bytes的块,避免内存块浪费
+* 如果申请的字节数，bytes &lt;= 1M，则申请内存为 4M 的块
+Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo">源码</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1070,331 +1133,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/05/26/trietree-zhong-wen-fen-ci/">TrieTree 中文分词</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-05-26T23:45:00+08:00" pubdate data-updated="true">May 26<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/05/26/trietree-zhong-wen-fen-ci/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><strong>Trie树</strong>，即字典树，又称单词查找树或键树，是一种树形结构，是一种哈希树的变种。典型应用是用于统计和排序大量的字符串（但不仅限于字符串），所以经常被搜索引擎系统用于文本词频统计。它的优点是：最大限度地减少无谓的字符串比较，查询效率比哈希表高。
-Trie的核心思想是空间换时间。利用字符串的公共前缀来降低查询时间的开销以达到提高效率的目的。</p>
-
-<p>它有3个基本性质：</p>
-
-<ul>
-  <li>根节点不包含字符，除根节点外每一个节点都只包含一个字符。</li>
-  <li>从根节点到某一节点，路径上经过的字符连接起来，为该节点对应的字符串。</li>
-  <li>每个节点的所有子节点包含的字符都不相同。</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-<span class="line-number">37</span>
-<span class="line-number">38</span>
-<span class="line-number">39</span>
-<span class="line-number">40</span>
-<span class="line-number">41</span>
-<span class="line-number">42</span>
-<span class="line-number">43</span>
-<span class="line-number">44</span>
-<span class="line-number">45</span>
-<span class="line-number">46</span>
-<span class="line-number">47</span>
-<span class="line-number">48</span>
-<span class="line-number">49</span>
-<span class="line-number">50</span>
-<span class="line-number">51</span>
-<span class="line-number">52</span>
-<span class="line-number">53</span>
-<span class="line-number">54</span>
-<span class="line-number">55</span>
-<span class="line-number">56</span>
-<span class="line-number">57</span>
-<span class="line-number">58</span>
-<span class="line-number">59</span>
-<span class="line-number">60</span>
-<span class="line-number">61</span>
-<span class="line-number">62</span>
-<span class="line-number">63</span>
-<span class="line-number">64</span>
-<span class="line-number">65</span>
-<span class="line-number">66</span>
-<span class="line-number">67</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">char</span><span class="p">,</span><span class="n">is_end</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">is_end</span> <span class="o">=</span> <span class="n">is_end</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">prefix_count</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">char</span> <span class="o">=</span> <span class="n">char</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ALPHABET_SIZE</span><span class="p">)]</span>
-</span><span class="line">
-</span><span class="line"><span class="k">class</span> <span class="nc">Trie</span><span class="p">:</span>
-</span><span class="line">    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class="line">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
-</span><span class="line">        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span>
-</span><span class="line">        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
-</span><span class="line">            <span class="n">int_value</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)</span>
-</span><span class="line">            <span class="k">try</span><span class="p">:</span>
-</span><span class="line">            <span class="k">assert</span> <span class="p">(</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">int_value</span> <span class="o">&lt;=</span> <span class="mi">26</span><span class="p">)</span>
-</span><span class="line">            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span class="line">                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;invalid Word&quot;</span><span class="p">)</span>
-</span><span class="line">            <span class="k">if</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-</span><span class="line">               <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span>
-</span><span class="line">               <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
-</span><span class="line">               <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span class="line">               <span class="n">current</span><span class="o">.</span><span class="n">prefix_count</span> <span class="o">=</span> <span class="n">count</span>
-</span><span class="line">            <span class="k">else</span><span class="p">:</span>
-</span><span class="line">                <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span> <span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
-</span><span class="line">        <span class="n">current</span><span class="o">.</span><span class="n">is_end</span> <span class="o">=</span> <span class="bp">True</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
-</span><span class="line">        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
-</span><span class="line">            <span class="n">int_value</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)</span>
-</span><span class="line">            <span class="k">try</span><span class="p">:</span>
-</span><span class="line">                <span class="k">assert</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">int_value</span> <span class="o">&gt;=</span> <span class="mi">26</span><span class="p">)</span>
-</span><span class="line">            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">False</span>
-</span><span class="line">            <span class="k">if</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">False</span>
-</span><span class="line">            <span class="k">else</span><span class="p">:</span>
-</span><span class="line">                <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
-</span><span class="line">        <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">is_end</span>
-</span><span class="line">
-</span><span class="line">    <span class="k">def</span> <span class="nf">count_words_with_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
-</span><span class="line">        <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span>
-</span><span class="line">        <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">:</span>
-</span><span class="line">            <span class="n">int_value</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">)</span>
-</span><span class="line">            <span class="k">try</span><span class="p">:</span>
-</span><span class="line">                <span class="k">assert</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">int_value</span> <span class="o">&lt;=</span> <span class="mi">26</span><span class="p">)</span>
-</span><span class="line">            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">None</span>
-</span><span class="line">            <span class="k">if</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-</span><span class="line">                <span class="k">return</span> <span class="bp">None</span>
-</span><span class="line">            <span class="k">else</span><span class="p">:</span>
-</span><span class="line">                <span class="n">current</span> <span class="o">=</span>  <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">int_value</span><span class="p">]</span>
-</span><span class="line">        <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">prefix_count</span>
-</span><span class="line">
-</span><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-</span><span class="line">    <span class="nb">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;dict-test.txt&#39;</span><span class="p">,</span><span class="s">&#39;r&#39;</span><span class="p">)</span>
-</span><span class="line">    <span class="n">dicts</span> <span class="o">=</span>  <span class="nb">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span><span class="line">    <span class="n">t</span> <span class="o">=</span> <span class="n">Trie</span><span class="p">()</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">dicts</span><span class="p">:</span>
-</span><span class="line">    <span class="n">t</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
-</span><span class="line">    <span class="k">print</span> <span class="n">t</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;c&#39;</span><span class="p">)</span>
-</span><span class="line">    <span class="k">print</span> <span class="n">t</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;love&#39;</span><span class="p">)</span>
-</span><span class="line">    <span class="k">print</span> <span class="n">t</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;c++&#39;</span><span class="p">)</span>
-</span><span class="line">    <span class="nb">raw_input</span><span class="p">(</span><span class="s">&#39;void flush&#39;</span><span class="p">)</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">char</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>附带go 语言的:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-<span class="line-number">37</span>
-<span class="line-number">38</span>
-<span class="line-number">39</span>
-<span class="line-number">40</span>
-<span class="line-number">41</span>
-<span class="line-number">42</span>
-<span class="line-number">43</span>
-<span class="line-number">44</span>
-<span class="line-number">45</span>
-<span class="line-number">46</span>
-<span class="line-number">47</span>
-<span class="line-number">48</span>
-<span class="line-number">49</span>
-<span class="line-number">50</span>
-<span class="line-number">51</span>
-<span class="line-number">52</span>
-<span class="line-number">53</span>
-<span class="line-number">54</span>
-<span class="line-number">55</span>
-<span class="line-number">56</span>
-<span class="line-number">57</span>
-<span class="line-number">58</span>
-<span class="line-number">59</span>
-<span class="line-number">60</span>
-</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">package</span> <span class="n">main</span>
-</span><span class="line">
-</span><span class="line"><span class="kn">import</span> <span class="p">(</span><span class="s">&quot;fmt&quot;</span><span class="p">)</span>
-</span><span class="line">
-</span><span class="line"><span class="nb">type</span> <span class="n">Node</span> <span class="n">struct</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">is_end</span>           <span class="nb">bool</span>
-</span><span class="line">    <span class="n">element</span>          <span class="n">byte</span>
-</span><span class="line">    <span class="n">prefix_count</span>     <span class="nb">int</span>
-</span><span class="line">    <span class="n">children</span>         <span class="p">[</span><span class="mi">26</span><span class="p">]</span><span class="o">*</span><span class="n">Node</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="nb">type</span> <span class="n">Trie</span> <span class="n">struct</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">head</span> <span class="o">*</span><span class="n">Node</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="n">func</span> <span class="p">(</span><span class="n">trie</span> <span class="o">*</span><span class="n">Trie</span><span class="p">)</span> <span class="n">insert</span><span class="p">(</span><span class="n">word</span> <span class="n">string</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">current</span> <span class="p">:</span><span class="o">=</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span>
-</span><span class="line">    <span class="n">count</span> <span class="p">:</span><span class="o">=</span> <span class="mi">0</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="p">:</span><span class="o">=</span> <span class="nb">range</span> <span class="n">word</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">index</span> <span class="p">:</span><span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="s">&#39;a&#39;</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">nil</span> <span class="o">==</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="p">{</span>
-</span><span class="line">            <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">Node</span><span class="p">)</span>
-</span><span class="line">            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-</span><span class="line">            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span class="line">            <span class="n">current</span><span class="o">.</span><span class="n">prefix_count</span> <span class="o">=</span> <span class="n">count</span>
-</span><span class="line">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span><span class="line">            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-</span><span class="line">        <span class="p">}</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="n">current</span><span class="o">.</span><span class="n">is_end</span> <span class="o">=</span> <span class="n">true</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="n">func</span> <span class="p">(</span><span class="n">trie</span> <span class="o">*</span><span class="n">Trie</span><span class="p">)</span> <span class="n">search</span><span class="p">(</span><span class="n">word</span> <span class="n">string</span><span class="p">)</span> <span class="nb">bool</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">current</span> <span class="p">:</span><span class="o">=</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span>
-</span><span class="line">    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span><span class="o">=</span> <span class="nb">range</span> <span class="n">word</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">index</span> <span class="p">:</span><span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="s">&#39;a&#39;</span>
-</span><span class="line">        <span class="k">if</span> <span class="n">nil</span> <span class="o">==</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="p">{</span>
-</span><span class="line">            <span class="k">return</span> <span class="n">false</span>
-</span><span class="line">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span><span class="line">            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-</span><span class="line">        <span class="p">}</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">current</span><span class="o">.</span><span class="n">is_end</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="n">func</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
-</span><span class="line">    <span class="n">trie</span> <span class="p">:</span><span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">Trie</span><span class="p">)</span>
-</span><span class="line">    <span class="n">trie</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">new</span><span class="p">(</span><span class="n">Node</span><span class="p">)</span>
-</span><span class="line">    <span class="k">if</span> <span class="n">nil</span> <span class="o">!=</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">&quot;element is not null&quot;</span><span class="p">)</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="k">if</span> <span class="n">nil</span> <span class="o">==</span> <span class="n">trie</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">&quot;element is null&quot;</span><span class="p">)</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line">    <span class="n">trie</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">)</span>
-</span><span class="line">    <span class="n">trie</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;world&quot;</span><span class="p">)</span>
-</span><span class="line">    <span class="k">if</span> <span class="n">true</span> <span class="o">==</span> <span class="n">trie</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&quot;hell&quot;</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">        <span class="n">fmt</span><span class="o">.</span><span class="n">Println</span><span class="p">(</span><span class="s">&quot;good&quot;</span><span class="p">)</span>
-</span><span class="line">    <span class="p">}</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="node">Node类：</h4>
-
-<ul>
-  <li>is_end 用于标识该结点是否是一个单词结尾，默认为False</li>
-  <li>prefix_count: 该字符前缀有几个字符</li>
-  <li>char:该节点带有字符</li>
-  <li>children:该节点的子结点集合（这里有26个默认的NONE结点）</li>
-</ul>
-
-<h4 id="trie">Trie类：</h4>
-<ul>
-  <li>head 是头结点，默认为空结点</li>
-  <li>函数：insert(self,word):插入字符，创建结点，如果该单词到达最后一个字母就设置is_end=True</li>
-  <li>search(self, word)：查询单词是否存在，是返回True</li>
-  <li>count_words_with_prefix(self, word)：查询结点的前缀</li>
-</ul>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/9/">&larr; Older</a>
@@ -1410,12 +1148,16 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/programe'>programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
@@ -1443,10 +1185,6 @@ Trie的核心思想是空间换时间。利用字符串的公共前缀来降低�
     
       <li class="post">
         <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
       </li>
     
   </ul>

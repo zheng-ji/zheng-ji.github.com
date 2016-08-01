@@ -4,7 +4,7 @@
   <title><![CDATA[Category: NetWork | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/network/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-07-23T20:28:55+08:00</updated>
+  <updated>2016-08-01T19:55:38+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -322,7 +322,7 @@ fastcgi_pass unix:/tmp/php-cgi.sock;
 
 <p>通信过程</p>
 
-<p>{% img /images/2013/08/ipc_unix_socket-300x300.png %}</p>
+<p><img src="/images/2013/08/ipc_unix_socket-300x300.png"></p>
 
 <p>用Unix domain socket写的Demo</p>
 

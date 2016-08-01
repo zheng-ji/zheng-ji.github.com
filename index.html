@@ -9,12 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="有时候我们需要处理耗时的操作，同时又要保持较快的响应速度，就需要借助异步队列的帮助。Celery 作为异步队列服务，想必是很多人和我一样的选择。用法在官方文档也详细介绍，不再赘述。 这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。 main.py 的内容 1
-2
-3
-4
-5
-6 &hellip;">
+  <meta name="description" content="面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 Bloom Filter. 而 Cuckoo Filter 是它的优化变种。借此也用 Golang 实践了这个算法。 Bloom Filter 的位图模式有两个问题： 误报， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +73,131 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-08-01T19:48:00+08:00" pubdate data-updated="true">Aug 1<span>st</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/08/01/cuckoofilter/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 <code>Bloom Filter</code>. 而 <code>Cuckoo Filter</code> 是它的优化变种。借此也用 Golang 实践了这个算法。</p>
+
+<p><code>Bloom Filter</code> 的位图模式有两个问题：</p>
+
+<ul>
+  <li>误报，它能判断元素一定不存在，但只能判断可能存在，因为存在其它元素被映射到部分相同位上，导致该位置1，那么一个不存在的元素可能会被误报成存在；</li>
+  <li>漏报，如果删除了某个元素，导致该映射位被置0，那么本来存在的元素会被漏报成不存在。 </li>
+</ul>
+
+<p><code>Cuckoo Filter</code>，可以确保该元素存在的必然性，又可以在不违背此前提下删除任意元素，仅仅比 <code>Bloom Filter</code> 牺牲了微量空间效率。 它的的数据模型: </p>
+
+<ul>
+  <li>每个元素对应两个哈希算法，在哈希碰撞时会启用备用哈希算法。</li>
+  <li>每一个桶是有4路的，每个槽对应一个指纹。</li>
+</ul>
+
+<p><img src="https://cloud.githubusercontent.com/assets/1414745/17103421/c97635e0-52b0-11e6-83ac-1b1fdbb5d31c.png" alt="model" /></p>
+
+<h2 id="feature">Feature</h2>
+
+<ul>
+  <li>支持删除操作</li>
+  <li>支持快速查找，支持 O(1) 查找速度</li>
+  <li>高效的空间利用，四路槽的表，可以有95% 的空间利用率</li>
+  <li>可替代布隆过滤器</li>
+</ul>
+
+<h2 id="installation">Installation</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">go get github.com/zheng-ji/goCuckoo</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="example">Example</h2>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kn">import</span> <span class="p">(</span>
+</span><span class="line">	<span class="s">&quot;fmt&quot;</span>
+</span><span class="line">	<span class="s">&quot;github.com/zheng-ji/goCuckoo&quot;</span>
+</span><span class="line"><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">    <span class="c1">// speicify capacity </span>
+</span><span class="line">	<span class="nx">filter</span> <span class="o">:=</span> <span class="nx">cuckoo</span><span class="p">.</span><span class="nx">NewCuckooFilter</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;zheng-ji&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Insert</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;coder&quot;</span><span class="p">))</span>
+</span><span class="line">
+</span><span class="line">	<span class="k">if</span> <span class="nx">filter</span><span class="p">.</span><span class="nx">Find</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;exist&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Not exist&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Del</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;stupid&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="nx">filter</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">filter</span><span class="p">.</span><span class="nx">Size</span><span class="p">())</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section">参考</h2>
+
+<ul>
+  <li><a href="http://www.cs.cmu.edu/~binfan/papers/conext14_cuckoofilter.pdf">CMU Paper</a></li>
+  <li><a href="http://www.cs.cmu.edu/~binfan/papers/conext14_cuckoofilter.pptx">CMU PPT</a></li>
+  <li><a href="http://coolshell.cn/articles/17225.html">CoolShell Article</a></li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a></h1>
     
     
@@ -108,7 +228,7 @@
 
 <p>这次想记录的是用 Celery 来实现定时任务。这里也有一点点坑。</p>
 
-<p>main.py 的内容</p>
+<p>以下是 <code>main.py</code> 的内容</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -1411,119 +1531,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/">给 Tengine 加上 Lua 拓展</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-10-29T22:45:00+08:00" pubdate data-updated="true">Oct 29<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/10/29/gei-tengine-jia-shang-lua-tuo-zhan/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Tengine 能动态加载第三方模块，成为我们青睐的选择，我们可以编译动态链接文件，而不需要重新安装 Nginx, 这对在线增强 webservice 很有帮助. 
-感谢 agentzh, <a href="https://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, 可以让我们使用 lua 增强nginx的功能, 不言而喻，我们必须现有 Lua 的环境，才能运行 ngx_lua;</p>
-
-<h2 id="nginxlua">编译 nginx_lua</h2>
-
-<p>官方推荐使用LuaJit,虽然也可以使用Lua，但是即时编译(Just-In-Time Compiler)混合了动态编译和静态编译，一句一句编译源代码，但是会将翻译过的代码缓存起来以降低性能损耗。</p>
-
-<ul>
-  <li>下载安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">wget http://luajit.org/download/LuaJIT-2.0.4.tar.gz
-</span><span class="line">tar zxvf LuaJIT-2.0.4.tar.gz
-</span><span class="line">cd LuaJIT-2.0.4
-</span><span class="line">make
-</span><span class="line">make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>设置环境变量</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">export LUAJIT_LIB=/usr/local/lib
-</span><span class="line">export LUAJIT_INC=/usr/local/include/luajit-2.0</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>然后编译ngx-lua-module.so</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">/usr/local/share/dso_tool/ --path=/Path/To/Lua-Nginx-module</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>设置动态库</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">&gt; echo "/usr/local/lib" &gt; /etc/ld.so.conf.d/usr_local_lib.conf
-</span><span class="line">&gt; ldconfig</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="tengine-">在 Tengine 中启用</h3>
-
-<p><code>nginx.conf</code> 中先加载动态库</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">dso {
-</span><span class="line">    load ngx_load_module;
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>在 nginx.conf 中添加</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">lua_code_cache on/off;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>来开启是否将代码缓存，所以每次变更 “*.lua” 文件时，必须重启 nginx 才可生效.</p>
-
-<h3 id="ngxluawaf">使用 ngx_lua_waf</h3>
-
-<p>有了基础环境，我们要开始发挥 ngx lua 的优点了, 我用他安装了 waf (web application firework)
-<a href="https://github.com/loveshell/ngx_lua_waf">ngx_lua_waf</a>，这是一个通过 ngx_lua 编写的 web 应用防火墙, 在使用过程中也发现了 ngx_lua_waf 一个bug，给他提了一个<a href="https://github.com/loveshell/ngx_lua_waf/pull/70">Pull Request</a>, 码农生涯第一个 PR.</p>
-
-<hr />
-
-<p>注：
-静态编译的程序在执行前全部被翻译为机器码，而动态直译执行的则是一句一句边运行边翻译。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1537,12 +1544,16 @@
     <section>
 <h1>Categories</h1>
 <ul id="categories">
-    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
+    <li><a href='/blog/categories/database'>DataBase</a></li><li><a href='/blog/categories/life'>Life</a></li><li><a href='/blog/categories/network'>NetWork</a></li><li><a href='/blog/categories/product'>Product</a></li><li><a href='/blog/categories/programe'>Programe</a></li><li><a href='/blog/categories/programe'>programe</a></li><li><a href='/blog/categories/server'>Server</a></li><li><a href='/blog/categories/system'>System</a></li>
 </ul>
 </section>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
@@ -1570,10 +1581,6 @@
     
       <li class="post">
         <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a>
       </li>
     
   </ul>
