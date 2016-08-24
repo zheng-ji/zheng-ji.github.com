@@ -4,10 +4,12 @@ title: "CuckooFilter，BloomFilter的优化"
 date: 2016-08-01 19:48
 comments: true
 description: BloomFilter CuckooFilter
-categories: programe
+categories: Programe
 ---
 
-面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 `Bloom Filter`. 而 `Cuckoo Filter` 是它的优化变种。借此也用 Golang 实践了这个算法。
+面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 `Bloom Filter`. 而 `Cuckoo Filter` 是它的优化变种。借此也用 Golang 实践了这个[算法](https://github.com/zheng-ji/goCuckoo)。
+
+![goCuckoo](https://cloud.githubusercontent.com/assets/1414745/17084380/8c3a4896-51ee-11e6-869e-b087226cc5ce.jpg)
 
 `Bloom Filter` 的位图模式有两个问题：
 
