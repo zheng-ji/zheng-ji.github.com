@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="面对海量数据，我们需要一个索引数据结构，用来帮助查询，快速判断数据记录是否存在，这类数据结构叫过滤器，常用的选择是 Bloom Filter. 而 Cuckoo Filter 是它的优化变种。借此也用 Golang 实践了这个算法。 Bloom Filter 的位图模式有两个问题： 误报， &hellip;">
+  <meta name="description" content="今天和朋友聊天，他多次提到了共享内存，惭愧的是我没怎么用上，只是从 APUE 等神书阅读到此类名词。这个周末，我来搞懂它们。 共享内存 它是 Linux 最底层的通信机制，被称为最快的通信机制。多个进程共享同一个内存区域实现进程间通信。一个进程创建一个共享内存区域，并将数据存放到共享内存中， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +68,83 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-09-25T23:37:00+08:00" pubdate data-updated="true">Sep 25<span>th</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>今天和朋友聊天，他多次提到了共享内存，惭愧的是我没怎么用上，只是从 APUE 等神书阅读到此类名词。这个周末，我来搞懂它们。</p>
+
+<h3 id="section">共享内存</h3>
+
+<p>它是 Linux 最底层的通信机制，被称为最快的通信机制。多个进程共享同一个内存区域实现进程间通信。一个进程创建一个共享内存区域，并将数据存放到共享内存中，而后多个进程对其进行访问。</p>
+
+<p>借鉴网友的例子，我做了注释和修改，一个进程写共享内存 (shmwrite.c)，一个进程读共享内存(shmread.c)。</p>
+
+<p>共享内存并未提供同步机制，在第一个进程结束对共享内存的写操作之前，并无自动机制阻止第二个进程开始对它进行读取。上述代码中，我通过自己维护了一个变量 isWritten 来控制同步行为。</p>
+
+<p>还好，伟大的计算机先驱们提供了信号量来帮我们解决同步的问题。</p>
+
+<h3 id="section-1">信号量</h3>
+<p>为了防止出现因多个程序同时访问一个共享资源带来的问题，Linux 使用 信号量协调进程对共享资源的访问的。
+信号量只能进行两种操作等待和发送信号，即 P(sv) 和 V(sv).</p>
+
+<ul>
+  <li>P(sv)：当sv的值大于零，就减1；当它的值为零，就挂起该进程的执行。</li>
+  <li>V(sv)：当有其他进程因等待sv而被挂起，就让它恢复运行，当没有进程因等待sv而挂起，就给它加1.</li>
+</ul>
+
+<p>比如：两个进程共享信号量 sv，其中一个进程执行了 P(sv) 操作，它将得到信号量，进入临界区，将 sv 减1。此时sv=0,第二个进程将被阻止进入临界区，它会被挂起以等待第一个进程离开临界区域,并执行 V(sv) 释放信号量，这时第二个进程就可以恢复执行。</p>
+
+<h3 id="mmap--shmget">mmap 还是 shmget</h3>
+
+<p>这两个东西某种程度上很类似。</p>
+
+<p>内存映射，将用户空间的一段内存区域映射到内核空间,用户对这段内存区域的修改可以直接反映到内核空间，同样，内核空间对这段区域的修改也直接反映用户空间。两者之间需要大量数据传输等操作的话效率是非常高的.</p>
+
+<p>mmap 并不是完全为了用于共享内存而设计的。它提供了不同于一般对普通文件的访问方式，进程可以像读写内存一样对普通文件的操作。而 Posix 或系统V的共享内存 IPC 则纯粹用于共享目的.</p>
+
+<p>mmap 使得进程之间通过映射同一个普通文件实现共享内存。普通文件被映射到进程地址空间后，进程可以像访问普通内存一样对文件进行访问，不必再调用 read()，write() 等操作。mmap 并不分配空间, 只是将文件映射到调用进程的地址空间里 然后你就可以用 memcpy 等操作写文件。</p>
+
+<hr />
+
+<p>附上代码：
+* 共享数据结构: <a href="https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmdata.c">shmdata.h</a>
+* 读共享内存：<a href="https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmread.c">shmread.c</a>
+* 写共享内存：<a href="https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmwrite.c">shmwrite.c</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1361,179 +1438,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/12/05/gre-tuning-and-keepalived/">Gre 隧道与 Keepalived</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-12-05T10:29:00+08:00" pubdate data-updated="true">Dec 5<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/12/05/gre-tuning-and-keepalived/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>这一篇文章是做了不少功课的。</p>
-
-<ul>
-  <li><a href="#第一节">什么是 Gre 隧道</a></li>
-  <li><a href="#第二节">什么是 Vrrp </a></li>
-  <li><a href="#第三节">KeepAlived 是什么</a></li>
-  <li><a href="#第四节">用Keepalived 怎么玩</a></li>
-  <li><a href="#第五节">附录</a></li>
-</ul>
-
-<h3 id="第一节">什么是 Gre 隧道 </h3>
-
-<p>GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4/IPv6 网络中传输。Tunnel 是一个虚拟的点对点的连接，提供了一条通路使封装的数据报文能够在这个通路上传输，并且在一个Tunnel 的两端分别对数据报进行封装及解封装。Linux 上创建 GRE 隧道，需要 ip_gre 内核模块，它是Pv4 隧道的驱动程序。</p>
-
-<p>假设我有2台服务器，想做这两台之间创建 GRE 隧道</p>
-
-<ul>
-  <li>$server_A_ip 表示服务器A的IP</li>
-  <li>$server_B_ip 服务器B 的内网IP</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># 在 A 机器上执行
-</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
-</span><span class="line">sudo ip link add gretap1 type gretap local $server_a_ip remote $server_b_ip 
-</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
-</span><span class="line">sudo ip addr add dev gretap1 10.1.1.2/24 # 给该设备一个虚拟网络地址
-</span><span class="line">
-</span><span class="line"># 在 B 机器上执行
-</span><span class="line"># 创建 GRE 协议的 虚拟网络设备, 指定本地和对端 IP
-</span><span class="line">sudo ip link add gretap1 type gretap local $server_b_ip remote $server_a_ip 
-</span><span class="line">sudo ip link set dev gretap1 up  # 启动该设备
-</span><span class="line">sudo ip addr add dev gretap1 10.1.1.3/24 # 给该设备一个虚拟网络地址</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果想停止或者删除上述网卡</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ip link set gretap1 down
-</span><span class="line">ip tunnel del gretap1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>至此点到点得隧道建立。</p>
-
-<h3 id="第二节">什么是 vrrp 协议 </h3>
-
-<p>VRRP(Virtual Router Redundancy Protocol), 即虚拟路由冗余协议。是实现路由器高可用的容错协议。</p>
-
-<p>即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个 master 和多个 backup， 但在外界看来就像一台一样，构成虚拟路由器，拥有一个虚拟IP（vip），占有这个IP 的 master 实际负责 ARP 相应和转发 IP 数据包， 组中的其它路由器作为备份的角色处于待命状态。 master 会发组播消息，当 backup 在超时时间内收不到 vrrp 包时就认为 master 宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master，保证路由器的高可用。</p>
-
-<h3 id="第三节"> Keepalived 是什么 </h3>
-
-<p>Keepalived 是一个基于 VRRP 协议来实现的服务高可用方案，可以利用其来避免IP单点故障。</p>
-
-<ul>
-  <li>一个经典的案例</li>
-</ul>
-
-<p>一个WEB服务至少会有2台服务器运行 Keepalived，一台为主服务器，一台为备份服务器, 但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候，备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
-
-<h3 id="第四节">怎么玩 Keepalived</h3>
-
-<ul>
-  <li>安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install keepalived</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>之前提到的，我们在 A, B 两台服务器建立起了 GRE 隧道了。 现在我们有一个虚拟的内网IP， 姑且叫做 $virtual_third_ip
-接着在 A 服务器上</p>
-
-<ul>
-  <li>配置</li>
-</ul>
-
-<p>编辑服务器 A, B 的 <code>/etc/keepalived/keepalived.conf</code></p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">
-</span><span class="line">global_defs {
-</span><span class="line">    router_id LVS_DEVEL
-</span><span class="line">}
-</span><span class="line">
-</span><span class="line">vrrp_instance VI_1 {
-</span><span class="line">    state MASTER
-</span><span class="line">    interface gretap1 # 绑在建立起来的隧道上
-</span><span class="line">    virtual_router_id 51
-</span><span class="line">    # 优先级别,越高的设备会被弄成主设备, A,B 服务器要有所差别，其他都一样
-</span><span class="line">    priority 100          advert_int 1      # 广播时间间隔
-</span><span class="line">    authentication {  #  验证相关
-</span><span class="line">        auth_type PASS
-</span><span class="line">        auth_pass 1111
-</span><span class="line">    }
-</span><span class="line">    virtual_ipaddress {
-</span><span class="line">        $virtual_third_ip dev eth0
-</span><span class="line">    }
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>我们将服务器  A 作为 Master, 服务器 B 当做 Backup, 当服务器 A 需要停机的时候，$virtual_third_ip 就会漂移到服务器 B 上面。 我们两台机器都有相同配置的 Nginx 服务，就可以保障机器出现故障的时候，Nginx 服务丝毫不受影响。</p>
-
-<h3 id="第五节"> 附录 </h3>
-
-<ul>
-  <li><a href="http://linux.vbird.org/linux_server/0140networkcommand.php">鸟哥的网络知识</a></li>
-  <li><a href="http://www.tldp.org/HOWTO/Adv-Routing-HOWTO/lartc.tunnel.gre.html">GRE tuneling</a></li>
-  <li><a href="http://baike.baidu.com/link?url=N1-VGuzQC0PJ2bCnOzYn-XRTlN8eFGCvIJQlTI6KDL5Fx3EQxoRGTrxazb11jfZQqlfeA6q2Ka0VKRVEc0Kdu3GEyhqe1W_Ae2h0Tqu5NacIjOSaSnUVeOe-9QV5dB8q0Wv_uq8-vqdnQICt39UZFK">VRRP</a></li>
-</ul>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1553,6 +1457,10 @@
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
@@ -1580,10 +1488,6 @@
     
       <li class="post">
         <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/01/07/shi-shi-jian-kong-nginx-qps-de-tuo-zhan/"> 实时监控 nginx qps 的拓展</a>
       </li>
     
   </ul>
