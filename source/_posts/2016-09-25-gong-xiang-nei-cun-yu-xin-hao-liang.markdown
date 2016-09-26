@@ -43,6 +43,6 @@ mmap 使得进程之间通过映射同一个普通文件实现共享内存。普
 
 附上代码：
 
-* 共享数据结构: [shmdata.h](https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmdata.c)
+* 共享数据结构: [shmdata.h](https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmdata.h)
 * 读共享内存：[shmread.c](https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmread.c)
 * 写共享内存：[shmwrite.c](https://github.com/zheng-ji/ToyCollection/blob/master/shared_memory/shmwrite.c)
