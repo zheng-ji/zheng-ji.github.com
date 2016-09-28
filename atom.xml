@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-09-28T08:30:18+08:00</updated>
+  <updated>2016-09-28T08:33:50+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[记一次使用 redis-server 诡异的bug]]></title>
+    <title type="html"><![CDATA[记一次使用 redis 协议诡异的bug]]></title>
     <link href="http://zheng-ji.github.com/blog/2016/09/28/ji-yi-ci-redis-server-bug/"/>
     <updated>2016-09-28T08:21:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2016/09/28/ji-yi-ci-redis-server-bug</id>
