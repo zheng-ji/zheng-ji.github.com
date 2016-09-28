@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-09-28T08:39:38+08:00</updated>
+  <updated>2016-09-28T08:45:51+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -20,6 +20,15 @@
     <id>http://zheng-ji.github.com/blog/2016/09/28/ji-yi-ci-redis-server-bug</id>
     <content type="html"><![CDATA[<p>记录昨天定位一个诡异 bug 的过程，我耗费了不少精力，你若有兴趣，请带着一点耐心看完它。</p>
 
+<ul>
+  <li><a href="#第一节">问题背景</a></li>
+  <li><a href="#第二节">重新问题 </a></li>
+  <li><a href="#第三节">试着解决问题</a></li>
+  <li><a href="#第四节">一点总结</a></li>
+</ul>
+
+<h3 id="第一节">问题背景</h3>
+
 <p>我们使用 <a href="https://github.com/youmi/go-redis-server">go-redis-server</a> 开发具有 redis 协议的服务。 按照文档，我们实现了如下接口，其背后访问的是 AWS 的 Dynamodb，我们的服务也开发了监控接口，以供我们这些程序狗知道它发生了什么。</p>
 
 <p><code>
@@ -30,14 +39,12 @@ func (handler *RedisHandler) Del(key string) (count int, err error)
 
 <p>这样，我们就能通过 redis 客户端来执行 Get，Set，Del 操作。</p>
 
-<h3 id="section">问题背景</h3>
-
 <p>我在批量写入几千条数据时，通过监控接口，我看到服务突然卡住的样子，没有 Get，Set的统计信息了。但我能肯定的是客户端一直有数据在往服务写入，或者读写。
 同时从 AWS 监控得到的反馈是 Dynamodb 使用超过预设值，我调高了读写预设值，重启服务，就恢复可用（重启大法好）。
 程序试运行十多天，只发生过一次异常，之后再无重现。
 这个事情没有搞清楚，就成为我一个心结。</p>
 
-<h3 id="section-1">重现问题</h3>
+<h3 id="第二节">重现问题</h3>
 
 <p>我们来看看代码</p>
 
@@ -107,7 +114,7 @@ recvfrom(3,
 
 <p>感觉像是在等待服务器返回，但是等不到回报的样子。</p>
 
-<h3 id="section-2">试着解决问题</h3>
+<h3 id="第三节">试着解决问题</h3>
 
 <p>难道 go-redis-server 这个框架有猫腻，我就开始了一下午的看源码之旅。不得不说源码写的真好。回头看我们出错的代码片段，我试着修改 err 信息，修改成自己定义的错误字符串。</p>
 
@@ -171,7 +178,7 @@ func (er *ErrorReply) WriteTo(w io.Writer) (int64, error) {
 
 <p>从 <a href="http://redis.cn/topics/protocol.html">Redis协议官方文档</a>，可以确定客户端与服务器端之间传输的每个 Redis 命令或者数据都以 <code>\r\n</code> 结尾。 我们的错误信息中间杀出了 <code>\n</code>，导致协议错乱，redis 客户端不能理解协议，就阻塞了。</p>
 
-<h3 id="section-3">一点感悟</h3>
+<h3 id="第四节">一点总结</h3>
 
 <ul>
   <li>

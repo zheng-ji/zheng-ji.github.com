@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-09-28T08:39:38+08:00</updated>
+  <updated>2016-09-28T08:45:51+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -288,7 +288,7 @@ ansible -i get_host.py  devtest-asg -m raw -a 'ls /'
   <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
 </ul>
 
-<p><img src="/images/2016/04/flume.jpg"></p>
+<p>{% img /images/2016/04/flume.jpg %}</p>
 
 <ul>
   <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
@@ -309,7 +309,7 @@ ansible -i get_host.py  devtest-asg -m raw -a 'ls /'
   <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
 </ul>
 
-<p><img src="/images/2016/04/flume1toflume2.jpg"></p>
+<p>{% img /images/2016/04/flume1toflume2.jpg %}</p>
 
 <h1 id="section-1">需要的准备</h1>
 
