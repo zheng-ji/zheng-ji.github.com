@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "记一次使用 redis-server 诡异的bug"
+title: "记一次使用 redis 协议诡异的bug"
 date: 2016-09-28 08:21
 description: Redis 协议 
 categories: Programe
