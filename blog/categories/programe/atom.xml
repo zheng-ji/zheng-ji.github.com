@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-09-26T09:38:07+08:00</updated>
+  <updated>2016-09-28T08:30:18+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,191 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[记一次使用 redis-server 诡异的bug]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/09/28/ji-yi-ci-redis-server-bug/"/>
+    <updated>2016-09-28T08:21:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/09/28/ji-yi-ci-redis-server-bug</id>
+    <content type="html"><![CDATA[<p>记录昨天定位一个诡异 bug 的过程，我耗费了不少精力，你若有兴趣，请带着一点耐心看完它。</p>
+
+<p>我们使用 <a href="https://github.com/youmi/go-redis-server">go-redis-server</a> 开发具有 redis 接口的服务。 按照文档，我们实现了如下接口，其背后访问的是 AWS 的 Dynamodb, 我们的服务也开发了监控接口，以供我们这些程序狗知道它发生了什么。</p>
+
+<p><code>
+func (handler *RedisHandler) Get(key string) (result string, err error)
+func (handler *RedisHandler) Set(key string, val string) (err error)
+func (handler *RedisHandler) Del(key string) (count int, err error)
+</code></p>
+
+<p>这样，我们就能通过redis客户端来执行 Get，Set，Del 操作。</p>
+
+<h3 id="section">问题背景</h3>
+
+<p>我在批量写入几千条数据时，通过监控接口，我看到服务突然卡住的样子，没有 Get，Set的统计信息了。但我能肯定的是客户端一直有数据在往服务写入，或者读写。
+同时从 AWS 监控得到的反馈是 Dynamodb 使用超过预设值，我调高了读写预设值，重启服务，就恢复可用（重启大法好）。
+程序试运行十多天，只发生过一次异常，之后再无重现。
+这个事情没有搞清楚，就成为我一个心结。</p>
+
+<h3 id="section-1">重现问题</h3>
+
+<p>我们来看看代码</p>
+
+<p>```
+func (handler *RedisHandler) 
+Set(key string, val string) (err error) {
+	…</p>
+
+<pre><code>m, err := JSONToMap(val)
+_, err = table.PutItem(m)
+if err != nil {
+	log.Log.Errorf("PutItem failed, 
+	table: %s, primary key: %s, value: %+v, 
+	err: %s", 
+	tableName, primaryVal, m, err.Error())
+	return
+}
+return } ```
+</code></pre>
+
+<p>Set接口，简单的将数据写入dynamodb，dynamodb 如果异常就返回错误，然后通过redis协议返回给客户端。</p>
+
+<p>我很大程度确定那时候是因为 AWS Dynamodb 的异常导致这个错误的。除非这个巧合太牛逼了，难道 go-redis-server 接口不支持返回错误不成吗？这个猜想很快就被我们用实验否定了。</p>
+
+<p>我想重新触发 AWS Dynamodb 返回写容量超标的错误，测试了一阵子，并不容易重现。有点沮丧，这个时候我回忆起 aws-go-sdk的特点，如果给dynamodb 字段 赋予空值，是会有异常返回的，
+类似如下：</p>
+
+<p><code>
+ValidationException: One or more parameter values were invalid:
+An AttributeValue may not contain an empty string
+	status code: 400
+</code></p>
+
+<p>空值的测试明显容易制造。我在本地也开启服务，端口是1234，用pyredis 作为客户端做测试</p>
+
+<p>测试脚本</p>
+
+<p>```
+import redis
+import json
+import random
+r = redis.Redis(host=’localhost’,port=1234,db=0)</p>
+
+<p>table_name = ‘test’
+primary_key = ‘a’</p>
+
+<p>i = 0
+while True:
+    if i &gt; 2:
+        break
+    data = {
+        ‘a’: str(random.random()),
+        ‘b’: ‘’,
+    }
+    key = ‘{0}:{1}:{2}’.format(table_name, primary_key, data[primary_key])
+    value = json.dumps(data)
+    r.set(key, value)
+    i = i + 1
+```</p>
+
+<p>发现测试程序卡在终端，一动不动，strace 测试程序</p>
+
+<p><code>
+$ sudo strace -p 22404
+Process 22404 attached
+recvfrom(3,
+</code></p>
+
+<p>感觉像是在等待服务器返回，但是等不到回报的样子。</p>
+
+<h3 id="section-2">试着解决问题</h3>
+
+<p>难道 go-redis-server 这个框架有猫腻，我就开始了一下午的看源码之旅。不得不说源码写的真好。回头看我们出错的代码片段，我试着修改 err信息，修改成自己定义的错误字符串。</p>
+
+<p>```
+func (handler *RedisHandler) Set(key string, val string) (err error) {
+	…</p>
+
+<pre><code>m, err := JSONToMap(val)
+_, err = table.PutItem(m)
+if err != nil {
+	err = errors.New("I am a Custom Error")
+	return
+}
+return } ```
+</code></pre>
+
+<p>再次执行测试脚本，这一次。2条测试数据很快就执行结束，并无阻塞。
+好像看到了一丝曙光：error 内容的不一样，导致不一样的结果。类型一样，那么我能怀疑的就是格式，或者长度了。</p>
+
+<p>```
+AWS 错误信息的格式：
+ValidationException: One or more parameter values were invalid:
+An AttributeValue may not contain an empty string
+	status code: 400</p>
+
+<p>我自定义错误信息的格式：
+I am a Custom Error
+```</p>
+
+<p>我特意加长了自定义错误的长度，结果也是能顺利执行不阻塞客户端。但是我给自定义错误字符串加入了换行符，果然客户端再次测试会出现阻塞。当出现错误的时候，源码中是调用了 ErrorReply.WriteTo 这个函数，特别的。返回错误的协议格式是</p>
+
+<blockquote>
+  <p>第一个字节将是“-”,并以CR + LF 结尾</p>
+</blockquote>
+
+<p>配合源码，以下是 go-redis-server 最核心的逻辑调度代码。</p>
+
+<p><code>
+for {
+	request, err := parseRequest(conn)
+	if err != nil {
+		return err
+	}
+		request.Host = clientAddr
+		request.ClientChan = clientChan
+		reply, err := srv.Apply(request)
+		if err != nil {
+			return err
+		}
+		if _, err = reply.WriteTo(conn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (er *ErrorReply) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write([]byte("-" + er.code + " " + er.message + "\r\n"))
+	return int64(n), err
+}
+</code></p>
+
+<p>从 <a href="http://redis.cn/topics/protocol.html">Redis协议官方文档</a>，可以确定客户端与服务器端之间传输的每个 Redis 命令或者数据都以 <code>\r\n</code> 结尾。 我们的错误信息中间杀出了 <code>\n</code>，导致协议错乱，redis 客户端不能理解协议，就阻塞了。</p>
+
+<h3 id="section-3">一点感悟</h3>
+
+<ul>
+  <li>
+    <p>以后我们使用 go-redis-server 的服务时候，要记得检查返回的字符串或者错误信息有没有包含换行符，如果有，最好做一次过滤替换。</p>
+  </li>
+  <li>
+    <p>出现这个bug,我和同事都觉得不可思议，非常神奇。在没有其他直观线索的条件下，阅读使用的库的源码，并在源码加上一些输出验证语言加以辅助，收到了效果，的确需要一些耐心。但我觉得是值得的。</p>
+  </li>
+  <li>
+    <p>李笑来说有效阅读就是精度，这次阅读代码过程中我还有意外的收获，我发现了reflect的妙用，以及函数注册在框架的用法，读完觉得很满足开心的样子，值得再记录一番。</p>
+  </li>
+</ul>
+
+<hr />
+
+<p>附链接：</p>
+
+<ul>
+  <li><a href="http://redis.cn/topics/protocol.html">Redis官方协议</a></li>
+  <li><a href="https://github.com/youmi/go-redis-server">go-redis-server</a></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[CuckooFilter，BloomFilter的优化]]></title>
@@ -419,59 +604,6 @@ except ldap.LDAPError, e: #捕获出错信息
 然而在天朝, 很多人存在一个潜意识:写好代码是为了以后不写代码，这种阶级思想让我反感。</p>
 
 <p>以前看过一个新闻, 硅谷在面试技术 VP ，仍然要求其在各位工程师面前手写代码，以此作为面试的重要环节, 不得不点赞。</p>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[轻巧实时统计用户数]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu/"/>
-    <updated>2015-06-11T23:14:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/06/11/qing-qiao-shi-shi-tong-ji-yong-hu-shu</id>
-    <content type="html"><![CDATA[<h2 id="section">背景</h2>
-
-<p>最近在优化一个短地址的统计服务，之前是使用 Cookie 来做统计每天的UV，而且这个需求是近乎实时的，
-业务方需要每5分钟就能看到最新统计结果。但有些情况我们是取不到Cookie的，比如服务器对服务器的狂刷访问，那么UV就计算不准确，
-是时候要改造方案了。</p>
-
-<p>后来我用 IP+UserAgent 来识别用户，从而统计 UV。好了，接下来你会怎么做这个实时统计呢？</p>
-
-<h2 id="section-1">两个方案的选择</h2>
-
-<ul>
-  <li>Plan A：</li>
-</ul>
-
-<p>将每天的 <code>IP+UA</code> 存进 Redis 的 Set 集合里，它会自动去重，然后计算该集合里元素的个数得到结果，此方案似乎不错，
-但真的好吗？假如每天大概有200W个UV，1个用户标识<code>IP+UA</code>需要大概150个字节，那么大约要耗费300MB的内存。</p>
-
-<p>觉得内存太宝贵，应该有更好的方法，想起了位运算， 于是就有了</p>
-
-<ul>
-  <li>Plan B:</li>
-</ul>
-
-<p>将 <code>IP+UA</code> 组合成的字符串哈希成一个数值，然后借助 Redis 的 BitSet 数据结构求出<code>UV</code>。以下是伪代码</p>
-
-<p>```
-conn = redis()
-index = hash(UA+IP)
-key = “xxx_2015-05-10”
-conn.do(‘SETBIT’, key, index, 1) # 将该hash值对应的位赋值为1</p>
-
-<p>realtime_uv = conn.do(‘BITCOUNT’, key) # 得到实时的uv
-```</p>
-
-<p>根据业务的情况，我的hash桶开了200W个位，大概需要消耗2M的内存，的确节约不少空间，位运算的效率也很快。
-于是欣然选择 Plan B</p>
-
-<h2 id="section-2">一些链接</h2>
-
-<ul>
-  <li><a href="https://redis.readthedocs.org/en/2.4/set.html">Redis Set</a></li>
-  <li><a href="http://redis.io/commands/SETBIT">Redis BitSet</a></li>
-  <li><a href="http://blog.nosqlfan.com/html/3501.html">NoSQLFan 一个文章</a></li>
-</ul>
 
 ]]></content>
   </entry>

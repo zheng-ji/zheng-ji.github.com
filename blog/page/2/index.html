@@ -9,7 +9,12 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="这一篇文章是做了不少功课的。 什么是 Gre 隧道 什么是 Vrrp KeepAlived 是什么 用Keepalived 怎么玩 附录 什么是 Gre 隧道 GRE 隧道是一种 IP-2-IP 的隧道，是通用路由封装协议，可以对某些网路层协议的数据报进行封装，使这些被封装的数据报能够在 IPv4 &hellip;">
+  <meta name="description" content="我们经常需要从 Nginx 日志分析得出很多有价值的东西，分析的方法是各种 shell, awk, python, 现在 GoAccess 给你另外一种选择, 值得拥有。 安装
+用以下的方式安装，才能得到新版的 GoAccess, 功能更健全 1
+2
+3
+4
+$ echo "deb http:// &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +73,102 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/">Nginx 日志利器 GoAccess</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-12-10T23:28:00+08:00" pubdate data-updated="true">Dec 10<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/12/10/fen-xi-nginxri-zhi-de-li-qi-goaccess/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>我们经常需要从 Nginx 日志分析得出很多有价值的东西，分析的方法是各种 shell, awk, python, 现在 <a href="https://github.com/allinurl/goaccess">GoAccess</a> 给你另外一种选择, 值得拥有。</p>
+
+<ul>
+  <li>安装
+用以下的方式安装，才能得到新版的 GoAccess, 功能更健全</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">$ echo "deb http://deb.goaccess.io $(lsb_release -cs) main"|sudo tee -a /etc/apt/sources.list
+</span><span class="line">$ wget -O - http://deb.goaccess.io/gnugpg.key | sudo apt-key add -
+</span><span class="line">$ sudo apt-get update
+</span><span class="line">$ sudo apt-get install goaccess</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>推荐配置</li>
+</ul>
+
+<p>安装完成之后，会生成一份 <code>/etc/goaccess.conf</code> 稍作编辑，这就是默认的配置，免去了后续每次都要定义格式</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">time-format %T   # 只有这种方式才能解决 0.0us 的显示问题
+</span><span class="line">date-format %d/%b/%Y
+</span><span class="line">log-format %h %^[%d:%t %^] "%r" %s %b "%R" "%u" %T</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>使用</li>
+</ul>
+
+<p>输出报表，报表中，我们可以看到最常访问的 IP, 接口，以及每个接口使用带宽，平均响应时长，状态码等，对业务分析有较好的便利性</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">终端显示
+</span><span class="line">goaccess -f access.log 
+</span><span class="line"> 
+</span><span class="line">输出报表，报表中，我们可以看到top ip, 接口，以及接口使用带宽，平均响应时长，状态码等
+</span><span class="line">goaccess -f access.log &gt; report.html
+</span><span class="line"> 
+</span><span class="line">具体某段时间的输出
+</span><span class="line">sed -n '/5\/Dec\/2015/,/10\/Dec\/2010/ p' access.log | goaccess -a
+</span><span class="line"> 
+</span><span class="line">处理已经压缩的日志
+</span><span class="line">zcat access.log.*.gz | goaccess</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1456,58 +1557,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/">记录错误登陆的 Btmp 文件</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-07-24T23:06:00+08:00" pubdate data-updated="true">Jul 24<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/07/24/ji-lu-cuo-wu-deng-lu-de-btmpwen-jian/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>今天查看了服务器时，发现 <code>/var/log/btmp</code> 日志文件较大。</p>
-
-<p>此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
-这个文件是需要用 <code>lastb</code> 命令才可读的。</p>
-
-<p>查看尝试恶意登陆的前十个IP</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo lastb | awk '{ print $3}' | awk '{++S[$NF]} END {for(a in S) print a, S[a]}' | sort -rk2 |head</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如果有有必要封阻IP的话，可以执行：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">iptables -A INPUT -i eth0 -s *.*.*.0/24 -j DROP</span></code></pre></td></tr></table></div></figure></notextile></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1529,6 +1578,10 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/09/28/ji-yi-ci-redis-server-bug/">记一次使用 redis-server 诡异的bug</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a>
@@ -1556,10 +1609,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
     
       <li class="post">
         <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
       </li>
     
   </ul>

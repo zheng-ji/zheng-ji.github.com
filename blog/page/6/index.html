@@ -9,7 +9,11 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="几个星期之前还和@huangSir 说起了Golang支持了这”B格高”的玩意。跳表可以在列表中的查找可以快速的跳过部分列表，效率高.故名思义,过年这几天阅读Leveldb源码的时候,memtable也用了这玩意 跳表简介 数据结构 应用场景 跳表简介 Skip List是 一种随机化的数据结构， &hellip;">
+  <meta name="description" content="下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。 Man strtok
+1
+2
+strtok的函数原型为:
+char * &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +72,146 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/02/05/shen-ru-strtokhan-shu/">深入 Strtok 函数</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-05T16:35:00+08:00" pubdate data-updated="true">Feb 5<span>th</span>, 2014</time>
+        
+        
+          | <a href="/blog/2014/02/05/shen-ru-strtokhan-shu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>下午在写代码的时候用到了 strtok , 曾经是用过该函数的, 但每次书写都需要翻阅 C++ manual,而且需要多次调试, 每次需要用的时候速查, 看似解决问题，下次需要的时候又忘掉了。反而浪费时间遂决心去阅读源码。</p>
+
+<h3 id="man-strtok">Man strtok</h3>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">strtok</span><span class="err">的函数原型为</span><span class="o">:</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">strtok</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<p>功能以包含在 delim 中的字符为分界符，将s切分成一个个子串；
+如果s为空值NULL，则函数保存的指针 SAVE_PTR 在下一次调用中将作为起始位置，
+这里说到的 save_ptr 是啥？还未知，
+但可以知道s在初次调用时为原始字符串，获取第一个分割得到的字符串，
+之后传进的参数为NULL，逐次获取字符串，当返回值为NULL的时候，解析该字符串结束</p>
+
+<h3 id="how-to-use">How to use?</h3>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">char</span> <span class="n">s</span><span class="p">[</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot; zheng-ji is so stupid&quot;</span><span class="p">;</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">del</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="p">;</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span><span class="n">token</span> <span class="p">;</span>
+</span><span class="line"><span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
+</span><span class="line"><span class="k">while</span><span class="p">(</span><span class="n">token</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">token</span><span class="p">);</span>
+</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">strtok</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">del</span><span class="p">);</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>输出：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="n">zheng</span><span class="o">-</span><span class="n">ji</span>
+</span><span class="line"><span class="n">is</span>
+</span><span class="line"><span class="n">so</span>
+</span><span class="line"><span class="n">stupid</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="saveptr">探究save_ptr</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">char</span> <span class="o">*</span><span class="n">olds</span><span class="p">;</span>
+</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="n">strtok</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">s</span><span class="err">，</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">delim</span><span class="err">）</span><span class="p">{</span>
+</span><span class="line">    <span class="kt">char</span> <span class="o">*</span><span class="n">token</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="n">s</span> <span class="o">=</span> <span class="n">olds</span><span class="p">;</span>
+</span><span class="line">    <span class="cm">/*将指针移到第一个非delim中的字符的位置*/</span>
+</span><span class="line">    <span class="n">s</span> <span class="o">+=</span> <span class="n">strspn</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="n">s</span> <span class="o">==</span> <span class="sc">&#39;\0&#39;</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="cm">/*获取到delim中字符在字符串s中第一次出现的位置*/</span>
+</span><span class="line">    <span class="n">token</span> <span class="o">=</span> <span class="n">s</span><span class="p">;</span>
+</span><span class="line">    <span class="n">s</span> <span class="o">=</span> <span class="n">strpbrk</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">delim</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">__rawmemchr</span> <span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="sc">&#39;\0&#39;</span><span class="p">);</span>
+</span><span class="line">    <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">        <span class="cm">/*重新给old赋值 */</span>
+</span><span class="line">        <span class="o">*</span><span class="n">s</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+</span><span class="line">        <span class="n">olds</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="n">token</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>源码告知我们:</p>
+
+<ul>
+  <li>之前我们觉得神奇的SAVE_PTR(源码中为 static char * olds)原来是个静态字符指针，每次调用都被赋值。</li>
+  <li>如果第一位出现了需要被删除的字符，是会被跳过的。</li>
+  <li>如果传入的s为NULL，则将olds 作为继续解析的字符串。</li>
+  <li>该函数会修改原有的字符串。</li>
+  <li>非线程安全的函数，由于用到了静态全局变量，因此当有多个线程同时调用这个函数的时候就会出现问题.这个静态的指针变量就会变的混乱。同时在同一个程序中同时有两个字符串要解析，并且同时进行解析也是会出错的。</li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1526,353 +1670,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/09/22/dan-ji-wan-hadoop/">单机玩Hadoop</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-09-22T18:11:00+08:00" pubdate data-updated="true">Sep 22<span>nd</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/09/22/dan-ji-wan-hadoop/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>以前在Amazon Web Service<a href="http://aws.amazon.com/">AWS</a> 做过Hadoop 运算，处理业务逻辑，当时也曾在自己电脑做一个单一的节点模拟.在Tencent 有机会处理tencent 游戏的海量数据分析，这时候用到的是公司的TDW,也是基于Hadoop 的改造。大数据被炒的火热，特别是某些公司会把这些当作自我标榜更是让人恶心.本着折腾的信，把自己玩hadoop的过程写下来 ：）</p>
-
-<ul>
-  <li>创建hadoop用户组;</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo addgroup hadoop
-</span><span class="line">sudo adduser -ingroup hadoop hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>给hadoop用户添加权限，编辑/etc/sudoers文件; 在root   ALL=(ALL:ALL)   ALL下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hadoop  ALL=(ALL:ALL) ALL</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>在Ubuntu下安装JDK </li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-add-repository ppa:flexiondotorg/java
-</span><span class="line">sudo apt-get update
-</span><span class="line">sudo apt-get install sun-java6-jre sun-java6-jdk sun-java6-plugin</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>如果你在第二条命令遇到错误:</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">W: GPG 错误：http://ppa.launchpad.net precise Release: 由于没有公钥，无法验证下列签名： NO_PUBKEY 2EA8F35793D8809A
-</span><span class="line">请执行
-</span><span class="line">sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2EA8F35793D8809A  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑 sudo vi /etc/environment
-在其中添加如下两行：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">JAVA_HOME=/usr/lib/jvm/java-6-sun
-</span><span class="line">CLASSPATH=.:/usr/lib/jvm/java-6-sun/lib</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>安装ssh 服务</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install ssh openssh-server</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>首先要转换成hadoop用户，执行以下命令：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">su - hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>采用 rsa 方式 生成key</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ssh-keygen -t rsa -P ""</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>进入~/.ssh/目录下，将id_rsa.pub追加到authorized_keys授权文件中,使其无密码登录本机</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/.ssh
-</span><span class="line">cat id_rsa.pub &gt;&gt; authorized_keys</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>下载<a href="http://www.apache.org/dyn/closer.cgi/hadoop/common/">hadoop</a>,并安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo cp hadoop-0.20.203.0rc1.tar.gz /usr/local/</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>解压hadoop-0.20.203.tar.gz；</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd /usr/local
-</span><span class="line">sudo tar -zxf hadoop-0.20.203.0rc1.tar.gz</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>将解压出的文件夹改名为hadoop;</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo mv hadoop-0.20.203.0 hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>将该hadoop文件夹的属主用户设为hadoop，</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo chown -R hadoop:hadoop hadoop</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>打开hadoop/conf/hadoop-env.sh文件;</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo vi hadoop/conf/hadoop-env.sh</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>配置conf/hadoop-env.sh,配置本机jdk的路径;</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">export JAVA_HOME=/usr/lib/jvm/java-6-sun/
-</span><span class="line">export HADOOP_HOME=/usr/local/hadoop
-</span><span class="line">export PATH=$PATH:/usr/local/hadoop/bin</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>记得source hadoop-env.sh </p>
-
-<p>编辑conf/core-site.xml文件;</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">&lt;?xml version="1.0"?&gt;
-</span><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
-</span><span class="line">&lt;!-- Put site-specific property overrides in this file. --&gt;
-</span><span class="line">&lt;configuration&gt;
-</span><span class="line">    &lt;property&gt;  
-</span><span class="line">        &lt;name&gt;fs.default.name&lt;/name&gt;  
-</span><span class="line">        &lt;value&gt;hdfs://localhost:9000&lt;/value&gt;   
-</span><span class="line">    &lt;/property&gt;  
-</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑conf/mapred-site.xml文件;</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">&lt;?xml version="1.0"?&gt;
-</span><span class="line">&lt;?xml-stylesheet type="text/xsl" href="configuration.xsl"?&gt;
-</span><span class="line">&lt;!-- Put site-specific property overrides in this file. --&gt;
-</span><span class="line">&lt;configuration&gt;  
-</span><span class="line">     &lt;property&gt;   
-</span><span class="line">           &lt;name&gt;mapred.job.tracker&lt;/name&gt;  
-</span><span class="line">            &lt;value&gt;localhost:9001&lt;/value&gt;   
-</span><span class="line">      &lt;/property&gt;  
-</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>编辑conf/hdfs-site.xml文件;</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">&lt;configuration&gt;
-</span><span class="line">    &lt;property&gt;
-</span><span class="line">        &lt;name&gt;dfs.name.dir&lt;/name&gt;
-</span><span class="line">        &lt;value&gt;/usr/local/hadoop/datalog1,/usr/local/hadoop/datalog2&lt;/value&gt;
-</span><span class="line">    &lt;/property&gt;
-</span><span class="line">    &lt;property&gt;
-</span><span class="line">        &lt;name&gt;dfs.data.dir&lt;/name&gt;
-</span><span class="line">        &lt;value&gt;/usr/local/hadoop/data1,/usr/local/hadoop/data2&lt;/value&gt;
-</span><span class="line">    &lt;/property&gt;
-</span><span class="line">    &lt;property&gt;
-</span><span class="line">        &lt;name&gt;dfs.replication&lt;/name&gt;
-</span><span class="line">        &lt;value&gt;2&lt;/value&gt;
-</span><span class="line">    &lt;/property&gt;
-</span><span class="line">&lt;/configuration&gt;</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>运行hadoop,并启动</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd /usr/local/hadoop/
-</span><span class="line">bin/hadoop namenode -format // 进入hadoop目录下，格式化hdfs文件系统
-</span><span class="line">bin/start-all.sh //启动脚本</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>检测hadoop是否启动成功</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop/bin$ sudo jps
-</span><span class="line">11822 DataNode
-</span><span class="line">12461 Jps
-</span><span class="line">11581 NameNode
-</span><span class="line">12157 JobTracker
-</span><span class="line">12064 SecondaryNameNode
-</span><span class="line">12377 TaskTracker</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>说明hadoop单机版环境配置好了
-此时访问<a href="http://localhost:50030/">http://localhost:50030/</a>,便可以看到管理界面
-<img src="/images/2013/09/hadoop.png" />
-让我们来完成那篇著名论文的wordcounw吧</p>
-
-<p>创建输入文件夹,并挂载hdfs</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ mkdir input //创建输入文件夹
-</span><span class="line">hadoop@hp:/usr/local/hadoop$ cp conf/* input
-</span><span class="line">hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -put input/ input</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>执行wordcount程序,输入为input，输出数据目录为output。,</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">bin/hadoop jar hadoop-examples-0.20.203.0.jar wordcount input output</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>出现了运行情况如下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">13/09/22 17:59:40 INFO input.FileInputFormat: Total input paths to process : 15
-</span><span class="line">13/09/22 17:59:41 INFO mapred.JobClient: Running job: job_201309221738_0006
-</span><span class="line">13/09/22 17:59:42 INFO mapred.JobClient:  map 0% reduce 0%
-</span><span class="line">13/09/22 17:59:58 INFO mapred.JobClient:  map 13% reduce 0%
-</span><span class="line">13/09/22 18:00:07 INFO mapred.JobClient:  map 26% reduce 0%
-</span><span class="line">13/09/22 18:00:16 INFO mapred.JobClient:  map 40% reduce 8%
-</span><span class="line">13/09/22 18:00:22 INFO mapred.JobClient:  map 53% reduce 13%
-</span><span class="line">13/09/22 18:00:28 INFO mapred.JobClient:  map 66% reduce 13%
-</span><span class="line">13/09/22 18:00:31 INFO mapred.JobClient:  map 66% reduce 17%
-</span><span class="line">13/09/22 18:00:34 INFO mapred.JobClient:  map 80% reduce 17%
-</span><span class="line">13/09/22 18:00:37 INFO mapred.JobClient:  map 80% reduce 22%
-</span><span class="line">13/09/22 18:00:40 INFO mapred.JobClient:  map 93% reduce 22%
-</span><span class="line">13/09/22 18:00:46 INFO mapred.JobClient:  map 100% reduce 26%
-</span><span class="line">13/09/22 18:00:55 INFO mapred.JobClient:  map 100% reduce 100%
-</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient: Job complete: job_201309221738_0006
-</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient: Counters: 25
-</span><span class="line">13/09/22 18:01:00 INFO mapred.JobClient:   Job Counters </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>查看执行结果</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ bin/hadoop fs -cat output/*</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>截取部分结果现场</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ hadoop fs -cat output/*
-</span><span class="line">"". 4
-</span><span class="line">"*" 10
-</span><span class="line">"alice,bob  10
-</span><span class="line">"console"   1
-</span><span class="line">"hadoop.root.logger".   1
-</span><span class="line">"jks".  4
-</span><span class="line">   79
-</span><span class="line">$HADOOP_BALANCER_OPTS"   1
-</span><span class="line">$HADOOP_DATANODE_OPTS"   1
-</span><span class="line">$HADOOP_HOME/conf/slaves 1
-</span><span class="line">$HADOOP_HOME/logs    1
-</span><span class="line">$HADOOP_JOBTRACKER_OPTS" 1
-</span><span class="line">$HADOOP_NAMENODE_OPTS"   1
-</span><span class="line">$HADOOP_SECONDARYNAMENODE_OPTS"  1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>停止hadoop</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">hadoop@hp:/usr/local/hadoop$ ./stop-all.sh </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>hadoop这只小象在单机可以这么玩</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1894,6 +1691,10 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/09/28/ji-yi-ci-redis-server-bug/">记一次使用 redis-server 诡异的bug</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a>
@@ -1921,10 +1722,6 @@ trap可以使你在脚本中捕捉信号，命令形式为trap name signal(s)
     
       <li class="post">
         <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
       </li>
     
   </ul>

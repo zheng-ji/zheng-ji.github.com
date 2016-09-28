@@ -9,16 +9,15 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="python拓展编写
-C++编写python的拓展。提高程序运行效率
-我理解的一般流程:
-* 编写自己的业务逻辑代码本例子如 1
-string add(int a,int b) 包装为python函数，用于解析python传进来的参数 1
+  <meta name="description" content="收藏一些不错的文章 在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。 使用方法： 1
 2
 3
 4
 5
-PyObject* wrap_add( &hellip;">
+6
+7
+8
+if &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +76,118 @@ PyObject* wrap_add( &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/">豆瓣喜爱文章下载器</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-12T23:31:00+08:00" pubdate data-updated="true">Jun 12<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/06/12/dou-ban-xi-ai-wen-zhang-xia-zai-qi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>收藏一些不错的文章</p>
+
+<p>在豆瓣阅读到一些好的文章，通常会点击加心喜爱。久而久之，就淡忘了，于是想把他们下载下来，用了一天的时间写了具有爬虫和分析功能的下载器。使用了BeautifulSoup,urllib模块.可以一次性抓取其他人的文章。</p>
+
+<p>使用方法：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+</span><span class="line">    <span class="c">#用户名,可以写入douban ID</span>
+</span><span class="line">    <span class="n">usrnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;laiyonghao&quot;</span><span class="p">,</span><span class="s">&quot;fenng&quot;</span><span class="p">]</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">usrnames</span><span class="p">:</span>
+</span><span class="line">                <span class="n">cwl</span> <span class="o">=</span> <span class="n">Crawler</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span class="line">        <span class="n">cwl</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span class="line">        <span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">(</span><span class="n">cwl</span><span class="p">)</span>
+</span><span class="line">        <span class="n">parser</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<blockquote>
+  <p>运行 python main.py</p>
+</blockquote>
+
+<p>结果 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">tmp</span>
+</span><span class="line">    <span class="err">├──</span> <span class="n">fenng</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">Got</span> <span class="n">talent</span><span class="err">?</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">QCon</span> <span class="n">Beijing</span> <span class="mi">2013</span> <span class="err">乱记</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">北京生存指南</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">发现「讷客」</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">父亲谈创新</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">和菜头对豆瓣用户骂声的回应</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">胡扯两句</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">年会：公司人的新民俗</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">一个关于嘲笑的小故事</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">有些事，蹲在家里是永远实现不了的。</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">├──</span> <span class="err">赞</span>
+</span><span class="line">    <span class="err">│</span>   <span class="err">└──</span> <span class="err">中国说唱教父</span><span class="o">--</span><span class="err">尹相杰</span><span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="err">转</span><span class="o">&amp;</span><span class="n">gt</span><span class="p">;</span>
+</span><span class="line">    <span class="err">└──</span> <span class="n">laiyonghao</span>
+</span><span class="line">        <span class="err">├──</span> <span class="n">Live</span> <span class="n">Together</span><span class="p">,</span> <span class="n">Hate</span> <span class="n">Each</span> <span class="n">Other</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">当初的愿望实现了么？</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">豆瓣阅读即将开售（已上线）</span>
+</span><span class="line">        <span class="err">├──</span> <span class="err">婚礼主题曲背后的故事</span>
+</span><span class="line">        <span class="err">└──</span> <span class="err">科普也需严谨</span><span class="o">---</span><span class="err">对《数学之美》密码部分的评论</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>源代码<a href="https://github.com/zheng-ji/douban-likes-crawler.git">链接</a>
+Happy Hacking : )</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1338,76 +1449,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/07/12/jiao-shen-ma-rong-yu-chu-pin-dou-ya-huan-shu/">叫神马荣誉出品–豆芽换书</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-07-12T00:22:00+08:00" pubdate data-updated="true">Jul 12<span>th</span>, 2012</time>
-        
-        
-          | <a href="/blog/2012/07/12/jiao-shen-ma-rong-yu-chu-pin-dou-ya-huan-shu/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><strong>叫神马团队</strong>在一起的最后一个作品-<strong>《豆芽换书》</strong>,这是我大学最后一次以leader的身份完成了团队最后的作品，而我在这其中也独立负责后台开发的功能.
- 值得纪念</p>
-
-<p>简介：
-&gt;豆瓣第三方软件，基于豆瓣API开发的LBS 与 SNS的换书软件，让你的闲书不再闲，让你从此交友多了一个理由，支持百度地图定位，聊天私信功能，豆瓣书籍分享。</p>
-
-<p><img src="/images/2013/douya/ICON.jpg" /></p>
-
-<p><img src="/images/2013/douya/welcome.jpg" /></p>
-
-<p><img src="/images/2013/douya/main.jpg" /></p>
-
-<p><img src="/images/2013/douya/around.jpg" /></p>
-
-<p><img src="/images/2013/douya/share.jpg" /></p>
-
-<p><img src="/images/2013/douya/myshare.jpg" /></p>
-
-<p><img src="/images/2013/douya/collect.jpg" /></p>
-
-<p><img src="/images/2013/douya/review.jpg" /></p>
-
-<p><img src="/images/2013/douya/description.jpg" /></p>
-
-<p><img src="/images/2013/douya/friend.jpg" /></p>
-
-<p><img src="/images/2013/douya/chat.jpg" /></p>
-
-<p><img src="/images/2013/douya/settiing.jpg" /></p>
-
-<p>叫神马团队的简介在该软件“关于我们有介绍”~关心我们的同学可以下载使用的同时点击详情</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/9/">&larr; Older</a>
@@ -1429,6 +1470,10 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/09/28/ji-yi-ci-redis-server-bug/">记一次使用 redis-server 诡异的bug</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a>
@@ -1456,10 +1501,6 @@ Python的Queue模块中提供了同步的、线程安全的队列类，包括FIF
     
       <li class="post">
         <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a>
       </li>
     
   </ul>
