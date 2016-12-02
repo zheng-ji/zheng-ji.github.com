@@ -118,23 +118,9 @@ mount -t cgroup &hellip;">
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
 </pre></td><td class="code"><pre><code class=""><span class="line">cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,relatime,cpuset)
 </span><span class="line">cgroup on /sys/fs/cgroup/cpu type cgroup (rw,relatime,cpu)
-</span><span class="line">cgroup on /sys/fs/cgroup/cpuacct type cgroup (rw,relatime,cpuacct)
-</span><span class="line">cgroup on /sys/fs/cgroup/memory type cgroup (rw,relatime,memory)
-</span><span class="line">cgroup on /sys/fs/cgroup/devices type cgroup (rw,relatime,devices)
-</span><span class="line">cgroup on /sys/fs/cgroup/freezer type cgroup (rw,relatime,freezer)
-</span><span class="line">cgroup on /sys/fs/cgroup/net_cls type cgroup (rw,relatime,net_cls)
-</span><span class="line">cgroup on /sys/fs/cgroup/blkio type cgroup (rw,relatime,blkio)
-</span><span class="line">cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,relatime,perf_event)
-</span><span class="line">cgroup on /sys/fs/cgroup/net_prio type cgroup (rw,relatime,net_prio)
+</span><span class="line">...
 </span><span class="line">cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,relatime,hugetlb)</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>如果没有看到以上的目录，这时候需要手动 mount 了</p>
