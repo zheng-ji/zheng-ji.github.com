@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-09-28T08:45:31+08:00</updated>
+  <updated>2016-12-02T16:13:25+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,186 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[cgroup 限制计算资源]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan/"/>
+    <updated>2016-12-02T15:41:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan</id>
+    <content type="html"><![CDATA[<p>Cgroup 实现了对计算机资源使用上的隔离，它是 Docker 底层的基础技术。我们可以用它来限制程序使用的CPU、内存、磁盘。</p>
+
+<h3 id="section">安装</h3>
+
+<p>在 Ubuntu 14.04 下安装的方法：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install cgroup-bin</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>安装完后执行
+<code>mount -t cgroup</code> 会出现如下，可以看到它其实是一个文件系统</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,relatime,cpuset)
+</span><span class="line">cgroup on /sys/fs/cgroup/cpu type cgroup (rw,relatime,cpu)
+</span><span class="line">cgroup on /sys/fs/cgroup/cpuacct type cgroup (rw,relatime,cpuacct)
+</span><span class="line">cgroup on /sys/fs/cgroup/memory type cgroup (rw,relatime,memory)
+</span><span class="line">cgroup on /sys/fs/cgroup/devices type cgroup (rw,relatime,devices)
+</span><span class="line">cgroup on /sys/fs/cgroup/freezer type cgroup (rw,relatime,freezer)
+</span><span class="line">cgroup on /sys/fs/cgroup/net_cls type cgroup (rw,relatime,net_cls)
+</span><span class="line">cgroup on /sys/fs/cgroup/blkio type cgroup (rw,relatime,blkio)
+</span><span class="line">cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,relatime,perf_event)
+</span><span class="line">cgroup on /sys/fs/cgroup/net_prio type cgroup (rw,relatime,net_prio)
+</span><span class="line">cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,relatime,hugetlb)</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>如果没有看到以上的目录，这时候需要手动 mount 了</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cd /sys/fs
+</span><span class="line">mkdir cgroup
+</span><span class="line">mount -t tmpfs cgroup_root ./cgroup
+</span><span class="line">mkdir cgroup/cpuset
+</span><span class="line">mount -t cgroup -ocpuset cpuset ./cgroup/cpuset/
+</span><span class="line">mkdir cgroup/cpu
+</span><span class="line">mount -t cgroup -ocpu cpu ./cgroup/cpu/
+</span><span class="line">mkdir cgroup/memory
+</span><span class="line">mount -t cgroup -omemory memory ./cgroup/memory/</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-1">实践</h3>
+
+<p>我们来感性认识下 cgroup 吧，编写一个耗费 CPU 的程序，姑且叫暴走程序(baozou)</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span class="line"><span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+</span><span class="line">    <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">1</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>运行该程序，top -p 之，100% CPU使用率</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="py"><span class="line">  <span class="n">PID</span>      <span class="n">PR</span>  <span class="n">NI</span>    <span class="n">VIRT</span>    <span class="n">RES</span>    <span class="n">SHR</span> <span class="n">S</span>  <span class="o">%</span><span class="n">CPU</span> <span class="o">%</span><span class="n">MEM</span>     <span class="n">TIME</span><span class="o">+</span> <span class="n">COMMAND</span>
+</span><span class="line"><span class="mi">16515</span>      <span class="mi">20</span>   <span class="mi">0</span>    <span class="mi">2336</span>    <span class="mi">728</span>    <span class="mi">544</span> <span class="n">R</span>  <span class="mf">100.0</span>  <span class="mf">0.0</span>   <span class="mi">1</span><span class="p">:</span><span class="mf">27.23</span> <span class="n">baozou</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>我想限制暴走程序 CPU 使用该如何做? 我们手动创建一个 cgroup 目录来针对它。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="nb">cd</span> /sys/fs/cgroup/cpu
+</span><span class="line">mkdir calm      // 名字可自定义
+</span><span class="line">ls /calm        // 该目录下自动生产与 CPU 有关的文件
+</span><span class="line">cgroup.clone_children  cpu.cfs_period_us  cpu.shares  notify_on_release
+</span><span class="line">cgroup.procs           cpu.cfs_quota_us   cpu.stat    tasks
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>接着写入限制规则</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">// 默认是100000，20000意味着限制它的cpu为20%
+</span><span class="line"><span class="nb">echo </span>20000 &gt; /sys/fs/cgroup/cpu/calm/cpu.cfs_quota_us,
+</span><span class="line">
+</span><span class="line">// 写入程序的 PID 16515
+</span><span class="line"><span class="nb">echo </span>16515 &gt; /sys/fs/cgroup/cpu/calm/tasks
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>于是 CPU 就降到 20% 。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">  PID       PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span><span class="line">16515       20   0    2336    728    544 R  20.0  0.0   1:27.23 baozou
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>除了这种需要指定 PID 来限制资源的方法，也可通过指定规则来执行，更显得方便，效果和上述一致。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">sudo cgexec -g cpu:calm ./baozou
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>可以看看这个限制规则做了什么?</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="nv">$ </span>sudo cgget calm
+</span><span class="line">calm:
+</span><span class="line">cpu.shares: 1024
+</span><span class="line">cpu.cfs_quota_us: 20000
+</span><span class="line">cpu.stat: nr_periods 6943
+</span><span class="line">    nr_throttled 6941
+</span><span class="line">    throttled_time 563080015831
+</span><span class="line">cpu.cfs_period_us: 100000
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>上述的例子中，我们手动创建了 <code>calm</code>， 其实也能通过命令来做到的</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">// 创建cgroup 文件目录
+</span><span class="line">sudo cgcreate -g cpu:/calm -g memory:/calm
+</span><span class="line">
+</span><span class="line">// 设置限制的参数
+</span><span class="line">sudo cgset -r cpu.shares<span class="o">=</span>200 calm
+</span><span class="line">
+</span><span class="line">// 限制了内存
+</span><span class="line">sudo cgset -r memory.limit_in_bytes<span class="o">=</span>64k calm
+</span><span class="line">
+</span><span class="line">// 可以删除
+</span><span class="line">sudo cgdelete cpu/calm memory:/calm
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<hr />
+
+<p>参考链接：</p>
+
+<ul>
+  <li><a href="http://coolshell.cn/articles/17049.html">Docker基础技术: Linux CGroup</a></li>
+  <li><a href="http://www.jianshu.com/p/dc3140699e79">cgroup实践</a></li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[记一次使用 redis 协议诡异的bug]]></title>
@@ -2436,28 +2616,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 <p>参考链接</p>
 
 <p><a href="http://blog.jpush.cn/redis-twemproxy-benchmark/">极光推送的博客</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[黑客马拉松]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/08/10/hackthon/"/>
-    <updated>2015-08-10T22:24:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/08/10/hackthon</id>
-    <content type="html"><![CDATA[<p>周末参加了公司组织的黑客马拉松比赛, </p>
-
-<p>通宵达旦完成了作品是个值得纪念的经历, 我们的产品叫做：<a href="http://pact.im">正义的朋友</a> </p>
-
-<ul>
-  <li>我们想要实现的功能是让人在紧急关头用最快速的方式联系到可以帮助你的人，于是我们通过锁屏应用来实现; </li>
-  <li>用户在锁屏状态，画一个v手势，会把自己的地理位置发送给设置好的联系人，并持续每十秒发送一次周围的声音给联系人；</li>
-  <li>用户在锁屏状态，画一个w手势，会发出专业的求救声</li>
-</ul>
-
-<p>这次比赛的感觉, 与当年<code>叫神马</code>团队的似曾相识, 队友非常给力, 大家都很拼, 我喜欢这种感觉, 事实上，在比赛之前，为了工作上的项目我已经几乎透支了, 队友也是一样。 但周六上午我们还是快速进入状态, 被逼的潜力果然不容小觑.  晒一张我们队伍合照.</p>
-
-<p><img src="http://zheng-ji.github.com/images/2015/08/teammate.png" /></p>
-
 ]]></content>
   </entry>
   

@@ -9,9 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="今天查看了服务器时，发现 /var/log/btmp 日志文件较大。 此文件是记录错误登录的日志， 文件较大意味着有人使用密码字典登录ssh服务，
-这个文件是需要用 lastb 命令才可读的。 查看尝试恶意登陆的前十个IP 1
-sudo lastb | awk '{ print $3}' | &hellip;">
+  <meta name="description" content="周末参加了公司组织的黑客马拉松比赛, 通宵达旦完成了作品是个值得纪念的经历, 我们的产品叫做：正义的朋友 我们想要实现的功能是让人在紧急关头用最快速的方式联系到可以帮助你的人，于是我们通过锁屏应用来实现; 用户在锁屏状态，画一个v手势，会把自己的地理位置发送给设置好的联系人， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -70,6 +68,58 @@ sudo lastb | awk '{ print $3}' | &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/08/10/hackthon/">黑客马拉松</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-08-10T22:24:00+08:00" pubdate data-updated="true">Aug 10<span>th</span>, 2015</time>
+        
+        
+          | <a href="/blog/2015/08/10/hackthon/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>周末参加了公司组织的黑客马拉松比赛, </p>
+
+<p>通宵达旦完成了作品是个值得纪念的经历, 我们的产品叫做：<a href="http://pact.im">正义的朋友</a> </p>
+
+<ul>
+  <li>我们想要实现的功能是让人在紧急关头用最快速的方式联系到可以帮助你的人，于是我们通过锁屏应用来实现; </li>
+  <li>用户在锁屏状态，画一个v手势，会把自己的地理位置发送给设置好的联系人，并持续每十秒发送一次周围的声音给联系人；</li>
+  <li>用户在锁屏状态，画一个w手势，会发出专业的求救声</li>
+</ul>
+
+<p>这次比赛的感觉, 与当年<code>叫神马</code>团队的似曾相识, 队友非常给力, 大家都很拼, 我喜欢这种感觉, 事实上，在比赛之前，为了工作上的项目我已经几乎透支了, 队友也是一样。 但周六上午我们还是快速进入状态, 被逼的潜力果然不容小觑.  晒一张我们队伍合照.</p>
+
+<p><img src="/images/2015/08/teammate.png" /></p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1214,98 +1264,6 @@ Kibana 是一个与之配套的 web 界面。</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/">Percona 小箱里的pt-archiver</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-01-21T23:27:00+08:00" pubdate data-updated="true">Jan 21<span>st</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在管理线上数据库，时常要做一些数据归档操作，在没有了解 <code>Percona toolkit</code> 之前，第一个想到的是在夜深人静的时候使用 <code>MySqlDump</code> 来完成这件事情。但它不是我们的优质选择，理由有：</p>
-
-<ul>
-  <li><code>MySqlDump</code> 只能备份在本机，不能直接做远端备份</li>
-  <li>导出数据量太大的时候会锁表, 即使它的速度很快，但是在线上服务这是很危险的操作</li>
-  <li>它仅仅只能导出，无法做到同时删除(可能不是太有必要)</li>
-</ul>
-
-<p>面对上述的场景，<code>Percona Toolkit</code> 让DBA 有了更好地选择，<a href="http://www.percona.com/doc/percona-toolkit/2.1/pt-archiver.html">pt-archiver</a> 应时而生。</p>
-
-<h2 id="pt-archiver-">pt-archiver 介绍：</h2>
-
-<p>根据官方文档的说法，几乎不会对线上的OTLP操作有影响：</p>
-
-<blockquote>
-  <p>The goal is a low-impact, forward-only job to nibble old data out of the table without impacting OLTP queries much</p>
-</blockquote>
-
-<p>它可以帮助我们将数据归档到文件, 另一个数据库，或者同一个数据库的另一个表, 亦或是用于合并两个表的内容。</p>
-
-<h2 id="section">用法介绍：</h2>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">pt-archiver [OPTION...] --source DSN --where WHERE</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>归档的文件方便使用 load data infile 命令导入数据。另外你还可以用它来执行 delete 操作。这个工具默认的会删除源中的数据，使用的时候请注意。</p>
-
-<p>假如我们将数据库里符合条件的记录归档到文件，并不做删除操作。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">pt-archiver --ask-pass --progress 100000 --no-delete --no-check-charset --source h=localhost,u=root,D=blog,t=comment--file /home/ubuntu/tmp/comment--where 'time &lt; "2013-12-31h"'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>注意的选项参数：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">--ask-pass        提示要求输密码
-</span><span class="line">--progress num    执行num行在界面通知我们
-</span><span class="line">--source h,D,t    数据源
-</span><span class="line">--no-delete       加上这个参数并不会执行删除操作
-</span><span class="line">--dry-run         仅仅将执行语句打印在终端，事实上并不执行。可以用于检测执行过程
-</span><span class="line">--where           执行语句，需要用冒号包围起来
-</span><span class="line">--limit           批量操作的数量，合理提高这个数值可以加快archive速度</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="section-1">小总结</h3>
-
-<p>通过开启 mysql 的 <code>general log</code>, 可以发现pt-archiver 执行时，是分批commit 的事务，因此执行效率会慢，在8核16G 内存的生产环境机器备份 1kw 条记录, 耗时150 分钟。 但基本不对服务造成影响，而且可以不用深夜进行, 值得一用。</p>
-
-<p>最近攒了好多好工具和经验，要好好整理搬上来和大家分享才是。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -1327,6 +1285,10 @@ Kibana 是一个与之配套的 web 界面。</p>
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan/">cgroup 限制计算资源</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/09/28/ji-yi-ci-redis-server-bug/">记一次使用 redis 协议诡异的bug</a>
@@ -1354,10 +1316,6 @@ Kibana 是一个与之配套的 web 界面。</p>
     
       <li class="post">
         <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a>
       </li>
     
   </ul>

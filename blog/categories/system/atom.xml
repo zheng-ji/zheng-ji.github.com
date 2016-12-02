@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-09-28T08:45:51+08:00</updated>
+  <updated>2016-12-02T16:13:25+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,142 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[cgroup 限制计算资源]]></title>
+    <link href="http://zheng-ji.github.com/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan/"/>
+    <updated>2016-12-02T15:41:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan</id>
+    <content type="html"><![CDATA[<p>Cgroup 实现了对计算机资源使用上的隔离，它是 Docker 底层的基础技术。我们可以用它来限制程序使用的CPU、内存、磁盘。</p>
+
+<h3 id="section">安装</h3>
+
+<p>在 Ubuntu 14.04 下安装的方法：</p>
+
+<p><code>
+sudo apt-get install cgroup-bin
+</code></p>
+
+<p>安装完后执行
+<code>mount -t cgroup</code> 会出现如下，可以看到它其实是一个文件系统</p>
+
+<p><code>
+cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,relatime,cpuset)
+cgroup on /sys/fs/cgroup/cpu type cgroup (rw,relatime,cpu)
+cgroup on /sys/fs/cgroup/cpuacct type cgroup (rw,relatime,cpuacct)
+cgroup on /sys/fs/cgroup/memory type cgroup (rw,relatime,memory)
+cgroup on /sys/fs/cgroup/devices type cgroup (rw,relatime,devices)
+cgroup on /sys/fs/cgroup/freezer type cgroup (rw,relatime,freezer)
+cgroup on /sys/fs/cgroup/net_cls type cgroup (rw,relatime,net_cls)
+cgroup on /sys/fs/cgroup/blkio type cgroup (rw,relatime,blkio)
+cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,relatime,perf_event)
+cgroup on /sys/fs/cgroup/net_prio type cgroup (rw,relatime,net_prio)
+cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,relatime,hugetlb)
+</code></p>
+
+<p>如果没有看到以上的目录，这时候需要手动 mount 了</p>
+
+<p><code>
+cd /sys/fs
+mkdir cgroup
+mount -t tmpfs cgroup_root ./cgroup
+mkdir cgroup/cpuset
+mount -t cgroup -ocpuset cpuset ./cgroup/cpuset/
+mkdir cgroup/cpu
+mount -t cgroup -ocpu cpu ./cgroup/cpu/
+mkdir cgroup/memory
+mount -t cgroup -omemory memory ./cgroup/memory/
+</code></p>
+
+<h3 id="section-1">实践</h3>
+
+<p>我们来感性认识下 cgroup 吧，编写一个耗费 CPU 的程序，姑且叫暴走程序(baozou)</p>
+
+<p><code>py
+count = 0
+while True:
+    count = count + 1 - 1
+</code></p>
+
+<p>运行该程序，top -p 之，100% CPU使用率</p>
+
+<p><code>
+  PID      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                       
+16515      20   0    2336    728    544 R  100.0  0.0   1:27.23 baozou
+</code></p>
+
+<p>我想限制暴走程序 CPU 使用该如何做? 我们手动创建一个 cgroup 目录来针对它。</p>
+
+<p><code>sh
+cd /sys/fs/cgroup/cpu
+mkdir calm      // 名字可自定义
+ls /calm        // 该目录下自动生产与 CPU 有关的文件
+cgroup.clone_children  cpu.cfs_period_us  cpu.shares  notify_on_release
+cgroup.procs           cpu.cfs_quota_us   cpu.stat    tasks
+</code></p>
+
+<p>接着写入限制规则</p>
+
+<p>```
+// 默认是100000，20000意味着限制它的cpu为20%
+echo 20000 &gt; /sys/fs/cgroup/cpu/calm/cpu.cfs_quota_us, </p>
+
+<p>// 写入程序的 PID 16515
+echo 16515 &gt; /sys/fs/cgroup/cpu/calm/tasks
+```</p>
+
+<p>于是 CPU 就降到 20% 。</p>
+
+<p><code>
+  PID       PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                       
+16515       20   0    2336    728    544 R  20.0  0.0   1:27.23 baozou
+</code></p>
+
+<p>除了这种需要指定 PID 来限制资源的方法，也可通过指定规则来执行，更显得方便，效果和上述一致。</p>
+
+<p><code>
+sudo cgexec -g cpu:calm ./baozou
+</code></p>
+
+<p>可以看看这个限制规则做了什么?</p>
+
+<p><code>
+$ sudo cgget calm
+calm:
+cpu.shares: 1024
+cpu.cfs_quota_us: 20000
+cpu.stat: nr_periods 6943
+    nr_throttled 6941
+    throttled_time 563080015831
+cpu.cfs_period_us: 100000
+</code></p>
+
+<p>上述的例子中，我们手动创建了 <code>calm</code>， 其实也能通过命令来做到的</p>
+
+<p>```
+// 创建cgroup 文件目录
+sudo cgcreate -g cpu:/calm -g memory:/calm</p>
+
+<p>// 设置限制的参数
+sudo cgset -r cpu.shares=200 calm</p>
+
+<p>// 限制了内存
+sudo cgset -r memory.limit_in_bytes=64k calm</p>
+
+<p>// 可以删除
+sudo cgdelete cpu/calm memory:/calm
+```</p>
+
+<hr />
+
+<p>参考链接：</p>
+
+<ul>
+  <li><a href="http://coolshell.cn/articles/17049.html">Docker基础技术: Linux CGroup</a></li>
+  <li><a href="http://www.jianshu.com/p/dc3140699e79">cgroup实践</a></li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[共享内存与信号量]]></title>
@@ -288,7 +424,7 @@ ansible -i get_host.py  devtest-asg -m raw -a 'ls /'
   <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
 </ul>
 
-<p>{% img /images/2016/04/flume.jpg %}</p>
+<p><img src="/images/2016/04/flume.jpg"></p>
 
 <ul>
   <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
@@ -309,7 +445,7 @@ ansible -i get_host.py  devtest-asg -m raw -a 'ls /'
   <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
 </ul>
 
-<p>{% img /images/2016/04/flume1toflume2.jpg %}</p>
+<p><img src="/images/2016/04/flume1toflume2.jpg"></p>
 
 <h1 id="section-1">需要的准备</h1>
 
@@ -391,109 +527,6 @@ bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf \
 
 <ul>
   <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
-</ul>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Redis 该选择哪种持久化配置]]></title>
-    <link href="http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/"/>
-    <updated>2016-03-10T23:32:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi</id>
-    <content type="html"><![CDATA[<p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
-
-<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
-
-<ul>
-  <li><a href="#第一节">什么是 Snapshot</a></li>
-  <li><a href="#第二节">什么是 AOF </a></li>
-  <li><a href="#第三节">选择哪种药丸</a></li>
-</ul>
-
-<h3 id="第一节">什么是 Snapshot</h3>
-
-<p>Snapshot 将内存中数据以结构化的方式序列化到 rdb 文件中，是默认的持久化方式，便于解析引擎快速解析和内存实施。快照得由间隔时间，变更次数同时符合才会触发， 该过程中并不阻塞客户端请求，copy-on-write 方式也意味着极端情况下可能会导致实际数据2倍内存的使用量。它首先将数据写入临时文件，结束后，将临时文件重名为 dump.rdb。可以使用 <code>redis-check-dump</code> 用来检测完整性</p>
-
-<p>只有快照结束后才会将旧的文件替换成新的，因此任何时候 RDB 文件都是完整的。如果在触发 snapshot 之前，server 失效。会导致上一个时间点之后的数据未能序列化到 rdb 文件，安全性上稍弱。 </p>
-
-<p>我们可手动执行 save 或 bgsave 命令让 redis 执行快照。两个命令的区别在于:</p>
-
-<ul>
-  <li>save 是由主进程进行快照操作，会阻塞其它请求;</li>
-  <li>bgsave 会通过 fork 子进程进行快照操作;</li>
-</ul>
-
-<p>RDB 文件默认是经过压缩的二进制文件，占用的空间会小于内存中的数据，更加利于传输。设置如下，可以关闭快照功能</p>
-
-<p><code>
-save ""
-</code></p>
-
-<h4 id="section">相关配置</h4>
-
-<p><code>
-# snapshot触发的时机，save &lt;seconds&gt; &lt;changes&gt;， 比如600秒有2个操作
-save 600 2
-# 当snapshot 时出现错误无法继续时，是否阻塞客户端变更操作 
-stop-writes-on-bgsave-error yes 
-# 是否启用rdb文件压缩，默认为 yes cpu消耗，快速传输  
-rdbcompression yes  
-# rdb文件名称  
-dbfilename dump.rdb  
-</code></p>
-
-<h3 id="第二节">什么是 AOF</h3>
-
-<p>Append-only file，将 <code>操作 + 数据</code> 以格式化指令的方式追加到操作日志文件的尾部，在 append 操作返回后， 已经写入到文件或者即将写入，才进行实际的数据变更，日志文件保存了历史的操作过程；当 server 需要数据恢复时，可以直接回放此日志文件，即可还原所有的操作过程。 如果你期望数据更少的丢失，那么可以采用 AOF 模式。可以用 redis-check-aof 检测文件是否完整。</p>
-
-<p>AOF 就是日志会记录变更操(例如：set/del等)，会导致AOF文件非常的庞大，意味着server失效后，数据恢复的过程将会很长；事实上，一条数据经过多次变更，将会产生多条AOF记录，其实只要保存当前的状态，历史的操作记录是可以抛弃的， 由此催生了 AOF ReWrite。</p>
-
-<h4 id="aof-rewrite">什么是 AOF Rewrite</h4>
-
-<p>其实是压缩 AOF 文件的过程，Redis 采取了类似 Snapshot 的方式：基于 <code>copy-on-write</code>，全量遍历内存中数据，然后逐个序列到 aof 文件中。因此 AOF Rewrite 能够正确反应当前内存数据的状态， Rewrite 过程中，新的变更操作将仍然被写入到原 AOF 文件中，同时这些新的变更操作也会被收集起来， 并不阻塞客户端请求。</p>
-
-<h4 id="section-1">相关配置</h4>
-
-<p>```
-##只有在yes下，aof重写/文件同步等特性才会生效<br />
-appendonly no  </p>
-
-<h2 id="aof">指定aof文件名称</h2>
-<p>appendfilename appendonly.aof  </p>
-
-<h2 id="aofalways-everysec-noeverysec">指定aof操作中文件同步策略，有三个合法值：always everysec no，默认为everysec</h2>
-<p>appendfsync everysec  </p>
-
-<h2 id="aof-rewriteappendfsync-no-yes-no">在aof-rewrite期间，appendfsync 是否暂缓文件同步，no 表示不暂缓，yes 表示暂缓，默认为no</h2>
-<p>no-appendfsync-on-rewrite no  </p>
-
-<h2 id="aofrewrite-aofrewrite64mb512mb">aof文件rewrite触发的最小文件尺寸 只有大于此aof文件大于此尺寸是才会触发rewrite，默认64mb，建议512mb</h2>
-<p>auto-aof-rewrite-min-size 64mb  </p>
-
-<h2 id="rewriterewriteaof">相对于上一次rewrite，本次rewrite触发时aof文件应该增长的百分比</h2>
-<p>auto-aof-rewrite-percentage 100<br />
-```</p>
-
-<h4 id="appendfsync-">appendfsync 方式：</h4>
-
-<ul>
-  <li>always：每一条 aof 记录都立即同步到文件，这是最安全的方式，但是更多的磁盘操作和阻塞延迟，IO 开支较大。</li>
-  <li>everysec：每秒同步一次，性能和安全也是redis推荐的方式。如果服务器故障，有可能导致最近一秒内aof记录丢失。</li>
-  <li>no：redis并不直接调用文件同步，而是交给操作系统来处理，操作系统可以根据buffer填充情况等择机触发同步；性能较好，在物理服务器故障时，数据丢失量会因OS配置有关。</li>
-</ul>
-
-<h3 id="第三节">选择哪种药丸</h3>
-
-<ul>
-  <li>AOF更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</li>
-  <li>Snapshot，安全性较差，它是正常时期数据备份及 master-slave 数据同步的最佳手段，文件尺寸较小，恢复数度较快。</li>
-</ul>
-
-<h4 id="section-2">主从架构的环境下的选择</h4>
-
-<ul>
-  <li>通常 master 使用AOF，slave 使用 Snapshot，master 需要确保数据完整性，slave 提供只读服务.</li>
-  <li>如果你的网络稳定性差， 物理环境糟糕情况下，那么 master， slave均采取 AOF，这个在 master， slave角色切换时，可以减少时间成本；</li>
 </ul>
 ]]></content>
   </entry>
