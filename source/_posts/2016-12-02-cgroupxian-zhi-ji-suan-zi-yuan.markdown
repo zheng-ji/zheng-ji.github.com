@@ -23,14 +23,7 @@ sudo apt-get install cgroup-bin
 ```
 cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,relatime,cpuset)
 cgroup on /sys/fs/cgroup/cpu type cgroup (rw,relatime,cpu)
-cgroup on /sys/fs/cgroup/cpuacct type cgroup (rw,relatime,cpuacct)
-cgroup on /sys/fs/cgroup/memory type cgroup (rw,relatime,memory)
-cgroup on /sys/fs/cgroup/devices type cgroup (rw,relatime,devices)
-cgroup on /sys/fs/cgroup/freezer type cgroup (rw,relatime,freezer)
-cgroup on /sys/fs/cgroup/net_cls type cgroup (rw,relatime,net_cls)
-cgroup on /sys/fs/cgroup/blkio type cgroup (rw,relatime,blkio)
-cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,relatime,perf_event)
-cgroup on /sys/fs/cgroup/net_prio type cgroup (rw,relatime,net_prio)
+...
 cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,relatime,hugetlb)
 ```
 
