@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-12-02T16:32:21+08:00</updated>
+  <updated>2017-02-22T22:58:01+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,96 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Squid 做正向代理]]></title>
+    <link href="http://zheng-ji.github.com/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/"/>
+    <updated>2017-02-22T22:30:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li</id>
+    <content type="html"><![CDATA[<h3 id="section">正向代理和反向代理</h3>
+
+<ul>
+  <li>正向代理</li>
+</ul>
+
+<p>正向代理 是一个位于客户端和原始服务器之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定原始服务器，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。</p>
+
+<ul>
+  <li>反向代理</li>
+</ul>
+
+<p>反向代理正好相反，对于客户端而言它就像是原始服务器，并且客户端不需要进行任何特别的设置。客户端向反向代理内容发送普通请求，接着反向代理将判断向何处(原始服务器)转交请求，并将获得的内容返回给客户端，就像这些内容原本就是它自己的一样。</p>
+
+<h3 id="section-1">正向代理软件</h3>
+
+<p>Nginx 能做正向代理，遗憾的是它不能做 HTTPS 的正向代理。以下是一个例子。</p>
+
+<ul>
+  <li>不能有 hostname。 </li>
+  <li>必须有 resolver, 即 DNS</li>
+  <li>配置正向代理参数，均是由 Nginx 变量组成</li>
+</ul>
+
+<p><code>
+server{
+      resolver 8.8.8.8;
+      resolver_timeout 30s; 
+      listen 80;
+      location / {
+                proxy_pass http://$http_host$request_uri;
+                proxy_set_header Host $http_host;
+        }
+}
+</code></p>
+
+<p>Squid 可正向代理 HTTP 以及 HTTPS</p>
+
+<p><code>
+sudo apt-get install squid
+</code></p>
+
+<p>编辑 <code>/etc/squid3/squid.conf</code>, 并重启</p>
+
+<p>```
+http_port 3128                 	#代理服务器的端口
+#http_access deny !Safe_ports 	#注释掉此项
+#http_access deny manager     	#注释掉此项</p>
+
+<h1 id="section-2">添加下面两项，设置哪些网段可以访问本代理服务器</h1>
+<p>acl our_networks src 172.16.1.0/24 
+http_access allow our_networks
+```</p>
+
+<p><code>
+sudo service squid3 restart
+</code></p>
+
+<p>Squid 的层次代理值得一提， 若我们需要定期地切换代理服务器的话, 启动一个 Squid 代理, 而这个代理会将请求转发到其他代理上面. 然后我们只需定时更新本地 Squid 代理的配置文件, 然后重启这个本地代理即可. 层次代理用到了 <code>cache_peer</code> 这个配置文件</p>
+
+<p>```
+cache_peer hostname type http_port icp_port option</p>
+
+<p>e.g.
+cache_peer xxx.proxy.com parent 9020 0 no-query default login=xxxxx:yyyy
+```</p>
+
+<ul>
+  <li>hostname:指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
+  <li>type：指明hostname的类型，是同级子代理服务器还是父代理服务器，也即parent 还是 sibling；</li>
+  <li>http_port：hostname的监听端口；</li>
+  <li>icp_port：hostname上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
+  <li>options：可以包含一个或多个关键字。
+    <ol>
+      <li>proxy-only：指明从peer得到的数据在本地不进行缓存，缺省地，squid是要缓存这部分数据的；</li>
+      <li>weight=n：用于有多个peer的情况，如果多于一个以上的peer拥有你请求的数据时，squid通过计算每个peer ICP 响应时间来 决定其weight的值，然后 squid 向其中拥有最大 weight 的peer发出ICP请求。</li>
+      <li>no-query：不向该peer发送ICP请求。如果该peer不可用时，可以使用该选项；</li>
+      <li>Default：有点象路由表中的缺省路由，该peer将被用作最后的尝试手段。当你只有一个父代理服务器并且其不支持ICP协议时，可以使用default和no-query选项让所有请求都发送到该父代理服务器；</li>
+    </ol>
+  </li>
+  <li>login=user:password：当你的父代理服务器要求用户认证时可以使用该选项来进行认证</li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[cgroup 限制计算资源]]></title>
@@ -391,136 +481,6 @@ for r in reservations:
 <p><code>
 ansible -i get_host.py  devtest-asg -m raw -a 'ls /'
 </code></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Flume 实时收集 Nginx 日志]]></title>
-    <link href="http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/"/>
-    <updated>2016-04-23T09:13:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi</id>
-    <content type="html"><![CDATA[<p>在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
-但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。</p>
-
-<p>现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。Flume 立功了。</p>
-
-<h1 id="flume-">Flume 简介</h1>
-
-<p><a href="https://flume.apache.org/"><strong>F</strong>lume</a> 是一个分布式，可靠高效的日志收集系统，它允许用户自定义数据传输模型，因此可扩展性也强。也有较强的容错和恢复机制.
-以下是几个重要的概念</p>
-
-<ul>
-  <li>Event：Event 是 Flume 数据传输的基本单元。flume 以事件的形式将数据从源头传送到最终的目的。</li>
-  <li>Agent：Agent包含 Sources, Channels, Sinks 和其他组件，它利用这些组件将events从一个节点传输到另一个节点或最终目的。</li>
-  <li>Source：Source负责接收events，并将events批量的放到一个或多个Channels。</li>
-  <li>Channel：Channel位于 Source 和 Sink 之间，用于缓存进来的events，当Sink成功的将events发送到下一跳的channel或最终目的，events从Channel移除。</li>
-  <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
-</ul>
-
-<p><img src="/images/2016/04/flume.jpg"></p>
-
-<ul>
-  <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
-  <li>Sink 有 Kafka Sink, Avro Sink, File Roll Sink, HDFS Sink 等。</li>
-  <li>Channel 有 Memory Channel,File Channel 等</li>
-</ul>
-
-<p>它提供了一个骨架，以及多种 Source, Sink, Channel, 让你设计合适的数据模型。事实上也可以多个 Flume 联动完成，就像地铁的车厢一样。</p>
-
-<h1 id="section">定义数据流模型</h1>
-
-<p>回到我们开头的场景,我们要将多台服务器的 Nginx 日志进行汇总分析，</p>
-
-<p>分成两个 flume 来实现</p>
-
-<ul>
-  <li>Flume1 数据流是 Exec Source -&gt; Memory Channel -&gt; Avro Sink,部署在业务机器上</li>
-  <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
-</ul>
-
-<p><img src="/images/2016/04/flume1toflume2.jpg"></p>
-
-<h1 id="section-1">需要的准备</h1>
-
-<p>你需要安装</p>
-
-<ul>
-  <li>下载 <a href="https://flume.apache.org/download.html">Flume</a></li>
-  <li>安装 JavaSDk,并在下载解压之后的 conf/flume-env.sh，配置</li>
-</ul>
-
-<p><code>sh
-# 我用的是oracle-java-8
-export JAVA_HOME=/usr/lib/jvm/java-8-oracle/jre/
-</code></p>
-
-<ul>
-  <li>思考你的数据流动模型，编写配置，如上文所说的Flume1, tail2avro.conf  ：</li>
-</ul>
-
-<p>```
-agent.sources = s1
-agent.channels = c1
-agent.sinks = k1</p>
-
-<p>agent.sources.s1.type=exec
-agent.sources.s1.command=tail -F <your file="" path="">
-agent.sources.s1.channels=c1</your></p>
-
-<p>agent.channels.c1.type=memory
-agent.channels.c1.capacity=10000
-agent.channels.c1.transactionCapacity=10000</p>
-
-<p>agent.sinks.k1.type = avro
-agent.sinks.k1.hostname = <your target="" address="">
-agent.sinks.k1.port = <your target="" port="">
-agent.sinks.k1.channel=c1
-```</your></your></p>
-
-<p>Flume2 中的 avro2file.conf </p>
-
-<p>```
-agent.sources = s1
-agent.channels = c1
-agent.sinks = k1</p>
-
-<p>agent.sources.s1.type = avro
-agent.sources.s1.bind = <your address="">
-agent.sources.s1.port = <your port="">
-agent.sources.s1.channels = c1</your></your></p>
-
-<p>agent.sinks.k1.type = file_roll
-agent.sinks.k1.sink.directory = /data/log/ngxlog
-# 滚动间隔
-agent.sinks.k1.sink.rollInterval = 86400
-agent.sinks.k1.channel = c1</p>
-
-<p>agent.channels.c1.type = memory
-# 队列里 Event 的容量
-agent.channels.c1.capacity = 10000
-agent.channels.c1.transactionCapacity = 10000
-agent.channels.c1.keep-alive = 60
-```</p>
-
-<ul>
-  <li>启动运行</li>
-</ul>
-
-<p>```
-# 启动flume1
-bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf \
--Dflume.root.logger=WARN</p>
-
-<h1 id="flume2">启动flume2</h1>
-<p>in/flume-ng agent -n agent -c conf -f conf/avro2file.conf \
--Dflume.root.logger=INFO
-```</p>
-
-<h2 id="section-2">参考</h2>
-
-<ul>
-  <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
-</ul>
 ]]></content>
   </entry>
   

@@ -9,17 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="用下班时间写了一个 ngx lua 的拓展, GitHub。可以: [x] 实时监控域名的 qps [x] 实时监控域名的 5xx 个数 [x] 实时监控域名的 响应时长 [x] 并附带 Ganglia 监控插件 使用 配置 nginx.conf 1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11 &hellip;">
+  <meta name="description" content="这个标题或许会让你想起《黑客帝国》里经典的台词，你要选择蓝色药丸，还是红色药丸？ Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。 什么是 Snapshot 什么是 AOF 选择哪种药丸 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +68,159 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-03-10T23:32:00+08:00" pubdate data-updated="true">Mar 10<span>th</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
+
+<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
+
+<ul>
+  <li><a href="#第一节">什么是 Snapshot</a></li>
+  <li><a href="#第二节">什么是 AOF </a></li>
+  <li><a href="#第三节">选择哪种药丸</a></li>
+</ul>
+
+<h3 id="第一节">什么是 Snapshot</h3>
+
+<p>Snapshot 将内存中数据以结构化的方式序列化到 rdb 文件中，是默认的持久化方式，便于解析引擎快速解析和内存实施。快照得由间隔时间，变更次数同时符合才会触发， 该过程中并不阻塞客户端请求，copy-on-write 方式也意味着极端情况下可能会导致实际数据2倍内存的使用量。它首先将数据写入临时文件，结束后，将临时文件重名为 dump.rdb。可以使用 <code>redis-check-dump</code> 用来检测完整性</p>
+
+<p>只有快照结束后才会将旧的文件替换成新的，因此任何时候 RDB 文件都是完整的。如果在触发 snapshot 之前，server 失效。会导致上一个时间点之后的数据未能序列化到 rdb 文件，安全性上稍弱。 </p>
+
+<p>我们可手动执行 save 或 bgsave 命令让 redis 执行快照。两个命令的区别在于:</p>
+
+<ul>
+  <li>save 是由主进程进行快照操作，会阻塞其它请求;</li>
+  <li>bgsave 会通过 fork 子进程进行快照操作;</li>
+</ul>
+
+<p>RDB 文件默认是经过压缩的二进制文件，占用的空间会小于内存中的数据，更加利于传输。设置如下，可以关闭快照功能</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">save ""</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="section">相关配置</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+</pre></td><td class="code"><pre><code class=""><span class="line"># snapshot触发的时机，save &lt;seconds&gt; &lt;changes&gt;， 比如600秒有2个操作
+</span><span class="line">save 600 2
+</span><span class="line"># 当snapshot 时出现错误无法继续时，是否阻塞客户端变更操作 
+</span><span class="line">stop-writes-on-bgsave-error yes 
+</span><span class="line"># 是否启用rdb文件压缩，默认为 yes cpu消耗，快速传输  
+</span><span class="line">rdbcompression yes  
+</span><span class="line"># rdb文件名称  
+</span><span class="line">dbfilename dump.rdb  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="第二节">什么是 AOF</h3>
+
+<p>Append-only file，将 <code>操作 + 数据</code> 以格式化指令的方式追加到操作日志文件的尾部，在 append 操作返回后， 已经写入到文件或者即将写入，才进行实际的数据变更，日志文件保存了历史的操作过程；当 server 需要数据恢复时，可以直接回放此日志文件，即可还原所有的操作过程。 如果你期望数据更少的丢失，那么可以采用 AOF 模式。可以用 redis-check-aof 检测文件是否完整。</p>
+
+<p>AOF 就是日志会记录变更操(例如：set/del等)，会导致AOF文件非常的庞大，意味着server失效后，数据恢复的过程将会很长；事实上，一条数据经过多次变更，将会产生多条AOF记录，其实只要保存当前的状态，历史的操作记录是可以抛弃的， 由此催生了 AOF ReWrite。</p>
+
+<h4 id="aof-rewrite">什么是 AOF Rewrite</h4>
+
+<p>其实是压缩 AOF 文件的过程，Redis 采取了类似 Snapshot 的方式：基于 <code>copy-on-write</code>，全量遍历内存中数据，然后逐个序列到 aof 文件中。因此 AOF Rewrite 能够正确反应当前内存数据的状态， Rewrite 过程中，新的变更操作将仍然被写入到原 AOF 文件中，同时这些新的变更操作也会被收集起来， 并不阻塞客户端请求。</p>
+
+<h4 id="section-1">相关配置</h4>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">##只有在yes下，aof重写/文件同步等特性才会生效  
+</span><span class="line">appendonly no  
+</span><span class="line">  
+</span><span class="line">##指定aof文件名称  
+</span><span class="line">appendfilename appendonly.aof  
+</span><span class="line">  
+</span><span class="line">##指定aof操作中文件同步策略，有三个合法值：always everysec no，默认为everysec  
+</span><span class="line">appendfsync everysec  
+</span><span class="line">
+</span><span class="line">##在aof-rewrite期间，appendfsync 是否暂缓文件同步，no 表示不暂缓，yes 表示暂缓，默认为no  
+</span><span class="line">no-appendfsync-on-rewrite no  
+</span><span class="line">  
+</span><span class="line">##aof文件rewrite触发的最小文件尺寸 只有大于此aof文件大于此尺寸是才会触发rewrite，默认64mb，建议512mb  
+</span><span class="line">auto-aof-rewrite-min-size 64mb  
+</span><span class="line">  
+</span><span class="line">##相对于上一次rewrite，本次rewrite触发时aof文件应该增长的百分比
+</span><span class="line">auto-aof-rewrite-percentage 100  </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h4 id="appendfsync-">appendfsync 方式：</h4>
+
+<ul>
+  <li>always：每一条 aof 记录都立即同步到文件，这是最安全的方式，但是更多的磁盘操作和阻塞延迟，IO 开支较大。</li>
+  <li>everysec：每秒同步一次，性能和安全也是redis推荐的方式。如果服务器故障，有可能导致最近一秒内aof记录丢失。</li>
+  <li>no：redis并不直接调用文件同步，而是交给操作系统来处理，操作系统可以根据buffer填充情况等择机触发同步；性能较好，在物理服务器故障时，数据丢失量会因OS配置有关。</li>
+</ul>
+
+<h3 id="第三节">选择哪种药丸</h3>
+
+<ul>
+  <li>AOF更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</li>
+  <li>Snapshot，安全性较差，它是正常时期数据备份及 master-slave 数据同步的最佳手段，文件尺寸较小，恢复数度较快。</li>
+</ul>
+
+<h4 id="section-2">主从架构的环境下的选择</h4>
+
+<ul>
+  <li>通常 master 使用AOF，slave 使用 Snapshot，master 需要确保数据完整性，slave 提供只读服务.</li>
+  <li>如果你的网络稳定性差， 物理环境糟糕情况下，那么 master， slave均采取 AOF，这个在 master， slave角色切换时，可以减少时间成本；</li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1432,210 +1575,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/16/twemproxy/">Twemproxy 一个 Redis 代理</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-08-16T12:11:00+08:00" pubdate data-updated="true">Aug 16<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/08/16/twemproxy/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><dl>
-  <dt>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</dt>
-  <dd>
-    <p><a href="#第一节">初窥原理</a>
-* <a href="#第二节">安装与配置</a>
-* <a href="#第三节">不支持的操作</a>
-* <a href="#第四节">压力测试</a>
-* <a href="#第五节">摘自极光博客的评论</a></p>
-  </dd>
-</dl>
-
-<h3 id="第一节">初窥原理</h3>
-
-<ul>
-  <li>Twitter 出品的轻量级 Redis，memcached 代理，使用它可以减少缓存服务器的连接数，并且利用它来作分片。</li>
-  <li>作是说最差情况下，性能损耗不会多于20%。背后是用了pipeline，redis是支持使用pipeline批处理的。</li>
-  <li>twemproxy 与每个 redis 服务器都会建立一个连接，每个连接实现了两个 FIFO 的队列， 通过这两个队列实现对 redis 的 pipeline 访问，将多个客户端的访问合并到一个连接，这样既减少了redis服务器的连接数，又提高了访问性能。</li>
-</ul>
-
-<h3 id="第二节">安装与配置</h3>
-
-<ul>
-  <li>安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install automake
-</span><span class="line">apt-get install libtool
-</span><span class="line">git clone git://github.com/twitter/twemproxy.git
-</span><span class="line">cd twemproxy
-</span><span class="line">autoreconf -fvi
-</span><span class="line">./configure
-</span><span class="line">make
-</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>默认的可执行文件在 /usr/local/sbin/nutcracker</p>
-
-<ul>
-  <li>配置文件 /etc/nutcracker/nutcracker.yml</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">alpha:
-</span><span class="line">    listen: 127.0.0.1:8877
-</span><span class="line">    hash: fnv1a_64
-</span><span class="line">    distribution: ketama
-</span><span class="line">    auto_eject_hosts: true
-</span><span class="line">    redis: true
-</span><span class="line">    server_retry_timeout: 30000
-</span><span class="line">    server_failure_limit: 3
-</span><span class="line">    servers:
-</span><span class="line">        - 127.0.0.1:6379:1 master0  #后端的redis-server
-</span><span class="line">        - 127.0.0.1:6380:1 master1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>当 redis 做缓存的使用的时候应该启用 auto_eject_hosts， 如果某个节点失败的时候将该节点删除，虽然丧失了数据的一致性，但作为缓存使用，保证了这个集群的高可用性。当redis做存储的使用时为了保持数据的一致性，应该禁用 auto_eject_hosts,也就是当某个节点失败之后并不删除该节点。</p>
-
-<h3 id="第三节">不支持的操作</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">keys command: keys,migrate,move object,randomkey,rename,renamenx,
-</span><span class="line">sort strings command: bitop,mset,msetnx
-</span><span class="line">list command: blpop,brpop,brpoplpush
-</span><span class="line">scripting command: script exists,script flush,script kill,script load
-</span><span class="line">pub/sub command:(全部不支持)psubscribe,publish,punsubscribe,subscribe,unsubscribe</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第四节">压测</h3>
-
-<p>感谢 redis 提供的 redis-benchmark 工具，用它来做压测挺好的。</p>
-
-<ul>
-  <li>n 表示多少个连接</li>
-  <li>r 表示多少个 key,</li>
-  <li>t 代表命令</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji.info:~$ redis-benchmark -p 6700 -t smembers,hexists,get,hget,lrange,ltrim,zcard,setex,sadd -n 1000000 -r 100000000
-</span><span class="line">
-</span><span class="line">====== GET ======
-</span><span class="line">1000000 requests completed in 12.95 seconds
-</span><span class="line">50 parallel clients
-</span><span class="line">3 bytes payload
-</span><span class="line">keep alive: 1
-</span><span class="line">
-</span><span class="line">99.19% &lt;= 1 milliseconds
-</span><span class="line">99.93% &lt;= 2 milliseconds
-</span><span class="line">100.00% &lt;= 2 milliseconds
-</span><span class="line">77220.08 requests per second
-</span><span class="line">
-</span><span class="line">====== SADD ======
-</span><span class="line">1000000 requests completed in 10.74 seconds
-</span><span class="line">50 parallel clients
-</span><span class="line">3 bytes payload
-</span><span class="line">keep alive: 1
-</span><span class="line">
-</span><span class="line">99.88% &lt;= 1 milliseconds
-</span><span class="line">99.95% &lt;= 2 milliseconds
-</span><span class="line">99.97% &lt;= 3 milliseconds
-</span><span class="line">99.99% &lt;= 4 milliseconds
-</span><span class="line">100.00% &lt;= 4 milliseconds
-</span><span class="line">93144.56 requests per second</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如作者所言, 性能几乎可以跟直连redis比拟，背后的数据也很均匀,使用twemproxy 观察连接数, 一直都保持在个位数左右。</p>
-
-<h3 id="第五节">摘自极光博客的评论</h3>
-
-<ul>
-  <li>前端使用 Twemproxy 做代理，后端的 Redis 数据能基本上根据 key 来进行比较均衡的分布。</li>
-  <li>后端一台 Redis 挂掉后，Twemproxy 能够自动摘除。恢复后，Twemproxy 能够自动识别、恢复并重新加入到 Redis 组中重新使用。</li>
-  <li>Redis 挂掉后，后端数据是否丢失依据 Redis 本身的策略配置，与 Twemproxy 基本无关。</li>
-  <li>如果要新增加一台 Redis，Twemproxy 需要重启才能生效；并且数据不会自动重新 Reblance，需要人工单独写脚本来实现。</li>
-  <li>如同时部署多个 Twemproxy，配置文件一致（测试配置为distribution：ketama,modula），则可以从任意一个读取，都可以正确读取 key对应的值。</li>
-  <li>多台 Twemproxy 配置一样，客户端分别连接多台 Twemproxy可以在一定条件下提高性能。根据 Server 数量，提高比例在 110-150%之间。</li>
-  <li>如原来已经有 2 个节点 Redis，后续有增加 2 个 Redis，则数据分布计算与原来的 Redis 分布无关，现有数据如果需要分布均匀的话，需要人工单独处理。</li>
-  <li>如果 Twemproxy 的后端节点数量发生变化，Twemproxy 相同算法的前提下，原来的数据必须重新处理分布，否则会存在找不到key值的情况。</li>
-</ul>
-
-<hr />
-
-<p>参考链接</p>
-
-<p><a href="http://blog.jpush.cn/redis-twemproxy-benchmark/">极光推送的博客</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1657,6 +1596,10 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/">Squid 做正向代理</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan/">cgroup 限制计算资源</a>
@@ -1684,10 +1627,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
     
       <li class="post">
         <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
       </li>
     
   </ul>
@@ -1735,7 +1674,7 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2016 - zheng-ji -
+  Copyright &copy; 2017 - zheng-ji -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
   <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
   </script>

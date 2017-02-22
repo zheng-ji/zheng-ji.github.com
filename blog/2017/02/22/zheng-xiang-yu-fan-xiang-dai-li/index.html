@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>内存都去哪儿啦 - 织网</title>
+  <title>Squid 做正向代理 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="内存">
-  <meta name="keywords" content="内存 Top">
+  <meta name="description" content="squid, 代理">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2014/10/13/nei-cun-du-qu-na-er-la">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -71,7 +71,7 @@
   
   <header>
     
-      <h1 class="entry-title">内存都去哪儿啦</h1>
+      <h1 class="entry-title">Squid 做正向代理</h1>
     
     
       <p class="meta">
@@ -87,7 +87,7 @@
   
 
 
-<time datetime="2014-10-13T21:20:00+08:00" pubdate data-updated="true">Oct 13<span>th</span>, 2014</time>
+<time datetime="2017-02-22T22:30:00+08:00" pubdate data-updated="true">Feb 22<span>nd</span>, 2017</time>
         
         
           | <a href="#comments">Comments</a>
@@ -97,55 +97,100 @@
   </header>
 
 
-<div class="entry-content"><h3 id="section">看到的现象</h3>
+<div class="entry-content"><h3 id="section">正向代理和反向代理</h3>
 
-<p>今天在游戏服务器上使用了top 命令系统使用参数，发现内存16G 的内存用了12G, 如下
-<img src="/images/2014/10/top.png" />
-但是同时在线人数不多，机器的负载并不是很大，并发也不高, 只有900+。
-<img src="/images/2014/10/nestat.png" />
-而游戏的服务端代码仅仅使用了7.8G, 我们不禁会问，内存去哪里了？难道是系统自己占用的内存呢，不可能一个8核16G的机器系统自己占用了4G吧?</p>
-
-<p>带着这个疑问，查阅了资料，发现其中并非表明所看到的这么简单. 我们来看以下 使用 <code>free -m</code> 命令
-<img src="/images/2014/10/free.png" /></p>
-
-<h3 id="mem--">Mem 参数 解释</h3>
 <ul>
-  <li>total 内存总数: 15875 , total = used + free</li>
-  <li>used 已经使用的内存数: 11900</li>
-  <li>free 空闲的内存数: 3975</li>
-  <li>shared 当前已经废弃不用，总是0</li>
-  <li>buffers: Buffer Cache内存数: 145</li>
-  <li>cached: Page Cache内存数: 5561</li>
+  <li>正向代理</li>
 </ul>
 
-<h3 id="bufferscache">-/+ buffers/cache的解惑</h3>
+<p>正向代理 是一个位于客户端和原始服务器之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定原始服务器，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。</p>
+
 <ul>
-  <li>-buffers/cache 的内存数: 6193 (大致等于第1行的 used - buffers - cached), 反映的是被程序实实在在吃掉的内存，</li>
-  <li>+buffers/cache 的内存数: 9682 (大致等于第1行的 free + buffers + cached), 反映的是可以挪用的内存总数</li>
+  <li>反向代理</li>
 </ul>
 
-<h3 id="cache">两种cache</h3>
-<p>因为cpu速度明显快过内存， 为了提高磁盘存取效率, Linux做了一些精心的设计, 采取了两种主要Cache方式, 来做速度的过度, 这些Cache有效缩短了 I/O系统调用(如read,write,getdents)的时间。</p>
+<p>反向代理正好相反，对于客户端而言它就像是原始服务器，并且客户端不需要进行任何特别的设置。客户端向反向代理内容发送普通请求，接着反向代理将判断向何处(原始服务器)转交请求，并将获得的内容返回给客户端，就像这些内容原本就是它自己的一样。</p>
+
+<h3 id="section-1">正向代理软件</h3>
+
+<p>Nginx 能做正向代理，遗憾的是它不能做 HTTPS 的正向代理。以下是一个例子。</p>
 
 <ul>
-  <li>Buffer Cache, 针对磁盘块的读写</li>
-  <li>Page Cache。针对文件inode的读写。</li>
-</ul>
-
-<h3 id="section-1">内存解读的区别</h3>
-
-<p>第1行<code>(mem)的used/free</code>与第2行<code>(-/+ buffers/cache) used/free</code>的区别在于角度的不同:</p>
-
-<ul>
-  <li>第一行因为对于OS，buffers/cached 都是属于被使用，所以他的可用内存是3975M,已用内存是11900MB,其中包括,内核（OS）使用 + 应用使用的+ buffers + cached.</li>
-  <li>第2行所指的是从应用程序角度来看，对于应用程序来说，buffers/cached 是可用的，是为了提高文件读取的性能而设，当应用程序要用到内存的时候，buffer/cached会很快地被回收。所以从应用程序的角度来说，</li>
+  <li>不能有 hostname。 </li>
+  <li>必须有 resolver, 即 DNS</li>
+  <li>配置正向代理参数，均是由 Nginx 变量组成</li>
 </ul>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">可用内存=系统free memory + buffers + cached.</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>所以，回到话题开头，虽然内存显示用了12.2G，正在被应用程序使用的是7.9G 还有5.6(cache+buffer) +  4G free 可用.内存原来在这里！</p>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">server{
+</span><span class="line">      resolver 8.8.8.8;
+</span><span class="line">      resolver_timeout 30s; 
+</span><span class="line">      listen 80;
+</span><span class="line">      location / {
+</span><span class="line">                proxy_pass http://$http_host$request_uri;
+</span><span class="line">                proxy_set_header Host $http_host;
+</span><span class="line">        }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>获益匪浅 :) </p>
+<p>Squid 可正向代理 HTTP 以及 HTTPS</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install squid</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑 <code>/etc/squid3/squid.conf</code>, 并重启</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">http_port 3128                 	#代理服务器的端口
+</span><span class="line">#http_access deny !Safe_ports 	#注释掉此项
+</span><span class="line">#http_access deny manager     	#注释掉此项
+</span><span class="line">
+</span><span class="line">#添加下面两项，设置哪些网段可以访问本代理服务器
+</span><span class="line">acl our_networks src 172.16.1.0/24 
+</span><span class="line">http_access allow our_networks</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service squid3 restart</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Squid 的层次代理值得一提， 若我们需要定期地切换代理服务器的话, 启动一个 Squid 代理, 而这个代理会将请求转发到其他代理上面. 然后我们只需定时更新本地 Squid 代理的配置文件, 然后重启这个本地代理即可. 层次代理用到了 <code>cache_peer</code> 这个配置文件</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cache_peer hostname type http_port icp_port option
+</span><span class="line">
+</span><span class="line">e.g.
+</span><span class="line">cache_peer xxx.proxy.com parent 9020 0 no-query default login=xxxxx:yyyy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>hostname:指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
+  <li>type：指明hostname的类型，是同级子代理服务器还是父代理服务器，也即parent 还是 sibling；</li>
+  <li>http_port：hostname的监听端口；</li>
+  <li>icp_port：hostname上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
+  <li>options：可以包含一个或多个关键字。
+    <ol>
+      <li>proxy-only：指明从peer得到的数据在本地不进行缓存，缺省地，squid是要缓存这部分数据的；</li>
+      <li>weight=n：用于有多个peer的情况，如果多于一个以上的peer拥有你请求的数据时，squid通过计算每个peer ICP 响应时间来 决定其weight的值，然后 squid 向其中拥有最大 weight 的peer发出ICP请求。</li>
+      <li>no-query：不向该peer发送ICP请求。如果该peer不可用时，可以使用该选项；</li>
+      <li>Default：有点象路由表中的缺省路由，该peer将被用作最后的尝试手段。当你只有一个父代理服务器并且其不支持ICP协议时，可以使用default和no-query选项让所有请求都发送到该父代理服务器；</li>
+    </ol>
+  </li>
+  <li>login=user:password：当你的父代理服务器要求用户认证时可以使用该选项来进行认证</li>
+</ul>
 </div>
 
 
@@ -168,7 +213,7 @@
   
 
 
-<time datetime="2014-10-13T21:20:00+08:00" pubdate data-updated="true">Oct 13<span>th</span>, 2014</time>
+<time datetime="2017-02-22T22:30:00+08:00" pubdate data-updated="true">Feb 22<span>nd</span>, 2017</time>
       
 
 <span class="categories">
@@ -189,10 +234,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2014/10/04/redisre-bei/" title="Previous Post: redis 主从平滑切换">&laquo; redis 主从平滑切换</a>
+        <a class="basic-alignment left" href="/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan/" title="Previous Post: cgroup 限制计算资源">&laquo; cgroup 限制计算资源</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2014/10/23/mysql-unique-index/" title="Next Post: 唯一索引引发的思考">唯一索引引发的思考 &raquo;</a>
       
     </p>
   </footer>
@@ -202,7 +245,7 @@
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="内存都去哪儿啦"></div>
+<div class="ds-thread" data-title="Squid 做正向代理"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

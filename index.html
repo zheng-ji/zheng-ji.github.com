@@ -9,9 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Cgroup 实现了对计算机资源使用上的隔离，它是 Docker 底层的基础技术。我们可以用它来限制程序使用的CPU、内存、磁盘。 安装 在 Ubuntu 14.04 下安装的方法： 1
-sudo apt-get install cgroup-bin 安装完后执行
-mount -t cgroup &hellip;">
+  <meta name="description" content="正向代理和反向代理 正向代理 正向代理 是一个位于客户端和原始服务器之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定原始服务器，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。 反向代理 反向代理正好相反， &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -70,6 +68,138 @@ mount -t cgroup &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/">Squid 做正向代理</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-02-22T22:30:00+08:00" pubdate data-updated="true">Feb 22<span>nd</span>, 2017</time>
+        
+        
+          | <a href="/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h3 id="section">正向代理和反向代理</h3>
+
+<ul>
+  <li>正向代理</li>
+</ul>
+
+<p>正向代理 是一个位于客户端和原始服务器之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定原始服务器，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。</p>
+
+<ul>
+  <li>反向代理</li>
+</ul>
+
+<p>反向代理正好相反，对于客户端而言它就像是原始服务器，并且客户端不需要进行任何特别的设置。客户端向反向代理内容发送普通请求，接着反向代理将判断向何处(原始服务器)转交请求，并将获得的内容返回给客户端，就像这些内容原本就是它自己的一样。</p>
+
+<h3 id="section-1">正向代理软件</h3>
+
+<p>Nginx 能做正向代理，遗憾的是它不能做 HTTPS 的正向代理。以下是一个例子。</p>
+
+<ul>
+  <li>不能有 hostname。 </li>
+  <li>必须有 resolver, 即 DNS</li>
+  <li>配置正向代理参数，均是由 Nginx 变量组成</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">server{
+</span><span class="line">      resolver 8.8.8.8;
+</span><span class="line">      resolver_timeout 30s; 
+</span><span class="line">      listen 80;
+</span><span class="line">      location / {
+</span><span class="line">                proxy_pass http://$http_host$request_uri;
+</span><span class="line">                proxy_set_header Host $http_host;
+</span><span class="line">        }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Squid 可正向代理 HTTP 以及 HTTPS</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install squid</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑 <code>/etc/squid3/squid.conf</code>, 并重启</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">http_port 3128                 	#代理服务器的端口
+</span><span class="line">#http_access deny !Safe_ports 	#注释掉此项
+</span><span class="line">#http_access deny manager     	#注释掉此项
+</span><span class="line">
+</span><span class="line">#添加下面两项，设置哪些网段可以访问本代理服务器
+</span><span class="line">acl our_networks src 172.16.1.0/24 
+</span><span class="line">http_access allow our_networks</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service squid3 restart</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Squid 的层次代理值得一提， 若我们需要定期地切换代理服务器的话, 启动一个 Squid 代理, 而这个代理会将请求转发到其他代理上面. 然后我们只需定时更新本地 Squid 代理的配置文件, 然后重启这个本地代理即可. 层次代理用到了 <code>cache_peer</code> 这个配置文件</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cache_peer hostname type http_port icp_port option
+</span><span class="line">
+</span><span class="line">e.g.
+</span><span class="line">cache_peer xxx.proxy.com parent 9020 0 no-query default login=xxxxx:yyyy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>hostname:指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
+  <li>type：指明hostname的类型，是同级子代理服务器还是父代理服务器，也即parent 还是 sibling；</li>
+  <li>http_port：hostname的监听端口；</li>
+  <li>icp_port：hostname上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
+  <li>options：可以包含一个或多个关键字。
+    <ol>
+      <li>proxy-only：指明从peer得到的数据在本地不进行缓存，缺省地，squid是要缓存这部分数据的；</li>
+      <li>weight=n：用于有多个peer的情况，如果多于一个以上的peer拥有你请求的数据时，squid通过计算每个peer ICP 响应时间来 决定其weight的值，然后 squid 向其中拥有最大 weight 的peer发出ICP请求。</li>
+      <li>no-query：不向该peer发送ICP请求。如果该peer不可用时，可以使用该选项；</li>
+      <li>Default：有点象路由表中的缺省路由，该peer将被用作最后的尝试手段。当你只有一个父代理服务器并且其不支持ICP协议时，可以使用default和no-query选项让所有请求都发送到该父代理服务器；</li>
+    </ol>
+  </li>
+  <li>login=user:password：当你的父代理服务器要求用户认证时可以使用该选项来进行认证</li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1553,159 +1683,6 @@ mount -t cgroup &hellip;">
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/">Redis 该选择哪种持久化配置</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2016-03-10T23:32:00+08:00" pubdate data-updated="true">Mar 10<span>th</span>, 2016</time>
-        
-        
-          | <a href="/blog/2016/03/10/gai-xuan-ze-na-chong-redischi-jiu-hua-pei-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>这个标题或许会让你想起<a href="https://movie.douban.com/subject/1291843/">《黑客帝国》</a>里经典的台词，你要选择蓝色药丸，还是红色药丸？</p>
-
-<p>Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。</p>
-
-<ul>
-  <li><a href="#第一节">什么是 Snapshot</a></li>
-  <li><a href="#第二节">什么是 AOF </a></li>
-  <li><a href="#第三节">选择哪种药丸</a></li>
-</ul>
-
-<h3 id="第一节">什么是 Snapshot</h3>
-
-<p>Snapshot 将内存中数据以结构化的方式序列化到 rdb 文件中，是默认的持久化方式，便于解析引擎快速解析和内存实施。快照得由间隔时间，变更次数同时符合才会触发， 该过程中并不阻塞客户端请求，copy-on-write 方式也意味着极端情况下可能会导致实际数据2倍内存的使用量。它首先将数据写入临时文件，结束后，将临时文件重名为 dump.rdb。可以使用 <code>redis-check-dump</code> 用来检测完整性</p>
-
-<p>只有快照结束后才会将旧的文件替换成新的，因此任何时候 RDB 文件都是完整的。如果在触发 snapshot 之前，server 失效。会导致上一个时间点之后的数据未能序列化到 rdb 文件，安全性上稍弱。 </p>
-
-<p>我们可手动执行 save 或 bgsave 命令让 redis 执行快照。两个命令的区别在于:</p>
-
-<ul>
-  <li>save 是由主进程进行快照操作，会阻塞其它请求;</li>
-  <li>bgsave 会通过 fork 子进程进行快照操作;</li>
-</ul>
-
-<p>RDB 文件默认是经过压缩的二进制文件，占用的空间会小于内存中的数据，更加利于传输。设置如下，可以关闭快照功能</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">save ""</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="section">相关配置</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># snapshot触发的时机，save &lt;seconds&gt; &lt;changes&gt;， 比如600秒有2个操作
-</span><span class="line">save 600 2
-</span><span class="line"># 当snapshot 时出现错误无法继续时，是否阻塞客户端变更操作 
-</span><span class="line">stop-writes-on-bgsave-error yes 
-</span><span class="line"># 是否启用rdb文件压缩，默认为 yes cpu消耗，快速传输  
-</span><span class="line">rdbcompression yes  
-</span><span class="line"># rdb文件名称  
-</span><span class="line">dbfilename dump.rdb  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第二节">什么是 AOF</h3>
-
-<p>Append-only file，将 <code>操作 + 数据</code> 以格式化指令的方式追加到操作日志文件的尾部，在 append 操作返回后， 已经写入到文件或者即将写入，才进行实际的数据变更，日志文件保存了历史的操作过程；当 server 需要数据恢复时，可以直接回放此日志文件，即可还原所有的操作过程。 如果你期望数据更少的丢失，那么可以采用 AOF 模式。可以用 redis-check-aof 检测文件是否完整。</p>
-
-<p>AOF 就是日志会记录变更操(例如：set/del等)，会导致AOF文件非常的庞大，意味着server失效后，数据恢复的过程将会很长；事实上，一条数据经过多次变更，将会产生多条AOF记录，其实只要保存当前的状态，历史的操作记录是可以抛弃的， 由此催生了 AOF ReWrite。</p>
-
-<h4 id="aof-rewrite">什么是 AOF Rewrite</h4>
-
-<p>其实是压缩 AOF 文件的过程，Redis 采取了类似 Snapshot 的方式：基于 <code>copy-on-write</code>，全量遍历内存中数据，然后逐个序列到 aof 文件中。因此 AOF Rewrite 能够正确反应当前内存数据的状态， Rewrite 过程中，新的变更操作将仍然被写入到原 AOF 文件中，同时这些新的变更操作也会被收集起来， 并不阻塞客户端请求。</p>
-
-<h4 id="section-1">相关配置</h4>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">##只有在yes下，aof重写/文件同步等特性才会生效  
-</span><span class="line">appendonly no  
-</span><span class="line">  
-</span><span class="line">##指定aof文件名称  
-</span><span class="line">appendfilename appendonly.aof  
-</span><span class="line">  
-</span><span class="line">##指定aof操作中文件同步策略，有三个合法值：always everysec no，默认为everysec  
-</span><span class="line">appendfsync everysec  
-</span><span class="line">
-</span><span class="line">##在aof-rewrite期间，appendfsync 是否暂缓文件同步，no 表示不暂缓，yes 表示暂缓，默认为no  
-</span><span class="line">no-appendfsync-on-rewrite no  
-</span><span class="line">  
-</span><span class="line">##aof文件rewrite触发的最小文件尺寸 只有大于此aof文件大于此尺寸是才会触发rewrite，默认64mb，建议512mb  
-</span><span class="line">auto-aof-rewrite-min-size 64mb  
-</span><span class="line">  
-</span><span class="line">##相对于上一次rewrite，本次rewrite触发时aof文件应该增长的百分比
-</span><span class="line">auto-aof-rewrite-percentage 100  </span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="appendfsync-">appendfsync 方式：</h4>
-
-<ul>
-  <li>always：每一条 aof 记录都立即同步到文件，这是最安全的方式，但是更多的磁盘操作和阻塞延迟，IO 开支较大。</li>
-  <li>everysec：每秒同步一次，性能和安全也是redis推荐的方式。如果服务器故障，有可能导致最近一秒内aof记录丢失。</li>
-  <li>no：redis并不直接调用文件同步，而是交给操作系统来处理，操作系统可以根据buffer填充情况等择机触发同步；性能较好，在物理服务器故障时，数据丢失量会因OS配置有关。</li>
-</ul>
-
-<h3 id="第三节">选择哪种药丸</h3>
-
-<ul>
-  <li>AOF更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</li>
-  <li>Snapshot，安全性较差，它是正常时期数据备份及 master-slave 数据同步的最佳手段，文件尺寸较小，恢复数度较快。</li>
-</ul>
-
-<h4 id="section-2">主从架构的环境下的选择</h4>
-
-<ul>
-  <li>通常 master 使用AOF，slave 使用 Snapshot，master 需要确保数据完整性，slave 提供只读服务.</li>
-  <li>如果你的网络稳定性差， 物理环境糟糕情况下，那么 master， slave均采取 AOF，这个在 master， slave角色切换时，可以减少时间成本；</li>
-</ul>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1725,6 +1702,10 @@ mount -t cgroup &hellip;">
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/">Squid 做正向代理</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2016/12/02/cgroupxian-zhi-ji-suan-zi-yuan/">cgroup 限制计算资源</a>
@@ -1752,10 +1733,6 @@ mount -t cgroup &hellip;">
     
       <li class="post">
         <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a>
       </li>
     
   </ul>
@@ -1803,7 +1780,7 @@ mount -t cgroup &hellip;">
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2016 - zheng-ji -
+  Copyright &copy; 2017 - zheng-ji -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
   <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1000421282'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "v1.cnzz.com/z_stat.php%3Fid%3D1000421282' type='text/javascript'%3E%3C/script%3E"));
   </script>

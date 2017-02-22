@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2016-12-02T16:32:21+08:00</updated>
+  <updated>2017-02-22T22:58:01+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,108 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Squid 做正向代理]]></title>
+    <link href="http://zheng-ji.github.com/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/"/>
+    <updated>2017-02-22T22:30:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li</id>
+    <content type="html"><![CDATA[<h3 id="section">正向代理和反向代理</h3>
+
+<ul>
+  <li>正向代理</li>
+</ul>
+
+<p>正向代理 是一个位于客户端和原始服务器之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定原始服务器，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。</p>
+
+<ul>
+  <li>反向代理</li>
+</ul>
+
+<p>反向代理正好相反，对于客户端而言它就像是原始服务器，并且客户端不需要进行任何特别的设置。客户端向反向代理内容发送普通请求，接着反向代理将判断向何处(原始服务器)转交请求，并将获得的内容返回给客户端，就像这些内容原本就是它自己的一样。</p>
+
+<h3 id="section-1">正向代理软件</h3>
+
+<p>Nginx 能做正向代理，遗憾的是它不能做 HTTPS 的正向代理。以下是一个例子。</p>
+
+<ul>
+  <li>不能有 hostname。 </li>
+  <li>必须有 resolver, 即 DNS</li>
+  <li>配置正向代理参数，均是由 Nginx 变量组成</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">server{
+</span><span class="line">      resolver 8.8.8.8;
+</span><span class="line">      resolver_timeout 30s; 
+</span><span class="line">      listen 80;
+</span><span class="line">      location / {
+</span><span class="line">                proxy_pass http://$http_host$request_uri;
+</span><span class="line">                proxy_set_header Host $http_host;
+</span><span class="line">        }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Squid 可正向代理 HTTP 以及 HTTPS</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo apt-get install squid</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>编辑 <code>/etc/squid3/squid.conf</code>, 并重启</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">http_port 3128                 	#代理服务器的端口
+</span><span class="line">#http_access deny !Safe_ports 	#注释掉此项
+</span><span class="line">#http_access deny manager     	#注释掉此项
+</span><span class="line">
+</span><span class="line">#添加下面两项，设置哪些网段可以访问本代理服务器
+</span><span class="line">acl our_networks src 172.16.1.0/24 
+</span><span class="line">http_access allow our_networks</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">sudo service squid3 restart</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Squid 的层次代理值得一提， 若我们需要定期地切换代理服务器的话, 启动一个 Squid 代理, 而这个代理会将请求转发到其他代理上面. 然后我们只需定时更新本地 Squid 代理的配置文件, 然后重启这个本地代理即可. 层次代理用到了 <code>cache_peer</code> 这个配置文件</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">cache_peer hostname type http_port icp_port option
+</span><span class="line">
+</span><span class="line">e.g.
+</span><span class="line">cache_peer xxx.proxy.com parent 9020 0 no-query default login=xxxxx:yyyy</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>hostname:指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
+  <li>type：指明hostname的类型，是同级子代理服务器还是父代理服务器，也即parent 还是 sibling；</li>
+  <li>http_port：hostname的监听端口；</li>
+  <li>icp_port：hostname上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
+  <li>options：可以包含一个或多个关键字。
+    <ol>
+      <li>proxy-only：指明从peer得到的数据在本地不进行缓存，缺省地，squid是要缓存这部分数据的；</li>
+      <li>weight=n：用于有多个peer的情况，如果多于一个以上的peer拥有你请求的数据时，squid通过计算每个peer ICP 响应时间来 决定其weight的值，然后 squid 向其中拥有最大 weight 的peer发出ICP请求。</li>
+      <li>no-query：不向该peer发送ICP请求。如果该peer不可用时，可以使用该选项；</li>
+      <li>Default：有点象路由表中的缺省路由，该peer将被用作最后的尝试手段。当你只有一个父代理服务器并且其不支持ICP协议时，可以使用default和no-query选项让所有请求都发送到该父代理服务器；</li>
+    </ol>
+  </li>
+  <li>login=user:password：当你的父代理服务器要求用户认证时可以使用该选项来进行认证</li>
+</ul>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[cgroup 限制计算资源]]></title>
@@ -2428,180 +2530,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 
 <p>Happy Hack!</p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Twemproxy 一个 Redis 代理]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/08/16/twemproxy/"/>
-    <updated>2015-08-16T12:11:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/08/16/twemproxy</id>
-    <content type="html"><![CDATA[<dl>
-  <dt>为解决线上 Redis 服务直连出现链接数爆棚而做的调研， 对 Twitter 开源的 twemproxy 做一些记录。 我们之所以放弃官方的 RedisCLuster 是因为不太满意其性能</dt>
-  <dd>
-    <p><a href="#第一节">初窥原理</a>
-* <a href="#第二节">安装与配置</a>
-* <a href="#第三节">不支持的操作</a>
-* <a href="#第四节">压力测试</a>
-* <a href="#第五节">摘自极光博客的评论</a></p>
-  </dd>
-</dl>
-
-<h3 id="第一节">初窥原理</h3>
-
-<ul>
-  <li>Twitter 出品的轻量级 Redis，memcached 代理，使用它可以减少缓存服务器的连接数，并且利用它来作分片。</li>
-  <li>作是说最差情况下，性能损耗不会多于20%。背后是用了pipeline，redis是支持使用pipeline批处理的。</li>
-  <li>twemproxy 与每个 redis 服务器都会建立一个连接，每个连接实现了两个 FIFO 的队列， 通过这两个队列实现对 redis 的 pipeline 访问，将多个客户端的访问合并到一个连接，这样既减少了redis服务器的连接数，又提高了访问性能。</li>
-</ul>
-
-<h3 id="第二节">安装与配置</h3>
-
-<ul>
-  <li>安装</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install automake
-</span><span class="line">apt-get install libtool
-</span><span class="line">git clone git://github.com/twitter/twemproxy.git
-</span><span class="line">cd twemproxy
-</span><span class="line">autoreconf -fvi
-</span><span class="line">./configure
-</span><span class="line">make
-</span><span class="line">sudo make install</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>默认的可执行文件在 /usr/local/sbin/nutcracker</p>
-
-<ul>
-  <li>配置文件 /etc/nutcracker/nutcracker.yml</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">alpha:
-</span><span class="line">    listen: 127.0.0.1:8877
-</span><span class="line">    hash: fnv1a_64
-</span><span class="line">    distribution: ketama
-</span><span class="line">    auto_eject_hosts: true
-</span><span class="line">    redis: true
-</span><span class="line">    server_retry_timeout: 30000
-</span><span class="line">    server_failure_limit: 3
-</span><span class="line">    servers:
-</span><span class="line">        - 127.0.0.1:6379:1 master0  #后端的redis-server
-</span><span class="line">        - 127.0.0.1:6380:1 master1</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>当 redis 做缓存的使用的时候应该启用 auto_eject_hosts， 如果某个节点失败的时候将该节点删除，虽然丧失了数据的一致性，但作为缓存使用，保证了这个集群的高可用性。当redis做存储的使用时为了保持数据的一致性，应该禁用 auto_eject_hosts,也就是当某个节点失败之后并不删除该节点。</p>
-
-<h3 id="第三节">不支持的操作</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">keys command: keys,migrate,move object,randomkey,rename,renamenx,
-</span><span class="line">sort strings command: bitop,mset,msetnx
-</span><span class="line">list command: blpop,brpop,brpoplpush
-</span><span class="line">scripting command: script exists,script flush,script kill,script load
-</span><span class="line">pub/sub command:(全部不支持)psubscribe,publish,punsubscribe,subscribe,unsubscribe</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第四节">压测</h3>
-
-<p>感谢 redis 提供的 redis-benchmark 工具，用它来做压测挺好的。</p>
-
-<ul>
-  <li>n 表示多少个连接</li>
-  <li>r 表示多少个 key,</li>
-  <li>t 代表命令</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">zj@zheng-ji.info:~$ redis-benchmark -p 6700 -t smembers,hexists,get,hget,lrange,ltrim,zcard,setex,sadd -n 1000000 -r 100000000
-</span><span class="line">
-</span><span class="line">====== GET ======
-</span><span class="line">1000000 requests completed in 12.95 seconds
-</span><span class="line">50 parallel clients
-</span><span class="line">3 bytes payload
-</span><span class="line">keep alive: 1
-</span><span class="line">
-</span><span class="line">99.19% &lt;= 1 milliseconds
-</span><span class="line">99.93% &lt;= 2 milliseconds
-</span><span class="line">100.00% &lt;= 2 milliseconds
-</span><span class="line">77220.08 requests per second
-</span><span class="line">
-</span><span class="line">====== SADD ======
-</span><span class="line">1000000 requests completed in 10.74 seconds
-</span><span class="line">50 parallel clients
-</span><span class="line">3 bytes payload
-</span><span class="line">keep alive: 1
-</span><span class="line">
-</span><span class="line">99.88% &lt;= 1 milliseconds
-</span><span class="line">99.95% &lt;= 2 milliseconds
-</span><span class="line">99.97% &lt;= 3 milliseconds
-</span><span class="line">99.99% &lt;= 4 milliseconds
-</span><span class="line">100.00% &lt;= 4 milliseconds
-</span><span class="line">93144.56 requests per second</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>如作者所言, 性能几乎可以跟直连redis比拟，背后的数据也很均匀,使用twemproxy 观察连接数, 一直都保持在个位数左右。</p>
-
-<h3 id="第五节">摘自极光博客的评论</h3>
-
-<ul>
-  <li>前端使用 Twemproxy 做代理，后端的 Redis 数据能基本上根据 key 来进行比较均衡的分布。</li>
-  <li>后端一台 Redis 挂掉后，Twemproxy 能够自动摘除。恢复后，Twemproxy 能够自动识别、恢复并重新加入到 Redis 组中重新使用。</li>
-  <li>Redis 挂掉后，后端数据是否丢失依据 Redis 本身的策略配置，与 Twemproxy 基本无关。</li>
-  <li>如果要新增加一台 Redis，Twemproxy 需要重启才能生效；并且数据不会自动重新 Reblance，需要人工单独写脚本来实现。</li>
-  <li>如同时部署多个 Twemproxy，配置文件一致（测试配置为distribution：ketama,modula），则可以从任意一个读取，都可以正确读取 key对应的值。</li>
-  <li>多台 Twemproxy 配置一样，客户端分别连接多台 Twemproxy可以在一定条件下提高性能。根据 Server 数量，提高比例在 110-150%之间。</li>
-  <li>如原来已经有 2 个节点 Redis，后续有增加 2 个 Redis，则数据分布计算与原来的 Redis 分布无关，现有数据如果需要分布均匀的话，需要人工单独处理。</li>
-  <li>如果 Twemproxy 的后端节点数量发生变化，Twemproxy 相同算法的前提下，原来的数据必须重新处理分布，否则会存在找不到key值的情况。</li>
-</ul>
-
-<hr />
-
-<p>参考链接</p>
-
-<p><a href="http://blog.jpush.cn/redis-twemproxy-benchmark/">极光推送的博客</a></p>
 ]]></content>
   </entry>
   
