@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="这个标题或许会让你想起《黑客帝国》里经典的台词，你要选择蓝色药丸，还是红色药丸？ Redis 是我们重度使用的一个开源软件，对它的持久化配置做一番相对深入的总结，是值得的。目前它有两种主流的持久化存储方式 SnapShot 以及 AOF 。 什么是 Snapshot 什么是 AOF 选择哪种药丸 &hellip;">
+  <meta name="description" content="在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
+但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。 现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +69,207 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-04-23T09:13:00+08:00" pubdate data-updated="true">Apr 23<span>rd</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
+但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。</p>
+
+<p>现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。Flume 立功了。</p>
+
+<h1 id="flume-">Flume 简介</h1>
+
+<p><a href="https://flume.apache.org/"><strong>F</strong>lume</a> 是一个分布式，可靠高效的日志收集系统，它允许用户自定义数据传输模型，因此可扩展性也强。也有较强的容错和恢复机制.
+以下是几个重要的概念</p>
+
+<ul>
+  <li>Event：Event 是 Flume 数据传输的基本单元。flume 以事件的形式将数据从源头传送到最终的目的。</li>
+  <li>Agent：Agent包含 Sources, Channels, Sinks 和其他组件，它利用这些组件将events从一个节点传输到另一个节点或最终目的。</li>
+  <li>Source：Source负责接收events，并将events批量的放到一个或多个Channels。</li>
+  <li>Channel：Channel位于 Source 和 Sink 之间，用于缓存进来的events，当Sink成功的将events发送到下一跳的channel或最终目的，events从Channel移除。</li>
+  <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
+</ul>
+
+<p><img src="/images/2016/04/flume.jpg" /></p>
+
+<ul>
+  <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
+  <li>Sink 有 Kafka Sink, Avro Sink, File Roll Sink, HDFS Sink 等。</li>
+  <li>Channel 有 Memory Channel,File Channel 等</li>
+</ul>
+
+<p>它提供了一个骨架，以及多种 Source, Sink, Channel, 让你设计合适的数据模型。事实上也可以多个 Flume 联动完成，就像地铁的车厢一样。</p>
+
+<h1 id="section">定义数据流模型</h1>
+
+<p>回到我们开头的场景,我们要将多台服务器的 Nginx 日志进行汇总分析，</p>
+
+<p>分成两个 flume 来实现</p>
+
+<ul>
+  <li>Flume1 数据流是 Exec Source -&gt; Memory Channel -&gt; Avro Sink,部署在业务机器上</li>
+  <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
+</ul>
+
+<p><img src="/images/2016/04/flume1toflume2.jpg" /></p>
+
+<h1 id="section-1">需要的准备</h1>
+
+<p>你需要安装</p>
+
+<ul>
+  <li>下载 <a href="https://flume.apache.org/download.html">Flume</a></li>
+  <li>安装 JavaSDk,并在下载解压之后的 conf/flume-env.sh，配置</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 我用的是oracle-java-8</span>
+</span><span class="line"><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/usr/lib/jvm/java-8-oracle/jre/
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>思考你的数据流动模型，编写配置，如上文所说的Flume1, tail2avro.conf  ：</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
+</span><span class="line">agent.channels <span class="o">=</span> c1
+</span><span class="line">agent.sinks <span class="o">=</span> k1
+</span><span class="line">
+</span><span class="line">agent.sources.s1.type<span class="o">=</span><span class="nb">exec</span>
+</span><span class="line">agent.sources.s1.command<span class="o">=</span>tail -F &lt;Your File Path&gt;
+</span><span class="line">agent.sources.s1.channels<span class="o">=</span>c1
+</span><span class="line">
+</span><span class="line">agent.channels.c1.type<span class="o">=</span>memory
+</span><span class="line">agent.channels.c1.capacity<span class="o">=</span>10000
+</span><span class="line">agent.channels.c1.transactionCapacity<span class="o">=</span>10000
+</span><span class="line">
+</span><span class="line">agent.sinks.k1.type <span class="o">=</span> avro
+</span><span class="line">agent.sinks.k1.hostname <span class="o">=</span> &lt;Your Target Address&gt;
+</span><span class="line">agent.sinks.k1.port <span class="o">=</span> &lt;Your Target Port&gt;
+</span><span class="line">agent.sinks.k1.channel<span class="o">=</span>c1
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Flume2 中的 avro2file.conf </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
+</span><span class="line">agent.channels <span class="o">=</span> c1
+</span><span class="line">agent.sinks <span class="o">=</span> k1
+</span><span class="line">
+</span><span class="line">agent.sources.s1.type <span class="o">=</span> avro
+</span><span class="line">agent.sources.s1.bind <span class="o">=</span> &lt;Your Address&gt;
+</span><span class="line">agent.sources.s1.port <span class="o">=</span> &lt;Your Port&gt;
+</span><span class="line">agent.sources.s1.channels <span class="o">=</span> c1
+</span><span class="line">
+</span><span class="line">agent.sinks.k1.type <span class="o">=</span> file_roll
+</span><span class="line">agent.sinks.k1.sink.directory <span class="o">=</span> /data/log/ngxlog
+</span><span class="line"><span class="c"># 滚动间隔</span>
+</span><span class="line">agent.sinks.k1.sink.rollInterval <span class="o">=</span> 86400
+</span><span class="line">agent.sinks.k1.channel <span class="o">=</span> c1
+</span><span class="line">
+</span><span class="line">agent.channels.c1.type <span class="o">=</span> memory
+</span><span class="line"><span class="c"># 队列里 Event 的容量</span>
+</span><span class="line">agent.channels.c1.capacity <span class="o">=</span> 10000
+</span><span class="line">agent.channels.c1.transactionCapacity <span class="o">=</span> 10000
+</span><span class="line">agent.channels.c1.keep-alive <span class="o">=</span> 60
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>启动运行</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 启动flume1</span>
+</span><span class="line">bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf <span class="se">\</span>
+</span><span class="line">-Dflume.root.logger<span class="o">=</span>WARN
+</span><span class="line">
+</span><span class="line"><span class="c"># 启动flume2</span>
+</span><span class="line">in/flume-ng agent -n agent -c conf -f conf/avro2file.conf <span class="se">\</span>
+</span><span class="line">-Dflume.root.logger<span class="o">=</span>INFO
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h2 id="section-2">参考</h2>
+
+<ul>
+  <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1469,112 +1671,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/08/21/supervisorjian-ting-qi/">Supervisor 监听器</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-08-21T16:36:00+08:00" pubdate data-updated="true">Aug 21<span>st</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/08/21/supervisorjian-ting-qi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>我们服务多是用 supervisor 启动的， 但监控多数是用 <code>monit</code>, 如果我们能通过监测 supervisor 事件变化来做监控，就可以写一套通用的监控程序。</p>
-
-<p>庆幸的是，supervisor 的 <code>eventListener</code> 支持我的设想。</p>
-
-<p>这个监控程序需要用 supervisor 启动，类型不再是<code>program</code>, 而是<code>eventlistener</code>，这里有几个比较耗时的地方需要记录下。</p>
-
-<ul>
-  <li>supervisor 有独特的通信协议,需要遵循，否则通讯不会被触发</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">def write_stdout(self, s):
-</span><span class="line">    sys.stdout.write(s)
-</span><span class="line">    sys.stdout.flush()
-</span><span class="line">
-</span><span class="line">write_stdout('READY\n') //类似开始握手
-</span><span class="line">write_stdout('RESULT 2\nOK') //结束通讯</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>需要从标准输入端读取事件,而且他是个阻塞的事件模型</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">while 1:
-</span><span class="line">    self.write_stdout('READY\n')
-</span><span class="line">    line = sys.stdin.readline()
-</span><span class="line">    do_some_thing()
-</span><span class="line">    self.write_stdout('RESULT 2\nOK')</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>supervisor 配置文件需要订阅事件</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">[eventlistener:alarm]
-</span><span class="line">user=zj
-</span><span class="line">command=/usr/bin/python /home/ymserver/bin/alarm/main.py
-</span><span class="line">events=PROCESS_STATE_EXITED,PROCESS_STATE_STOPPED,PROCESS_STATE_FATAL
-</span><span class="line">
-</span><span class="line"># 记录控制台输出的日志位置
-</span><span class="line">stderr_logfile=/home/zj/log/supervisor/alarm.err.log
-</span><span class="line">stdout_logfile=/home/zj/log/supervisor/alarm.output.log</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>弄好 supervisor 配置，以及部署好代码之后，需要重启 supervisor 才会真正的订阅事件。
-从此 supervisor 管理的程序一旦有 <code>FATAL</code>,<code>EXIT</code> 等状态就会触发程序，程序中就会触发自定义的报警。</p>
-
-<hr />
-
-<p><a href="https://github.com/zheng-ji/ToyCollection/tree/master/supervisor-listener">代码</a></p>
-
-<p>Happy Hack!</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1596,6 +1692,10 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/02/25/zookeeper-bi-ji/">zookeeper 笔记</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/">Squid 做正向代理</a>
@@ -1623,10 +1723,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
     
       <li class="post">
         <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
       </li>
     
   </ul>

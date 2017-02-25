@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="正向代理和反向代理 正向代理 正向代理 是一个位于客户端和原始服务器之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定原始服务器，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。 反向代理 反向代理正好相反， &hellip;">
+  <meta name="description" content="ZooKeeper 是一个开源的分布式协调服务，是分布式数据一致性的解决方案。 集群角色 在 ZooKeeper 中，有三种角色： Leader，Follower，Observer 一个 ZooKeeper 集群同时只会有一个Leader，其他都是 Follower 或 Observer。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +68,135 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2017/02/25/zookeeper-bi-ji/">Zookeeper 笔记</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-02-25T17:30:00+08:00" pubdate data-updated="true">Feb 25<span>th</span>, 2017</time>
+        
+        
+          | <a href="/blog/2017/02/25/zookeeper-bi-ji/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ZooKeeper 是一个开源的分布式协调服务，是分布式数据一致性的解决方案。</p>
+
+<h3 id="section">集群角色</h3>
+
+<p>在 ZooKeeper 中，有三种角色： Leader，Follower，Observer</p>
+
+<p>一个 ZooKeeper 集群同时只会有一个Leader，其他都是 Follower 或 Observer。
+Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能提供读服务，不能提供写服务。区别在于，Observer 不参与 Leader 选举过程，也不参与写操作的过半写成功策略，因此 Observer 可以在不影响写性能的情况下提升集群的读性能。</p>
+
+<h3 id="section-1">会话</h3>
+
+<p>客户端和 ZooKeeper 服务器会与服务器建立一个 TCP 连接，通过这个连接，客户端能够通过心跳检测和服务器保持有效的会话，也能够向 ZooKeeper 服务器发送请求并接受响应，同时还能通过该连接接收来自服务器的 Watch 事件通知。</p>
+
+<h3 id="section-2">数据节点</h3>
+
+<p>ZooKeeper 中的数据节点是指数据模型中的数据单元，称为 ZNode。ZooKeeper将所有数据存储在内存中，数据模型是一棵树（ZNode Tree），由斜杠进行分割的路径，就是一个ZNode。每个ZNode上都会保存自己的数据内容，同时会保存一系列属性信息。每个ZNode不仅本身可以写数据，还可以有下一级文件或目录。</p>
+
+<p>在ZooKeeper中，ZNode可以分为持久节点和临时节点两类。持久节点是指一旦这个 ZNode 被创建了，除非主动进行 ZNode 的移除操作，否则这个 ZNode 将一直保存在 ZooKeeper上。临时节点的生命周期跟客户端会话绑定，一旦客户端会话失效，那么这个客户端创建的所有临时节点都会被移除。</p>
+
+<p>ZooKeeper 允许用户为每个节点添加一个特殊的属性：SEQUENTIAL。一旦节点被标记上这个属性，那么在这个节点被创建的时候，ZooKeeper就会自动在其节点后面追加上一个整型数字，这个整型数字是一个由父节点维护的自增数字。</p>
+
+<h3 id="section-3">版本</h3>
+
+<p>ZooKeeper 的每个 ZNode 上都会存储数据，对于每个ZNode，ZooKeeper都会为其维护一个叫作Stat的数据结构，Stat中记录了这个ZNode的三个数据版本，分别是 version（当前ZNode的版本, cversion（当前ZNode子节点的版本）和 aversion（当前ZNode的ACL版本）。</p>
+
+<h3 id="section-4">事务</h3>
+
+<p>在 ZooKeeper 中，能改变 ZooKeeper 服务器状态的操作称为事务操作。包括数据节点创建与删除、数据内容更新和客户端会话创建与失效等操作。对应每一个事务请求，ZooKeeper都会为其分配一个全局唯一的事务ID，用ZXID表示，通常是一个64位的数字。每一个ZXID对应一次更新操作，从这些ZXID中可以间接地识别出ZooKeeper处理这些事务操作请求的全局顺序。</p>
+
+<h3 id="watcher">Watcher</h3>
+
+<p>ZooKeeper 允许用户在指定节点上注册一些 Watcher，并且在一些特定事件触发的时候，ZooKeeper 服务端会将事件通知到感兴趣的客户端上去。该机制是 ZooKeeper 实现分布式协调服务的重要特性。</p>
+
+<h3 id="acl">ACL</h3>
+
+<p>ZooKeeper 采用 Access Control Lists 策略来进行权限控制。ZooKeeper 定义了如下5种权限。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">CREATE: 创建子节点的权限。
+</span><span class="line">READ: 获取节点数据和子节点列表的权限。
+</span><span class="line">WRITE：更新节点数据的权限。
+</span><span class="line">DELETE: 删除子节点的权限。
+</span><span class="line">ADMIN: 设置节点ACL的权限。
+</span><span class="line">注意：CREATE 和 DELETE 都是针对子节点的权限控制。</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="zab-">ZAB 原子广播协议</h3>
+
+<p>ZooKeeper Atomic Broadcast（ZAB，ZooKeeper原子广播协议）的协议作为其数据一致性的核心算法。</p>
+
+<p>所有事务请求必须由一个全局唯一的服务器来协调处理，这样的服务器被称为Leader服务器，而剩下的其他服务器则成为 Follower 服务器。Leader 服务器负责将一个客户端事务请求转换成一个事务 Proposal（提案）并将该 Proposal分发给集群中所有的 Follower 服务器。之后 Leader 服务器需要等待所有 Follower 服务器的反馈，一旦超过半数的 Follower 服务器进行了正确的反馈后，Leader 就会再次向所有的 Follower 服务器分发 Commit 消息，要求对刚才的 Proposal 进行提交。</p>
+
+<h3 id="section-5">应用场景</h3>
+
+<ul>
+  <li>数据发布与订阅-配置中心</li>
+</ul>
+
+<p>发布者将数据发布到 ZooKeeper 节点上，供订阅者进行数据订阅，进而达到动态获取数据的目的，实现配置信息的集中式管理和动态更新。全局配置信息就可以发布到 ZooKeeper 上，让客户端（集群的机器）去订阅该消息。</p>
+
+<p>客户端想服务端注册自己需要关注的节点，一旦该节点的数据发生变更，那么服务端就会向相应的客户端发送 Watcher 事件通知，客户端接收到这个消息通知后，需要主动到服务端获取最新的数据（推拉结合）。</p>
+
+<ul>
+  <li>
+    <p>命名服务，即生成全局唯一的ID。</p>
+  </li>
+  <li>
+    <p>分布式协调通知</p>
+  </li>
+</ul>
+
+<p>ZooKeeper 中特有 Watcher 注册与异步通知机制，实现对数据变更的实时处理。不同的客户端都对ZK上同一个ZNode 进行注册，监听 ZNode 的变化（包括ZNode本身内容及子节点的），如果 ZNode 发生了变化，那么所有订阅的客户端都能够接收到相应的 Watcher 通知，并做出相应的处理，是一种通用的分布式系统机器间的通信方式。</p>
+
+<ul>
+  <li>心跳检测</li>
+</ul>
+
+<p>基于 ZK 临时节点的特性，可以让不同的进程都在 ZK 的一个指定节点下创建临时子节点，不同的进程直接可以根据这个临时子节点来判断对应的进程是否存活。通过这种方式，检测和被检测系统直接并不需要直接相关联，而是通过 ZK 上的某个节点进行关联，大大减少了系统耦合。</p>
+
+<ul>
+  <li>分布式锁</li>
+</ul>
+
+<p>分布式锁是控制分布式系统之间同步访问共享资源的一种方式。分布式锁又分为排他锁和共享锁两种。 排他锁又称为写锁或独占锁，共享锁又称为读锁。</p>
+
+<p>把 ZooKeeper 上一个 ZNode 看作是一个锁，获得锁就通过创建ZNode的方式来实现。所有客户端都去/x_lock节点下创建临时子节点/x_lock/lock。ZooKeeper会保证在所有客户端中，最终只有一个客户端能够创建成功，那么就可以认为该客户端获得了锁。同时，所有没有获取到锁的客户端就需要到/x_lock节点上注册一个子节点变更的 Watcher 监听，以便实时监听到 lock 节点的变更情况。</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -180,10 +309,10 @@
 </span><span class="line">cache_peer xxx.proxy.com parent 9020 0 no-query default login=xxxxx:yyyy</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <ul>
-  <li>hostname:指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
-  <li>type：指明hostname的类型，是同级子代理服务器还是父代理服务器，也即parent 还是 sibling；</li>
+  <li>hostname: 指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
+  <li>type：指明 hostname 的类型，是同级子代理服务器还是父代理服务器，也即 parent 还是 sibling；</li>
   <li>http_port：hostname的监听端口；</li>
-  <li>icp_port：hostname上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
+  <li>icp_port：hostname 上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
   <li>options：可以包含一个或多个关键字。
     <ol>
       <li>proxy-only：指明从peer得到的数据在本地不进行缓存，缺省地，squid是要缓存这部分数据的；</li>
@@ -1482,207 +1611,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/">Flume 实时收集 Nginx 日志</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2016-04-23T09:13:00+08:00" pubdate data-updated="true">Apr 23<span>rd</span>, 2016</time>
-        
-        
-          | <a href="/blog/2016/04/23/flume-shi-shi-shou-ji-nginx-ri-zhi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
-但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。</p>
-
-<p>现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。Flume 立功了。</p>
-
-<h1 id="flume-">Flume 简介</h1>
-
-<p><a href="https://flume.apache.org/"><strong>F</strong>lume</a> 是一个分布式，可靠高效的日志收集系统，它允许用户自定义数据传输模型，因此可扩展性也强。也有较强的容错和恢复机制.
-以下是几个重要的概念</p>
-
-<ul>
-  <li>Event：Event 是 Flume 数据传输的基本单元。flume 以事件的形式将数据从源头传送到最终的目的。</li>
-  <li>Agent：Agent包含 Sources, Channels, Sinks 和其他组件，它利用这些组件将events从一个节点传输到另一个节点或最终目的。</li>
-  <li>Source：Source负责接收events，并将events批量的放到一个或多个Channels。</li>
-  <li>Channel：Channel位于 Source 和 Sink 之间，用于缓存进来的events，当Sink成功的将events发送到下一跳的channel或最终目的，events从Channel移除。</li>
-  <li>Sink：Sink 负责将 events 传输到下一跳或最终目的，成功完成后将events从channel移除。</li>
-</ul>
-
-<p><img src="/images/2016/04/flume.jpg" /></p>
-
-<ul>
-  <li>Source 就有 Syslog Source, Kafka Source,HTTP Source, Exec Source Avro Source 等。</li>
-  <li>Sink 有 Kafka Sink, Avro Sink, File Roll Sink, HDFS Sink 等。</li>
-  <li>Channel 有 Memory Channel,File Channel 等</li>
-</ul>
-
-<p>它提供了一个骨架，以及多种 Source, Sink, Channel, 让你设计合适的数据模型。事实上也可以多个 Flume 联动完成，就像地铁的车厢一样。</p>
-
-<h1 id="section">定义数据流模型</h1>
-
-<p>回到我们开头的场景,我们要将多台服务器的 Nginx 日志进行汇总分析，</p>
-
-<p>分成两个 flume 来实现</p>
-
-<ul>
-  <li>Flume1 数据流是 Exec Source -&gt; Memory Channel -&gt; Avro Sink,部署在业务机器上</li>
-  <li>Flume2 数据流是 Avro Source -&gt; Memory Channel -&gt; FileRoll Sink</li>
-</ul>
-
-<p><img src="/images/2016/04/flume1toflume2.jpg" /></p>
-
-<h1 id="section-1">需要的准备</h1>
-
-<p>你需要安装</p>
-
-<ul>
-  <li>下载 <a href="https://flume.apache.org/download.html">Flume</a></li>
-  <li>安装 JavaSDk,并在下载解压之后的 conf/flume-env.sh，配置</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 我用的是oracle-java-8</span>
-</span><span class="line"><span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span>/usr/lib/jvm/java-8-oracle/jre/
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>思考你的数据流动模型，编写配置，如上文所说的Flume1, tail2avro.conf  ：</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
-</span><span class="line">agent.channels <span class="o">=</span> c1
-</span><span class="line">agent.sinks <span class="o">=</span> k1
-</span><span class="line">
-</span><span class="line">agent.sources.s1.type<span class="o">=</span><span class="nb">exec</span>
-</span><span class="line">agent.sources.s1.command<span class="o">=</span>tail -F &lt;Your File Path&gt;
-</span><span class="line">agent.sources.s1.channels<span class="o">=</span>c1
-</span><span class="line">
-</span><span class="line">agent.channels.c1.type<span class="o">=</span>memory
-</span><span class="line">agent.channels.c1.capacity<span class="o">=</span>10000
-</span><span class="line">agent.channels.c1.transactionCapacity<span class="o">=</span>10000
-</span><span class="line">
-</span><span class="line">agent.sinks.k1.type <span class="o">=</span> avro
-</span><span class="line">agent.sinks.k1.hostname <span class="o">=</span> &lt;Your Target Address&gt;
-</span><span class="line">agent.sinks.k1.port <span class="o">=</span> &lt;Your Target Port&gt;
-</span><span class="line">agent.sinks.k1.channel<span class="o">=</span>c1
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>Flume2 中的 avro2file.conf </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line">agent.sources <span class="o">=</span> s1
-</span><span class="line">agent.channels <span class="o">=</span> c1
-</span><span class="line">agent.sinks <span class="o">=</span> k1
-</span><span class="line">
-</span><span class="line">agent.sources.s1.type <span class="o">=</span> avro
-</span><span class="line">agent.sources.s1.bind <span class="o">=</span> &lt;Your Address&gt;
-</span><span class="line">agent.sources.s1.port <span class="o">=</span> &lt;Your Port&gt;
-</span><span class="line">agent.sources.s1.channels <span class="o">=</span> c1
-</span><span class="line">
-</span><span class="line">agent.sinks.k1.type <span class="o">=</span> file_roll
-</span><span class="line">agent.sinks.k1.sink.directory <span class="o">=</span> /data/log/ngxlog
-</span><span class="line"><span class="c"># 滚动间隔</span>
-</span><span class="line">agent.sinks.k1.sink.rollInterval <span class="o">=</span> 86400
-</span><span class="line">agent.sinks.k1.channel <span class="o">=</span> c1
-</span><span class="line">
-</span><span class="line">agent.channels.c1.type <span class="o">=</span> memory
-</span><span class="line"><span class="c"># 队列里 Event 的容量</span>
-</span><span class="line">agent.channels.c1.capacity <span class="o">=</span> 10000
-</span><span class="line">agent.channels.c1.transactionCapacity <span class="o">=</span> 10000
-</span><span class="line">agent.channels.c1.keep-alive <span class="o">=</span> 60
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>启动运行</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class="sh"><span class="line"><span class="c"># 启动flume1</span>
-</span><span class="line">bin/flume-ng agent -n agent -c conf -f conf/tail2avro.conf <span class="se">\</span>
-</span><span class="line">-Dflume.root.logger<span class="o">=</span>WARN
-</span><span class="line">
-</span><span class="line"><span class="c"># 启动flume2</span>
-</span><span class="line">in/flume-ng agent -n agent -c conf -f conf/avro2file.conf <span class="se">\</span>
-</span><span class="line">-Dflume.root.logger<span class="o">=</span>INFO
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="section-2">参考</h2>
-
-<ul>
-  <li><a href="https://flume.apache.org/FlumeUserGuide.html">FlumeUserGuide</a> 官方的 FlumeUserGuide</li>
-</ul>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1702,6 +1630,10 @@
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/02/25/zookeeper-bi-ji/">zookeeper 笔记</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/02/22/zheng-xiang-yu-fan-xiang-dai-li/">Squid 做正向代理</a>
@@ -1729,10 +1661,6 @@
     
       <li class="post">
         <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a>
       </li>
     
   </ul>

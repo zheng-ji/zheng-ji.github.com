@@ -4,7 +4,7 @@
   <title><![CDATA[Category: System | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/system/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-02-22T22:58:01+08:00</updated>
+  <updated>2017-02-25T17:49:28+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -86,10 +86,10 @@ cache_peer xxx.proxy.com parent 9020 0 no-query default login=xxxxx:yyyy
 ```</p>
 
 <ul>
-  <li>hostname:指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
-  <li>type：指明hostname的类型，是同级子代理服务器还是父代理服务器，也即parent 还是 sibling；</li>
+  <li>hostname: 指被请求的同级子代理服务器或父代理服务器。可以用主机名或ip地址表示；</li>
+  <li>type：指明 hostname 的类型，是同级子代理服务器还是父代理服务器，也即 parent 还是 sibling；</li>
   <li>http_port：hostname的监听端口；</li>
-  <li>icp_port：hostname上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
+  <li>icp_port：hostname 上的ICP监听端口，对于不支持ICP协议的可指定7；</li>
   <li>options：可以包含一个或多个关键字。
     <ol>
       <li>proxy-only：指明从peer得到的数据在本地不进行缓存，缺省地，squid是要缓存这部分数据的；</li>
