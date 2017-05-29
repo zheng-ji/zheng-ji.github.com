@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-05-29T23:35:50+08:00</updated>
+  <updated>2017-05-29T23:57:31+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -50,7 +50,7 @@ typedef struct Node {
 
 <h3 id="section-1">插入操作</h3>
 
-<p>插入操作，要涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
+<p>插入操作，是按照递增的顺序插入，涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
 
 <ul>
   <li>空链表插入头元素，head 与 tail 节点均要修改</li>
@@ -58,7 +58,7 @@ typedef struct Node {
   <li>中间插入节点</li>
 </ul>
 
-<p>{% img /images/2017/05/dlist-insert.png %}</p>
+<p><img src="/images/2017/05/dlist-insert.png"></p>
 
 <p>```
 static int insertDlist(dlist <em>*list, int num) {
@@ -109,7 +109,7 @@ if (head-&gt;next == NULL) {
   <li>删除中间节点</li>
 </ul>
 
-<p>{% img /images/2017/05/dlist-delete.png %}</p>
+<p><img src="/images/2017/05/dlist-delete.png"></p>
 
 <p>```
 static int deleteDlist(dlist ** list, int location) {

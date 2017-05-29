@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-05-29T23:35:33+08:00</updated>
+  <updated>2017-05-29T23:57:31+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -58,7 +58,7 @@
 
 <h3 id="section-1">插入操作</h3>
 
-<p>插入操作，要涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
+<p>插入操作，是按照递增的顺序插入，涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
 
 <ul>
   <li>空链表插入头元素，head 与 tail 节点均要修改</li>
