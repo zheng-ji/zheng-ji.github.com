@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-02-25T17:48:53+08:00</updated>
+  <updated>2017-05-29T23:35:33+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,241 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[双端链表]]></title>
+    <link href="http://zheng-ji.github.com/blog/2017/05/29/shuang-duan-lian-biao/"/>
+    <updated>2017-05-29T23:19:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2017/05/29/shuang-duan-lian-biao</id>
+    <content type="html"><![CDATA[<p>Nginx, Redis 项目中，均使用上了双链表。</p>
+
+<ul>
+  <li>
+    <p>列表类型的键进行操作(RPUSH, LPOP)时，程序底层操作用的是双端链表。 <a href="https://github.com/antirez/redis/blob/unstable/src/adlist.c">源码</a></p>
+  </li>
+  <li>
+    <p>Nginx 典型应用是在连接池中。Nginx 会处理大量的 socket 连接，为提高并发处理链接的能力，引入了连接池，其实现这个连接池用到了双链表。<a href="https://github.com/nginx/nginx/blob/master/src/core/ngx_queue.c">源码</a>.</p>
+  </li>
+</ul>
+
+<p>对于双端链表，教科书上曾有提及，但如今映像并不深刻，再度理解并实践一次。</p>
+
+<h3 id="section">结构定义与初始化</h3>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">typedef struct Node {
+</span><span class="line">    int num;
+</span><span class="line">    struct Node * next; //前继指针
+</span><span class="line">    struct Node * pre;  //后继指针
+</span><span class="line">} Node;
+</span><span class="line">
+</span><span class="line">typedef struct dlist {
+</span><span class="line">    Node * head; //双链表的指向头结点的元素
+</span><span class="line">    Node * tail; //双链表指向尾部节点的元素，方便从后检索
+</span><span class="line">} dlist;</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>初始化的双链表，<code>head</code>,<code>tail</code> 均为空。</p>
+
+<h3 id="section-1">插入操作</h3>
+
+<p>插入操作，要涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
+
+<ul>
+  <li>空链表插入头元素，head 与 tail 节点均要修改</li>
+  <li>在链表尾部插入节点，要变动 tail 指针</li>
+  <li>中间插入节点</li>
+</ul>
+
+<p><img src="http://zheng-ji.github.com/images/2017/05/dlist-insert.png" /></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">static int insertDlist(dlist **list, int num) {
+</span><span class="line">    Node * head = (*list) -&gt; head;
+</span><span class="line">    Node * tail = (*list) -&gt; tail;
+</span><span class="line">
+</span><span class="line">    if (list == NULL) return -1;
+</span><span class="line">
+</span><span class="line">    Node * node = initNode(num);
+</span><span class="line">    if (node == NULL) return -1;
+</span><span class="line">
+</span><span class="line">    // empty dlist
+</span><span class="line">    if ((*list) -&gt; head == NULL &amp;&amp; (*list) -&gt; tail == NULL) {
+</span><span class="line">        (*list)-&gt; head = node;
+</span><span class="line">        (*list)-&gt; tail = node;
+</span><span class="line">        return 0;
+</span><span class="line">    }
+</span><span class="line">
+</span><span class="line">    while (head -&gt; next &amp;&amp; head -&gt; num &lt; num) {
+</span><span class="line">        head = head -&gt; next;
+</span><span class="line">    }
+</span><span class="line">
+</span><span class="line">    // at the end
+</span><span class="line">    if (head-&gt;next == NULL) {
+</span><span class="line">        head -&gt; next = node;
+</span><span class="line">        node -&gt; pre = head;
+</span><span class="line">        tail -&gt; pre = node;
+</span><span class="line">        return 0;
+</span><span class="line">    } else {
+</span><span class="line">        // in the middle
+</span><span class="line">        node-&gt; next = head -&gt; next;
+</span><span class="line">        head -&gt; next -&gt; pre = node;
+</span><span class="line">        node -&gt; pre = head;
+</span><span class="line">        head -&gt; next = node;
+</span><span class="line">        return 0;
+</span><span class="line">    }
+</span><span class="line">}
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section-2">删除操作</h3>
+
+<p>删除操作，要涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
+
+<ul>
+  <li>删除头结点，</li>
+  <li>删除尾节点</li>
+  <li>删除中间节点</li>
+</ul>
+
+<p><img src="http://zheng-ji.github.com/images/2017/05/dlist-delete.png" /></p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">static int deleteDlist(dlist ** list, int location) {
+</span><span class="line">    Node * head = (*list) -&gt; head;
+</span><span class="line">    Node * now = NULL;
+</span><span class="line">    Node * last = NULL;
+</span><span class="line">
+</span><span class="line">    if (head == NULL)
+</span><span class="line">        return -1;
+</span><span class="line">    if (location &lt;= 0 || location &gt; numOfDlist(*list))
+</span><span class="line">        return -1;
+</span><span class="line">
+</span><span class="line">    if (location == 1) {
+</span><span class="line">        now = head;
+</span><span class="line">        (*list) -&gt; head = now -&gt;next;
+</span><span class="line">        head -&gt; next -&gt;pre = NULL;
+</span><span class="line">        if (now) {
+</span><span class="line">            free(now);
+</span><span class="line">            now = NULL;
+</span><span class="line">        }
+</span><span class="line">        return 0;
+</span><span class="line">    }
+</span><span class="line">    int num = 0;
+</span><span class="line">    while (head &amp;&amp; num++ &lt; location) {
+</span><span class="line">        head = head -&gt; next;
+</span><span class="line">    }
+</span><span class="line">
+</span><span class="line">    if (head -&gt; next == NULL) {
+</span><span class="line">        now = (*list) -&gt; tail;
+</span><span class="line">        head -&gt; pre -&gt; next = NULL;
+</span><span class="line">        now -&gt; pre = head-&gt;pre;
+</span><span class="line">        if (head) {
+</span><span class="line">            free(head);
+</span><span class="line">            head = NULL;
+</span><span class="line">        }
+</span><span class="line">    } else {
+</span><span class="line">        now = head -&gt; next;
+</span><span class="line">        last = head -&gt; pre;
+</span><span class="line">        now -&gt;pre = head -&gt; pre;
+</span><span class="line">        last -&gt; next = head -&gt;next;
+</span><span class="line">        if (head) {
+</span><span class="line">            free(head);
+</span><span class="line">            head = NULL;
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">    return 0;
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>本文所述是 C 语言实现的，<a href="https://github.com/zheng-ji/ToyCollection/dlist/mydlist.c">源码</a>
+在 Go 语言之中, <code>container/list</code> 包实现了双链表，直接引入就可以使用了。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[zookeeper 笔记]]></title>
@@ -2394,165 +2629,6 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <hr />
 
 <p><a href="http://www.sysdig.org/wiki/">Sysdig 官网</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Ansible 使用经验]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan/"/>
-    <updated>2015-09-05T18:09:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/09/05/ansiblede-shi-yong-jing-yan</id>
-    <content type="html"><![CDATA[<p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择 Ansible 来做自动化批量操作。</p>
-
-<p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
-
-<ul>
-  <li><a href="#第一节">配置 ansible.cfg 文件</a></li>
-  <li><a href="#第二节">使用 ansible role 来区分业务</a></li>
-  <li><a href="#第三节">files 目录的路径定位</a></li>
-  <li><a href="#第四节">使用 tags 区分不同操作</a></li>
-  <li><a href="#第五节">规划 ansible roles 的 tasks 文件</a></li>
-  <li><a href="#第六节">ansible-play-book 一些常用的选项</a></li>
-</ul>
-
-<h3 id="第一节">更好地配置文件</h3>
-
-<p>我们会如下配置 /etc/ansible/host, 特意指明用户与 端口</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">[web-cluster]
-</span><span class="line">&lt;node-1-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj
-</span><span class="line">&lt;node-2-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>在 /etc/ansible/ansible.cfg 文件里
-我们特意提及了 ansible-role 的配置，未来我们会使用这个东西</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">roles_path    = /home/zj/my-ansible/roles</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第二节">使用 ansible role 来区分业务</h3>
-
-<p>打开 ansible 部署脚本的文件夹, 目录树如下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd /home/zj/my-ansible/
-</span><span class="line">haproxy
-</span><span class="line">     - entry.yaml
-</span><span class="line">roles
-</span><span class="line">     - haproxy
-</span><span class="line">        - files
-</span><span class="line">        - handlers
-</span><span class="line">        - vars
-</span><span class="line">        - tasks</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>我用一个管理 haproxy 的例子来讲解这种方式。
-在 roles 目录下创建 haproxy, 如上所示，需要有四个目录;</p>
-
-<ul>
-  <li>files 目录下放置需要被传输到远端的文件;</li>
-  <li>vars  目录下有一个 main.yml 文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
-  <li>handlers 目录下有一个 main.yml, 可以定义一些通用的操作，比如重启服务等;</li>
-  <li>tasks 目录下是我们编写 main.yml 脚本，执行业务逻辑的地方;</li>
-</ul>
-
-<blockquote>
-  <p>那么 ansible role 的入口在哪呢？</p>
-</blockquote>
-
-<p>在 ~/my-ansible/haproxy/entry.yml 中，指定了roles的角色，如此一来， 
-ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/main.yml </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: web-cluster
-</span><span class="line">  roles:
-</span><span class="line">    - haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第三节">files 目录的路径定位</h3>
-
-<p>摘取 ~/my-ansible/roles/haproxy/tasks/main.yml</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
-</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
-</span><span class="line">  sudo: yes</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这里的 src=haproxy.cfg 意味着 ~/my-ansible/roles/haproxy/files/haproxy.cfg</p>
-
-<h3 id="第四节">使用 tags 区分不同操作</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- name: install ppa
-</span><span class="line">  shell: add-apt-repository -y ppa:vbernat/haproxy-1.5
-</span><span class="line">  sudo: yes
-</span><span class="line">  tags:
-</span><span class="line">    - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以下命令，是使用 tags 参数区分操作的例子</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/my-ansible/haproxy
-</span><span class="line">ansible-playbook entry.yml -v -K --tags "install-haproxy"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
-
-<p>tasks 目录有一个主执行文件 main.yml, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 include 语法。</p>
-
-<p>cat ~/my-ansible/roles/haproxy/tasks/main.yml</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- include: 'install-haproxy.yml'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里</p>
-
-<p>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
-</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
-</span><span class="line">  sudo: yes
-</span><span class="line">  tags:
-</span><span class="line">     - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>tags 最好也与该 yml 文件名一致，清晰分明</p>
-
-<h3 id="第六节">ansible-play-book 一些常用的选项</h3>
-
-<ul>
-  <li>-K 需要 sudo 权限去客户机执行命令，会提示你输入密码</li>
-  <li>-v 可以输出冗余的执行过程</li>
-  <li>–check 可以测试脚本执行情况，但实际并未在远程机器执行</li>
-  <li>–tags 提示 ansible-play-book 调用哪些 tags 命令</li>
-</ul>
-
-<p>使用过ansible roles 之后，最大的体会是操作调理化，甚至编程化，合理的利用 handler, vars, 能更加优雅抽象。</p>
-
-<hr />
-
-<p>上述的例子在 Github 有代码, 结合本文阅读可能更容易上手
-<a href="https://github.com/zheng-ji/ToyCollection/tree/master/my-ansible">Link</a> </p>
-
 ]]></content>
   </entry>
   

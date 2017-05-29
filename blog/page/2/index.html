@@ -9,8 +9,10 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="在分布式系统中，各个机器都有程序运行的本地日志，有时为了分析需求，不得不这些分散的日志汇总需求，相信很多人会选择 Rsync，Scp 之类，
-但它们的实时性不强，而且也会带来名字冲突的问题。扩展性差强人意，一点也不优雅。 现实中，我们就碰到了这样的需求：实时汇总线上多台服务器的 Nginx 日志。 &hellip;">
+  <meta name="description" content="Ansible 在使用的过程中，如果机器数量比较固定，且变更不多的情况下，可在 /etc/ansible/hosts 文件里面配置固定的组合机器IP， 并给他起组的别名，执行 Ansible 脚本便可以通过别名找到相应的机器。 1
+2
+[webservers]
+111.222.333.444 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -69,6 +71,167 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/04/24/ansible-dynamic-inventory/">Ansible Dynamic Inventory</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-04-24T20:53:00+08:00" pubdate data-updated="true">Apr 24<span>th</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/04/24/ansible-dynamic-inventory/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ansible 在使用的过程中，如果机器数量比较固定，且变更不多的情况下，可在 /etc/ansible/hosts 文件里面配置固定的组合机器IP， 并给他起组的别名，执行 Ansible 脚本便可以通过别名找到相应的机器。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[webservers]
+</span><span class="line">111.222.333.444 ansible_ssh_port=888</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>假如你有很多台机器，且机器经常变更导致IP时常变换，你还想把IP逐个写入 /etc/ansible/hosts 就不现实了。你也许会问，若不把 IP 写进 /etc/ansible/hosts，那不是没法用 Ansible 指挥这些机器？
+感谢 Ansible Dynamic Inventory， 如果我们能通过编程等手段获取变更机器的IP，我们还是有办法实现的。</p>
+
+<h3 id="dynamic-inventory-">Dynamic Inventory 的原理</h3>
+
+<ul>
+  <li>通过编程的方式,也就是动态获取机器的 json 信息;</li>
+  <li>Ansible 通过解析这串 json 字符串;</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">ansible -i yourprogram.py -m raw  -a 'cd /home'</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>Ansible Dynamic Inventory 对程序返回的 json 的转义是这样的：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">{"devtest-asg": {"hosts": ["172.31.21.164"], "vars": {"ansible_ssh_port": 12306}}}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>翻译一下就是  /etc/ansible/hosts 中的:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[devtest-asg]
+</span><span class="line">172.31.21.164 ansible_ssh_port=12306</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<h3 id="section">一个实战的例子</h3>
+
+<p>官方文档对 Inventory 仅作概念性描述，阅读完后仍是一头雾水，不知如何下手。 让我们用一个例子来豁然开朗吧。 我们使用 AWS 的 AutoScaling Group，以下简称 ASG，ASG 会在某种自定义的条件下会自动开启和关闭机器，这给我们在辨别IP，定位机器的时候造成困扰。因此我们需要 Ansible Dynamic Inventory</p>
+
+<p>我们使用 AWS 的 boto 库来获取 ASG 的实例信息.以下程序(get_host.py)中要实现的方法就是列出返回机器信息的 json 串。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="c">#!/usr/bin/env python</span>
+</span><span class="line"><span class="c"># -*- coding: utf-8 -*-</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">json</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">boto</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">boto.ec2</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">boto.ec2.autoscale</span>
+</span><span class="line">
+</span><span class="line"><span class="n">AWS_REGION</span> <span class="o">=</span> <span class="s">&#39;BBB&#39;</span>
+</span><span class="line"><span class="n">AWS_ACCESS_KEY</span> <span class="o">=</span> <span class="s">&#39;xxxx&#39;</span>
+</span><span class="line"><span class="n">AWS_SECRET_KEY</span> <span class="o">=</span> <span class="s">&#39;yyy&#39;</span>
+</span><span class="line">
+</span><span class="line"><span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class="line"><span class="k">def</span> <span class="nf">getData</span><span class="p">():</span>
+</span><span class="line">    <span class="n">conn_as</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">autoscale</span><span class="o">.</span><span class="n">connect_to_region</span><span class="p">(</span>
+</span><span class="line">            <span class="s">&#39;cn-north-1&#39;</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_access_key_id</span><span class="o">=</span><span class="n">AWS_ACCESS_KEY</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="n">AWS_SECRET_KEY</span><span class="p">)</span>
+</span><span class="line">    <span class="n">group</span> <span class="o">=</span> <span class="n">conn_as</span><span class="o">.</span><span class="n">get_all_groups</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+</span><span class="line">    <span class="n">conn_ec2</span> <span class="o">=</span> <span class="n">boto</span><span class="o">.</span><span class="n">ec2</span><span class="o">.</span><span class="n">connect_to_region</span><span class="p">(</span>
+</span><span class="line">            <span class="n">AWS_REGION</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_access_key_id</span><span class="o">=</span><span class="n">AWS_ACCESS_KEY</span><span class="p">,</span>
+</span><span class="line">            <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="n">AWS_SECRET_KEY</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">instance_id</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">instances</span><span class="p">]</span>
+</span><span class="line">    <span class="n">reservations</span> <span class="o">=</span> <span class="n">conn_ec2</span><span class="o">.</span><span class="n">get_all_instances</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span>
+</span><span class="line">    <span class="n">instances</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reservations</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">instances</span><span class="p">]</span>
+</span><span class="line">
+</span><span class="line">    <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class="line">    <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">][</span><span class="s">&#39;hosts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span class="line">    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reservations</span><span class="p">:</span>
+</span><span class="line">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">instances</span><span class="p">:</span>
+</span><span class="line">            <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">][</span><span class="s">&#39;hosts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="o">.</span><span class="n">private_ip_address</span><span class="p">)</span>
+</span><span class="line">            <span class="n">result</span><span class="p">[</span><span class="s">&#39;devtest-asg&#39;</span><span class="p">][</span><span class="s">&#39;vars&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;ansible_ssh_port&#39;</span><span class="p">:</span> <span class="mi">36000</span><span class="p">}</span>
+</span><span class="line">
+</span><span class="line"><span class="k">def</span> <span class="nf">getlists</span><span class="p">():</span>
+</span><span class="line">    <span class="n">getData</span><span class="p">()</span>
+</span><span class="line">    <span class="k">print</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span class="line">
+</span><span class="line"><span class="n">getlists</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>执行以下命令就可以愉快地使用 Ansible 了，其中 devtest-asg 是 ASG 的别名：</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">ansible</span> <span class="o">-</span><span class="n">i</span> <span class="n">get_host</span><span class="o">.</span><span class="n">py</span>  <span class="n">devtest</span><span class="o">-</span><span class="n">asg</span> <span class="o">-</span><span class="n">m</span> <span class="n">raw</span> <span class="o">-</span><span class="n">a</span> <span class="s">&#39;ls /&#39;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1482,195 +1645,6 @@
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/">Ansible 使用经验</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-09-05T18:09:00+08:00" pubdate data-updated="true">Sep 5<span>th</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/09/05/ansiblede-shi-yong-jing-yan/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>当你只有一两台服务器的情况下，可以直接登上服务器，手敲命令完成软件部署，代码发布等工作。但假如你有10台，100台的时候，这种方式不仅浪费大量时间，而且给人为犯错带来了可能。于是我们选择 Ansible 来做自动化批量操作。</p>
-
-<p>之前有记录一些 Ansible 入门的使用,请看<a href="http://wiki.zheng-ji.info/Sys/ansible.html">这里</a>, 这半年的积累, 总结一些实用的经验, 记录了一把。</p>
-
-<ul>
-  <li><a href="#第一节">配置 ansible.cfg 文件</a></li>
-  <li><a href="#第二节">使用 ansible role 来区分业务</a></li>
-  <li><a href="#第三节">files 目录的路径定位</a></li>
-  <li><a href="#第四节">使用 tags 区分不同操作</a></li>
-  <li><a href="#第五节">规划 ansible roles 的 tasks 文件</a></li>
-  <li><a href="#第六节">ansible-play-book 一些常用的选项</a></li>
-</ul>
-
-<h3 id="第一节">更好地配置文件</h3>
-
-<p>我们会如下配置 /etc/ansible/host, 特意指明用户与 端口</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">[web-cluster]
-</span><span class="line">&lt;node-1-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj
-</span><span class="line">&lt;node-2-IP&gt; ansible_ssh_port=&lt;Your Port&gt; ansible_ssh_user=zj</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>在 /etc/ansible/ansible.cfg 文件里
-我们特意提及了 ansible-role 的配置，未来我们会使用这个东西</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">roles_path    = /home/zj/my-ansible/roles</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第二节">使用 ansible role 来区分业务</h3>
-
-<p>打开 ansible 部署脚本的文件夹, 目录树如下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd /home/zj/my-ansible/
-</span><span class="line">haproxy
-</span><span class="line">     - entry.yaml
-</span><span class="line">roles
-</span><span class="line">     - haproxy
-</span><span class="line">        - files
-</span><span class="line">        - handlers
-</span><span class="line">        - vars
-</span><span class="line">        - tasks</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>我用一个管理 haproxy 的例子来讲解这种方式。
-在 roles 目录下创建 haproxy, 如上所示，需要有四个目录;</p>
-
-<ul>
-  <li>files 目录下放置需要被传输到远端的文件;</li>
-  <li>vars  目录下有一个 main.yml 文件,可以定义一些通用的配置变量，可以在 ansbile 脚本中使用;</li>
-  <li>handlers 目录下有一个 main.yml, 可以定义一些通用的操作，比如重启服务等;</li>
-  <li>tasks 目录下是我们编写 main.yml 脚本，执行业务逻辑的地方;</li>
-</ul>
-
-<blockquote>
-  <p>那么 ansible role 的入口在哪呢？</p>
-</blockquote>
-
-<p>在 ~/my-ansible/haproxy/entry.yml 中，指定了roles的角色，如此一来， 
-ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/main.yml </p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- hosts: web-cluster
-</span><span class="line">  roles:
-</span><span class="line">    - haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第三节">files 目录的路径定位</h3>
-
-<p>摘取 ~/my-ansible/roles/haproxy/tasks/main.yml</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
-</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
-</span><span class="line">  sudo: yes</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>这里的 src=haproxy.cfg 意味着 ~/my-ansible/roles/haproxy/files/haproxy.cfg</p>
-
-<h3 id="第四节">使用 tags 区分不同操作</h3>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- name: install ppa
-</span><span class="line">  shell: add-apt-repository -y ppa:vbernat/haproxy-1.5
-</span><span class="line">  sudo: yes
-</span><span class="line">  tags:
-</span><span class="line">    - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>以下命令，是使用 tags 参数区分操作的例子</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">cd ~/my-ansible/haproxy
-</span><span class="line">ansible-playbook entry.yml -v -K --tags "install-haproxy"</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h3 id="第五节">规划 ansible roles 的 tasks 目录</h3>
-
-<p>tasks 目录有一个主执行文件 main.yml, 因为业务操作步骤太多，导致 main.yml 文件很长，那么可读性就下降了。为此，我们使用了 include 语法。</p>
-
-<p>cat ~/my-ansible/roles/haproxy/tasks/main.yml</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- include: 'install-haproxy.yml'</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>include 上述文件，这样 main.yml 就显得简洁，我们可以将相关的操作写在对应的 yml 文件里</p>
-
-<p>cat ~/my-ansible/roles/haproxy/tasks/install-haproxy.yml</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">- name: copy haproxy conf
-</span><span class="line">  copy: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root
-</span><span class="line">  sudo: yes
-</span><span class="line">  tags:
-</span><span class="line">     - install-haproxy</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>tags 最好也与该 yml 文件名一致，清晰分明</p>
-
-<h3 id="第六节">ansible-play-book 一些常用的选项</h3>
-
-<ul>
-  <li>-K 需要 sudo 权限去客户机执行命令，会提示你输入密码</li>
-  <li>-v 可以输出冗余的执行过程</li>
-  <li>–check 可以测试脚本执行情况，但实际并未在远程机器执行</li>
-  <li>–tags 提示 ansible-play-book 调用哪些 tags 命令</li>
-</ul>
-
-<p>使用过ansible roles 之后，最大的体会是操作调理化，甚至编程化，合理的利用 handler, vars, 能更加优雅抽象。</p>
-
-<hr />
-
-<p>上述的例子在 Github 有代码, 结合本文阅读可能更容易上手
-<a href="https://github.com/zheng-ji/ToyCollection/tree/master/my-ansible">Link</a> </p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1692,6 +1666,10 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/05/29/shuang-duan-lian-biao/">双端链表</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/02/25/zookeeper-bi-ji/">zookeeper 笔记</a>
@@ -1719,10 +1697,6 @@ ansible-playbook 就会去 /home/zj/my-ansible/roles/haproxy 准备执行 tasks/
     
       <li class="post">
         <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a>
       </li>
     
   </ul>

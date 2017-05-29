@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-02-25T17:49:28+08:00</updated>
+  <updated>2017-05-29T23:35:50+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,156 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[双端链表]]></title>
+    <link href="http://zheng-ji.github.com/blog/2017/05/29/shuang-duan-lian-biao/"/>
+    <updated>2017-05-29T23:19:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2017/05/29/shuang-duan-lian-biao</id>
+    <content type="html"><![CDATA[<p>Nginx, Redis 项目中，均使用上了双链表。</p>
+
+<ul>
+  <li>
+    <p>列表类型的键进行操作(RPUSH, LPOP)时，程序底层操作用的是双端链表。 <a href="https://github.com/antirez/redis/blob/unstable/src/adlist.c">源码</a></p>
+  </li>
+  <li>
+    <p>Nginx 典型应用是在连接池中。Nginx 会处理大量的 socket 连接，为提高并发处理链接的能力，引入了连接池，其实现这个连接池用到了双链表。<a href="https://github.com/nginx/nginx/blob/master/src/core/ngx_queue.c">源码</a>.</p>
+  </li>
+</ul>
+
+<p>对于双端链表，教科书上曾有提及，但如今映像并不深刻，再度理解并实践一次。</p>
+
+<h3 id="section">结构定义与初始化</h3>
+
+<p>```
+typedef struct Node {
+    int num;
+    struct Node * next; //前继指针
+    struct Node * pre;  //后继指针
+} Node;</p>
+
+<p>typedef struct dlist {
+    Node * head; //双链表的指向头结点的元素
+    Node * tail; //双链表指向尾部节点的元素，方便从后检索
+} dlist;
+```</p>
+
+<p>初始化的双链表，<code>head</code>,<code>tail</code> 均为空。</p>
+
+<h3 id="section-1">插入操作</h3>
+
+<p>插入操作，要涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
+
+<ul>
+  <li>空链表插入头元素，head 与 tail 节点均要修改</li>
+  <li>在链表尾部插入节点，要变动 tail 指针</li>
+  <li>中间插入节点</li>
+</ul>
+
+<p>{% img /images/2017/05/dlist-insert.png %}</p>
+
+<p>```
+static int insertDlist(dlist <em>*list, int num) {
+    Node * head = (</em>list) -&gt; head;
+    Node * tail = (*list) -&gt; tail;</p>
+
+<pre><code>if (list == NULL) return -1;
+
+Node * node = initNode(num);
+if (node == NULL) return -1;
+
+// empty dlist
+if ((*list) -&gt; head == NULL &amp;&amp; (*list) -&gt; tail == NULL) {
+    (*list)-&gt; head = node;
+    (*list)-&gt; tail = node;
+    return 0;
+}
+
+while (head -&gt; next &amp;&amp; head -&gt; num &lt; num) {
+    head = head -&gt; next;
+}
+
+// at the end
+if (head-&gt;next == NULL) {
+    head -&gt; next = node;
+    node -&gt; pre = head;
+    tail -&gt; pre = node;
+    return 0;
+} else {
+    // in the middle
+    node-&gt; next = head -&gt; next;
+    head -&gt; next -&gt; pre = node;
+    node -&gt; pre = head;
+    head -&gt; next = node;
+    return 0;
+} }
+</code></pre>
+
+<p>```</p>
+
+<h3 id="section-2">删除操作</h3>
+
+<p>删除操作，要涉及到双链表的更改，因此传参是指向链表的指针，分三种情况</p>
+
+<ul>
+  <li>删除头结点，</li>
+  <li>删除尾节点</li>
+  <li>删除中间节点</li>
+</ul>
+
+<p>{% img /images/2017/05/dlist-delete.png %}</p>
+
+<p>```
+static int deleteDlist(dlist ** list, int location) {
+    Node * head = (*list) -&gt; head;
+    Node * now = NULL;
+    Node * last = NULL;</p>
+
+<pre><code>if (head == NULL)
+    return -1;
+if (location &lt;= 0 || location &gt; numOfDlist(*list))
+    return -1;
+
+if (location == 1) {
+    now = head;
+    (*list) -&gt; head = now -&gt;next;
+    head -&gt; next -&gt;pre = NULL;
+    if (now) {
+        free(now);
+        now = NULL;
+    }
+    return 0;
+}
+int num = 0;
+while (head &amp;&amp; num++ &lt; location) {
+    head = head -&gt; next;
+}
+
+if (head -&gt; next == NULL) {
+    now = (*list) -&gt; tail;
+    head -&gt; pre -&gt; next = NULL;
+    now -&gt; pre = head-&gt;pre;
+    if (head) {
+        free(head);
+        head = NULL;
+    }
+} else {
+    now = head -&gt; next;
+    last = head -&gt; pre;
+    now -&gt;pre = head -&gt; pre;
+    last -&gt; next = head -&gt;next;
+    if (head) {
+        free(head);
+        head = NULL;
+    }
+}
+return 0; } ```
+</code></pre>
+
+<p>本文所述是 C 语言实现的，<a href="https://github.com/zheng-ji/ToyCollection/dlist/mydlist.c">源码</a>
+在 Go 语言之中, <code>container/list</code> 包实现了双链表，直接引入就可以使用了。</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[记一次使用 redis 协议诡异的bug]]></title>
@@ -551,65 +701,6 @@ def login():
 </code></p>
 
 <p>我们在配置中开启了CSRF(跨站伪造请求)功能，模板参数 form.hidden_tag() 会被替换成一个具有防止CSRF功能的隐藏表单字段。 在开启了CSRF功能后，所有模板的表单中都需要添加这个模板参数</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Python 使用 LDAP]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/10/01/python-shi-yong-ldap/"/>
-    <updated>2015-10-01T09:49:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/10/01/python-shi-yong-ldap</id>
-    <content type="html"><![CDATA[<h2 id="section">写在开头</h2>
-
-<p>过去的两个多星期，几位小伙伴同心协力完成一个自研的，类似<a href="http://pushover.net">pushover</a>的产品。感谢 Leader 的信任，让我在负责开发的同时也兼顾了一把项目经理。谢谢 IOS, Android 客户端的兄弟，设计师的支持，还有一位实习生，开心看到他的点滴成长。</p>
-
-<p>提下背景，我们之前使用 <code>pushover</code> 来做报警推送，但是它对天朝用户不友好，Android 用户需要翻墙才能使用，有时候不稳定，体现为会收不到信息。pushove 需要付费。我们的受众不仅有程序汪，还有运营产品汪，他们需要一款更容易上手的推送软件，至少不需要番羽墙。于是自己开发一个很有必要。</p>
-
-<p>为最大程度降低用户使用门槛，同时保证用户信息的安全，我们用了 LDAP 账户登陆，严格控制权限，以及 HTTPS 协议开发。下面提一提 LDAP 这个东西。</p>
-
-<h2 id="ldap-">LDAP 是什么</h2>
-
-<p><a href="https://zh.wikipedia.org/wiki/%E8%BD%BB%E5%9E%8B%E7%9B%AE%E5%BD%95%E8%AE%BF%E9%97%AE%E5%8D%8F%E8%AE%AE">LDAP维基百科</a></p>
-
-<p>简单地讲，它是以目录树的方式存放账户信息。</p>
-
-<p>这次项目中，我们不希望用户重新注册账户，而是采用原有的用户体系，这样对单点登录以及权限控制的好处不严而喻, LDAP 协议呼之欲出。</p>
-
-<h2 id="virtualenv--python-ldap">virtualenv 下安装 python-ldap</h2>
-
-<p>我们采用 Python 开发，这就需要 python-ldap 的帮助了, 记下安装笔记的好处是下次不用在此纠结太长时间。</p>
-
-<p><code>
-apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
-pip install python-ldap
-</code></p>
-
-<h2 id="section-1">身份验证</h2>
-
-<p><code>
-# LDAP 服务的域名和端口
-SERVER_NAME = 'xxxx'
-SERVER_PORT = xxx
-try:
-    conn = ldap.open(SERVER_NAME, SERVER_PORT)  
-    conn.protocol_version = ldap.VERSION3 #设置ldap协议版本 
-    username = "user=xxx,dc=company,dc=com" #身份信息
-    password = "xxx" #访问密码
-    conn.simple_bind_s(username,password) # 开始绑定，验证成功的话不会抛出异常
-except ldap.LDAPError, e: #捕获出错信息
-    print e
-</code></p>
-
-<h2 id="section-2">一点感悟</h2>
-
-<p>鄙人觉得，技术领导要带领项目成长, 除了有责任把控项目风险，推进项目进度。
-还必须要花很多的心血在驾驭技术上,  身先士卒去调研可行性, 以及做技术攻关，
-而非命令式地分配任务，让同事干活, 只问责结果。
-否则很容易导致凝聚力不足,团队技术氛围不足，这样的团队易消极，也易滋生失败的项目。
-然而在天朝, 很多人存在一个潜意识:写好代码是为了以后不写代码，这种阶级思想让我反感。</p>
-
-<p>以前看过一个新闻, 硅谷在面试技术 VP ，仍然要求其在各位工程师面前手写代码，以此作为面试的重要环节, 不得不点赞。</p>
-
 ]]></content>
   </entry>
   
