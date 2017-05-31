@@ -139,5 +139,5 @@ static int deleteDlist(dlist ** list, int location) {
 }
 ```
 
-本文所述是 C 语言实现的，[源码](https://github.com/zheng-ji/ToyCollection/dlist/mydlist.c)
+本文所述是 C 语言实现的，[源码](https://github.com/zheng-ji/ToyCollection/blob/master/Dlist/mydlist.c)
 在 Go 语言之中, `container/list` 包实现了双链表，直接引入就可以使用了。
