@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-05-29T23:57:31+08:00</updated>
+  <updated>2017-05-31T11:26:28+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -243,7 +243,7 @@
 </span><span class="line">    return 0;
 </span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>本文所述是 C 语言实现的，<a href="https://github.com/zheng-ji/ToyCollection/dlist/mydlist.c">源码</a>
+<p>本文所述是 C 语言实现的，<a href="https://github.com/zheng-ji/ToyCollection/blob/master/Dlist/mydlist.c">源码</a>
 在 Go 语言之中, <code>container/list</code> 包实现了双链表，直接引入就可以使用了。</p>
 ]]></content>
   </entry>
