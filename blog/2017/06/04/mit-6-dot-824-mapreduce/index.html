@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>修葺小博 - 织网</title>
+  <title>MIT 6.824 MapReduce - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="关于博客 大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。 &hellip;">
+  <meta name="description" content="分布式，MapReduce">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2013/05/30/xiu-qi-xiao-bo">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2017/06/04/mit-6-dot-824-mapreduce">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -71,7 +71,7 @@
   
   <header>
     
-      <h1 class="entry-title">修葺小博</h1>
+      <h1 class="entry-title">MIT 6.824 MapReduce</h1>
     
     
       <p class="meta">
@@ -87,7 +87,7 @@
   
 
 
-<time datetime="2013-05-30T23:20:00+08:00" pubdate data-updated="true">May 30<span>th</span>, 2013</time>
+<time datetime="2017-06-04T13:27:00+08:00" pubdate data-updated="true">Jun 4<span>th</span>, 2017</time>
         
         
           | <a href="#comments">Comments</a>
@@ -97,31 +97,40 @@
   </header>
 
 
-<div class="entry-content"><h4 id="section">关于博客</h4>
+<div class="entry-content"><p>学习完成 MIT 6.824 <a href="http://nil.csail.mit.edu/6.824/2017/labs/lab-1.html">Lab1 MapReduce</a>，做下笔记</p>
 
-<p>大二那年从《暗时间》里，看到刘未鹏说“写博客很重要”，之后便开始建站写文章，Fenng君说到的文案的力量也让我深思技术人员必须要有好的文笔。一篇文章，能否做到干练，条理分明，甚至排版清晰，都是很考验人的。以后文章不能令自己满意，（就像自己开发的产品你都不喜欢使用）绝不能发表。</p>
+<h3 id="mapreduce-">MapReduce 的思路</h3>
 
-<p>今天好好地修理一翻博客，顿觉从建博至今，写了很多垃圾文章，甚发觉以前很幼稚（包括想法与文字），本想删除劣迹，但这些文章终究是自己一步步成长的印记，所以让它们保留着。折腾了一天wp源码（修改css代码，添加一些有用的插件）还是很欢乐的。得益于广泛阅读和折腾，技术的广度是够的，但深度却明显不足。后续宁愿慢点也要做深度思考，尽可能写出博文。</p>
+<ul>
+  <li>把数据分成 M 份，每一份叫做 Mi</li>
+  <li>启动一个 master 对象，由它来控制如何分配调控</li>
+  <li>master 挑出一个 worker，对 Mi 执行 map 操作，返回一个 KV 数组</li>
+  <li>然后把 KV 数组分成 nReduce 份存在本地，等待 Reduce 操作。当 map 全部完成后，每个 Mi 产生 nReduce 份结果，每一个叫做 Ri。文件名：mrtmp-JobName-Mi-Ri 其中Mi Ri 分别表示数字，因此这一步会产生 M * nReduce 份文件。</li>
+  <li>从每个 Mi 中选择一份 Ri。然后根据 Key 排序，把相同 Key 的 Value 合在一起，生成 Key /list(value)</li>
+  <li>开始 Reduce，输入list(value)，最后会生成 R 份文件 mrtmp.JobName-res-Ri</li>
+  <li>最后 Merge 成一个文件。</li>
+</ul>
 
-<h4 id="section-1">关于技术</h4>
+<h3 id="section">作业步骤</h3>
 
-<p>以后这个博客记录的更多会是后端开发的感悟，来源于自己浓厚的兴趣使然，喜欢服务端编程。虽然我在TX没有机会接触这样的开发（多少有些遗憾吧，但我希望去大公司开拓眼界，以后真的能做这样的工作，故不能放弃积累）。全凭一腔热血和毅力折腾，我所做的方法是，查看前人的技术成长，自己给自己提需求(比较傻)。偶有所得便会放上Github。诚如我所言，深度思考，学过的理要尽可能实现出来。宁愿慢点以获得真正的收获！</p>
+<ul>
+  <li>Part1 完成 doMap 和 doReduce。doMap 完成3，4两个步骤. doReduce 完成5，6两个步骤。</li>
+  <li>Part2 实现 main/wc.go 在Part1的基础上完成函数调用而已。</li>
+  <li>Part3 把 map 和 reduce 的操作变成异步。用到了RPC，用channel 来实现并发控制。</li>
+</ul>
 
-<p>如今已不再觉得学习某些技术会很厉害，真正具备的是思考，学习的能力。这都离不开扎实的基础！欣喜的是，我发现只要你去尝试并坚持努力，这些都可以提高的。</p>
+<h3 id="section-1">代码笔记</h3>
 
-<p>接触到身边很多程序员：”CopyCat,重复劳动，眼界狭隘，缺乏思考”，内心感到难受。@ruitao说过；”不可能要求这世界所有人都有一样的想法，他们已经被磨去了棱角。“ （PS：@ruitao是一个Geek&amp;&amp;工具控,我的偶像：））。所幸的是我可以自我修炼，信息的畅通大大降低了学习门槛，一直欣赏一种人，知道自己需要什么并坚持想法的去学习，不为了所谓“外部评价”。很感恩认识到一些爱好技术，追求效率的朋友，和志同道合的人分享是件很幸福的事.</p>
+<p><a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce">源码</a></p>
 
-<h4 id="section-2">致将要逝去的大学时光</h4>
-
-<p>这个月与好友们泡在一起，俺学会了lol，虽然绝对菜B，但仍能感受到大伙在一起的狂欢激情。这些日子，我尽可能地尝试以前想做的事情，比如弹起吉他。感觉人生又完满了一点。认识多了几个热爱搞技术的朋友，能和他们一起侃共同的话题真的很爽。或许因为大家都有不安分的心以及共同的愿景吧。
-转入正题：leveldb的内存设计思想</p>
-
-<p>在研究leveldb的源代码，觉得他的内存池实现很收启发。学习leveldb的内存设计思想。</p>
-
-<p>如果是频繁的申请内存，不连续，会造成内存碎片。但Leveldb采用了内存池的概念，一次性申请4M的内存。下次读取的内存小于内存池的容量，直接获取，否则，重新申请内存块：
-* 如果申请的字节数，bytes &gt;= 1M，则申请内存为 bytes的块,避免内存块浪费
-* 如果申请的字节数，bytes &lt;= 1M，则申请内存为 4M 的块
-Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo">源码</a></p>
+<ul>
+  <li>common.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/common.go#L11">11-32行</a>：可变参数打印日志，这个方法与C语言常用的类似</li>
+  <li>common_reduce.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/common_reduce.go#L75">Line75</a>：sort.strings 对字符串切片排序</li>
+  <li>commo_rpc.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/common_rpc.go#L59">Line59</a>：rpc调用方法</li>
+  <li>master.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master.go#L95">Line95-99</a>：当mr.newCond.Broadcast()被调用，此处就被唤醒，否则一直阻塞,mr.wait()所在的逻辑分支才会被唤醒，否则继续阻塞</li>
+  <li>master.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master.go#L15">Line15-16</a>：匿名参数，表示 Master 具有sync.Mutex的接口, 因而 Master 也能调用sync.Mutex的函数. 所以当调用 master.Lock()的时候也不足为奇</li>
+  <li>master_rpc.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master_rpc.go#L14">Line14</a>,<a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master_rpc.go#L37">Line37</a>：chanel 被close的时候，case &lt;- shutdown 也就被触发了 </li>
+</ul>
 </div>
 
 
@@ -144,12 +153,12 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
   
 
 
-<time datetime="2013-05-30T23:20:00+08:00" pubdate data-updated="true">May 30<span>th</span>, 2013</time>
+<time datetime="2017-06-04T13:27:00+08:00" pubdate data-updated="true">Jun 4<span>th</span>, 2017</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/life/'>Life</a>
+    <a class='category' href='/blog/categories/programe/'>Programe</a>
   
 </span>
 
@@ -165,10 +174,8 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/05/11/google-c-plus-plus-style/" title="Previous Post: Google C++ Style">&laquo; Google C++ Style</a>
+        <a class="basic-alignment left" href="/blog/2017/05/29/shuang-duan-lian-biao/" title="Previous Post: 双端链表">&laquo; 双端链表</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/06/08/c-plus-plus-yu-pythonde-hun-he-bian-cheng-pythontuo-zhan-bian-xie/" title="Next Post: C++与Python的混合编程">C++与Python的混合编程 &raquo;</a>
       
     </p>
   </footer>
@@ -178,7 +185,7 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="修葺小博"></div>
+<div class="ds-thread" data-title="MIT 6.824 MapReduce"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {

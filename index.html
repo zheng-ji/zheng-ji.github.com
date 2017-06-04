@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Nginx, Redis 项目中，均使用上了双链表。 列表类型的键进行操作(RPUSH, LPOP)时，程序底层操作用的是双端链表。 源码 Nginx 典型应用是在连接池中。Nginx 会处理大量的 socket 连接，为提高并发处理链接的能力，引入了连接池，其实现这个连接池用到了双链表。源码. &hellip;">
+  <meta name="description" content="学习完成 MIT 6.824 Lab1 MapReduce，做下笔记 MapReduce 的思路 把数据分成 M 份，每一份叫做 Mi 启动一个 master 对象，由它来控制如何分配调控 master 挑出一个 worker，对 Mi 执行 map 操作，返回一个 KV 数组 然后把 KV &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +68,78 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2017/06/04/mit-6-dot-824-mapreduce/">MIT 6.824 MapReduce</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-06-04T13:27:00+08:00" pubdate data-updated="true">Jun 4<span>th</span>, 2017</time>
+        
+        
+          | <a href="/blog/2017/06/04/mit-6-dot-824-mapreduce/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>学习完成 MIT 6.824 <a href="http://nil.csail.mit.edu/6.824/2017/labs/lab-1.html">Lab1 MapReduce</a>，做下笔记</p>
+
+<h3 id="mapreduce-">MapReduce 的思路</h3>
+
+<ul>
+  <li>把数据分成 M 份，每一份叫做 Mi</li>
+  <li>启动一个 master 对象，由它来控制如何分配调控</li>
+  <li>master 挑出一个 worker，对 Mi 执行 map 操作，返回一个 KV 数组</li>
+  <li>然后把 KV 数组分成 nReduce 份存在本地，等待 Reduce 操作。当 map 全部完成后，每个 Mi 产生 nReduce 份结果，每一个叫做 Ri。文件名：mrtmp-JobName-Mi-Ri 其中Mi Ri 分别表示数字，因此这一步会产生 M * nReduce 份文件。</li>
+  <li>从每个 Mi 中选择一份 Ri。然后根据 Key 排序，把相同 Key 的 Value 合在一起，生成 Key /list(value)</li>
+  <li>开始 Reduce，输入list(value)，最后会生成 R 份文件 mrtmp.JobName-res-Ri</li>
+  <li>最后 Merge 成一个文件。</li>
+</ul>
+
+<h3 id="section">作业步骤</h3>
+
+<ul>
+  <li>Part1 完成 doMap 和 doReduce。doMap 完成3，4两个步骤. doReduce 完成5，6两个步骤。</li>
+  <li>Part2 实现 main/wc.go 在Part1的基础上完成函数调用而已。</li>
+  <li>Part3 把 map 和 reduce 的操作变成异步。用到了RPC，用channel 来实现并发控制。</li>
+</ul>
+
+<h3 id="section-1">代码笔记</h3>
+
+<p><a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce">源码</a></p>
+
+<ul>
+  <li>common.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/common.go#L11">11-32行</a>：可变参数打印日志，这个方法与C语言常用的类似</li>
+  <li>common_reduce.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/common_reduce.go#L75">Line75</a>：sort.strings 对字符串切片排序</li>
+  <li>commo_rpc.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/common_rpc.go#L59">Line59</a>：rpc调用方法</li>
+  <li>master.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master.go#L95">Line95-99</a>：当mr.newCond.Broadcast()被调用，此处就被唤醒，否则一直阻塞,mr.wait()所在的逻辑分支才会被唤醒，否则继续阻塞</li>
+  <li>master.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master.go#L15">Line15-16</a>：匿名参数，表示 Master 具有sync.Mutex的接口, 因而 Master 也能调用sync.Mutex的函数. 所以当调用 master.Lock()的时候也不足为奇</li>
+  <li>master_rpc.go <a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master_rpc.go#L14">Line14</a>,<a href="https://github.com/zheng-ji/ToyCollection/blob/master/6.824-golabs-2017/src/mapreduce/master_rpc.go#L37">Line37</a>：chanel 被close的时候，case &lt;- shutdown 也就被触发了 </li>
+</ul>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1584,137 +1656,6 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/">准确监控 MySQL 复制延迟</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2016-06-03T23:35:00+08:00" pubdate data-updated="true">Jun 3<span>rd</span>, 2016</time>
-        
-        
-          | <a href="/blog/2016/06/03/zhun-que-jian-ce-mysql-fu-zhi-yan-chi/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>MySQL 建立主从复制后，在 <code>Slave_IO_Running</code>,<code>Slave_SQL_Runing</code> 都是 Yes 的前提下，通过监控 <code>Second_Behind_Master</code> 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">mysql</span><span class="o">&gt;</span> <span class="k">show</span> <span class="n">slave</span> <span class="n">status</span><span class="err">\</span><span class="k">G</span><span class="p">;</span>
-</span><span class="line"><span class="o">***************************</span> <span class="mi">1</span><span class="p">.</span> <span class="k">row</span> <span class="o">***************************</span>
-</span><span class="line"><span class="n">Slave_IO_State</span><span class="p">:</span> <span class="n">Waiting</span> <span class="k">for</span> <span class="n">master</span> <span class="k">to</span> <span class="n">send</span> <span class="n">event</span>
-</span><span class="line"><span class="p">....</span>
-</span><span class="line"><span class="n">Slave_IO_Running</span><span class="p">:</span> <span class="n">Yes</span>
-</span><span class="line"><span class="n">Slave_SQL_Running</span><span class="p">:</span> <span class="n">Yes</span>
-</span><span class="line"><span class="n">Seconds_Behind_Master</span><span class="p">:</span> <span class="mi">0</span>
-</span><span class="line"><span class="p">...</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>很遗憾，我们并不能这样去判断，因为你看到的有可能是假象。</p>
-
-<p>MySQL的同步是异步完成的，其中</p>
-
-<ul>
-  <li>IO thread 接收从主库的 binlog，然后在从库生成 relay log</li>
-  <li>SQL thead 解析 relay log 后在从库上进行重放</li>
-</ul>
-
-<p><code>Second_Behind_Master</code>(以下简称SBM) 是 SQL thread 在执行IO thread 生成的relay log的时间差。relay log中event的时间戳是主库上的时间戳，而SQL thread的时间戳是从库上的，SBM 代表的是从库延后主库的时间差。</p>
-
-<p>主库上执行了一个大的操作，这个操作在主库上没执行完毕的时候，从库的 SBM 会显示为0，而当主库执行完毕传到从库上开始执行的时候,SBM 就会显示很大，在网络状况不好的情况下，更是容易出现 SBM 在零和一个巨大的数值反复飘忽的现象。</p>
-
-<h3 id="pt-heartbeat-">pt-heartbeat 帮我们准确地检测</h3>
-
-<p>pt-heartbeat 是 percona-toolkit 中用来检测主从延迟的工具，需要在主库和从库同时配合才能完成</p>
-
-<ul>
-  <li>首先在主库创建监控的表，并定时更新</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">//</span><span class="err">创建</span> <span class="n">heartbeat</span> <span class="err">表</span>
-</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
-</span><span class="line">            <span class="c1">--host=localhost -D &lt;YourDatabase&gt; \</span>
-</span><span class="line">            <span class="c1">--create-table --update </span>
-</span><span class="line">
-</span><span class="line"><span class="o">//</span><span class="err">每隔</span><span class="mi">60</span><span class="n">s</span><span class="p">,</span><span class="err">定时更新状态，以守护进程的方式执行</span>
-</span><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
-</span><span class="line">           <span class="c1">--host=localhost -D &lt;YourDatabase&gt;\</span>
-</span><span class="line">           <span class="c1">--interval=60 --update --replace --daemonize</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-<p>它会在指定的数据库里生产一张名为 heartbeat 的表，每隔60秒定时更新binlog 文件和位置，以及时间戳。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
-</span><span class="line"><span class="o">|</span> <span class="n">ts</span>                         <span class="o">|</span> <span class="n">server_id</span> <span class="o">|</span> <span class="n">file</span>             <span class="o">|</span> <span class="k">position</span>  <span class="o">|</span> <span class="n">relay_master_log_file</span> <span class="o">|</span> <span class="n">exec_master_log_pos</span> <span class="o">|</span>
-</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
-</span><span class="line"><span class="o">|</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">03</span><span class="n">T22</span><span class="p">:</span><span class="mi">26</span><span class="p">:</span><span class="mi">29</span><span class="p">.</span><span class="mi">000720</span> <span class="o">|</span>         <span class="mi">6</span> <span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">004</span><span class="o">|</span> <span class="mi">716</span><span class="o">|</span> <span class="n">mysql</span><span class="o">-</span><span class="n">bin</span><span class="p">.</span><span class="mi">002</span><span class="o">|</span>           <span class="mi">291330290</span> <span class="o">|</span>
-</span><span class="line"><span class="o">+</span><span class="c1">----------------------------+-----------+------------------+-----------+-----------------------+---------------------+</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>接着在从库以守护进程执行定期检测,并将结果重定向到文本</li>
-</ul>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="n">pt</span><span class="o">-</span><span class="n">heartbeat</span> <span class="c1">--user=root --ask-pass \</span>
-</span><span class="line">     <span class="c1">--host=localhost -D &lt;YourDatabase&gt; --interval=60 \</span>
-</span><span class="line">     <span class="c1">--file=/tmp/output.txt --monitor --daemonize</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>文本的内容只有一行，每隔指定的时间就会被覆盖</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class="sql"><span class="line"><span class="mi">29</span><span class="p">.</span><span class="mi">00</span><span class="n">s</span> <span class="p">[</span> <span class="mi">30</span><span class="p">.</span><span class="mi">20</span><span class="n">s</span><span class="p">,</span>  <span class="mi">6</span><span class="p">.</span><span class="mi">04</span><span class="n">s</span><span class="p">,</span>  <span class="mi">2</span><span class="p">.</span><span class="mi">01</span><span class="n">s</span> <span class="p">]</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<p>29s 表示的是瞬间的延迟时间，30.20s 表示1分钟的延迟时间，6.04秒表示5分钟的延迟时间，2.01秒表示以及15分钟的延迟时间，在主从机器时间校准的前提下，这个数据才是客观准确的主从延迟。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1734,6 +1675,10 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/06/04/mit-6-dot-824-mapreduce/">MIT 6.824 MapReduce</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/05/29/shuang-duan-lian-biao/">双端链表</a>
@@ -1761,10 +1706,6 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
     
       <li class="post">
         <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
       </li>
     
   </ul>

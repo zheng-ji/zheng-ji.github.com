@@ -9,7 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="作为新入职的员工，参加了公司为期10天的封闭培训，此文记下这些日子的一些感悟。 因为 “思绪来地快，去地也快” by 云风。 遇到的人 因为缘分，我和其他6位同学组成了小组（肆无忌惮组），其中一位是武大的博士（windsunwang），一位是来广研微信的华工师兄(xiaochunguo)， &hellip;">
+  <meta name="description" content="Oracle初印象 曾经阿里的去O化搞得满城风雨，，随后很多企业也开始跟风去除Oracle，让Oracle这样的企业都为之咳嗽了一阵子。有兴趣的朋友可以看看王坚博士的文章。作为一个开源软件热爱者，首先接触到的一定是Mysql， 随后才是MongoDB,Redis,LevelDb。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +68,224 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/16/jing-ran-ye-yong-dao-liao-oracle/">竟然也用到了Oracle</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-16T20:25:00+08:00" pubdate data-updated="true">Aug 16<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/08/16/jing-ran-ye-yong-dao-liao-oracle/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h4 id="oracle">Oracle初印象</h4>
+
+<p>曾经阿里的去O化搞得满城风雨，，随后很多企业也开始跟风去除Oracle，让Oracle这样的企业都为之咳嗽了一阵子。有兴趣的朋友可以看看王坚博士的文章。作为一个开源软件热爱者，首先接触到的一定是Mysql， 随后才是MongoDB,Redis,LevelDb。无论如何是怎么也想不到会去接触Oracle，就像我再也没有机会也不会去使用3.5英寸软盘的样子,因为这样会让我感觉到世界在倒退。</p>
+
+<p>先知言：”存在即合理”。也就为以后的遇见埋下伏笔。果然，由于历史原因，庞大的业务体系下，我终于还是遇见了它，带着对伟大数据库敬仰的心探索了一把。说实话，当你习惯了简单的Mysql之类的思维之后，接触Oracle就有点纠结了。我愿意称其为接触另一种新思维方式。没有比这更值得鼓舞人心的动力了 ：）</p>
+
+<p><img src="/images/2013/08/oracle.png" /></p>
+
+<p>我做的事情是在游戏数据操作中做一个抽象的操作类。涉及框架代码的改造，这过程有点DT。我从事的工作大部分是C++开发这过程着实feel到了“生命太短，远离C++” 涉及到多重继承，虚析构函数，同个父类冲突，属性可见性,抽象类可用。Debug 了两天。还好有GDB这种家伙。
+Oracle查询流程</p>
+
+<p>简单描述下普通的Oracle建立连接以及查询的顺序,使用的是OCCI （Oracle的C++接口）:</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">//创建enviroment变量
+</span><span class="line">Environment *env = Environment::createEnvironment( Environment::DEFAULT);
+</span><span class="line">//创建连接
+</span><span class="line">Connection *conn = env-&gt;createConnection( userName, password, connectString);
+</span><span class="line">//创建 查询描述符
+</span><span class="line">Statement *stmt = conn-&gt;createStatement( "SELECT blobcol FROM mytable");
+</span><span class="line">//执行查询，返回结果集
+</span><span class="line">ResultSet *rs = stmt-&gt;executeQuery();
+</span><span class="line">//关闭查询，环境变量
+</span><span class="line">stmt-&gt;closeResultSet(rs);
+</span><span class="line">conn-&gt;terminateStatement(stmt);
+</span><span class="line">env-&gt;terminateConnection(conn);
+</span><span class="line">Environment::terminateEnvironment(env);</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>蛋蛋的疼</p>
+
+<p>期间遇到了Oracle 好多奇形怪状的问题。尽管如此，我喜欢这样折腾自己 :) 是不是有点变态。</p>
+
+<ul>
+  <li>创建环境变量类指明多线程使用。该任务需要多线程执行的，如果不特别声明多线程执行，如果不特别指明的话会奔溃，我纠结了一天就是因为没有指明这个常量。这在Mysql是没有见到的吧</li>
+  <li>连接管理。Oracle的连接关闭很重要。查询任务完成后要及时关闭连接。如果不关闭连接和环境句柄，程序就会有很大的潜在bug,程序执行期间也会奔溃。这过程中自己写了连接管理模块。特别处理了多线程处理时的构造与析构。</li>
+</ul>
+
+<p>以下是连接管理类的代码</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+<span class="line-number">43</span>
+<span class="line-number">44</span>
+<span class="line-number">45</span>
+<span class="line-number">46</span>
+<span class="line-number">47</span>
+<span class="line-number">48</span>
+<span class="line-number">49</span>
+<span class="line-number">50</span>
+<span class="line-number">51</span>
+<span class="line-number">52</span>
+<span class="line-number">53</span>
+<span class="line-number">54</span>
+<span class="line-number">55</span>
+<span class="line-number">56</span>
+<span class="line-number">57</span>
+<span class="line-number">58</span>
+<span class="line-number">59</span>
+<span class="line-number">60</span>
+<span class="line-number">61</span>
+<span class="line-number">62</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">#include&lt;string.h&gt;
+</span><span class="line">using namespace oracle::occi;
+</span><span class="line">class COraclconn
+</span><span class="line">{
+</span><span class="line">    public :
+</span><span class="line">
+</span><span class="line">        COraclconn (const std::string &amp; user, const std:: string&amp; password,
+</span><span class="line">                const std:: string&amp; dbname)
+</span><span class="line">        {
+</span><span class="line">            m_status = false;
+</span><span class="line">            env = NULL;
+</span><span class="line">            conn = NULL;
+</span><span class="line">            stmt = NULL;
+</span><span class="line">            env = Environment::createEnvironment( Environment::THREADED_MUTEXED);
+</span><span class="line">            if (! env)
+</span><span class="line">            {
+</span><span class="line">                env = NULL;
+</span><span class="line">                return;
+</span><span class="line">            }
+</span><span class="line">            conn = env-&gt; createConnection(user, password, dbname);
+</span><span class="line">            if (! conn)
+</span><span class="line">            {
+</span><span class="line">                conn = NULL;
+</span><span class="line">                return;
+</span><span class="line">            }
+</span><span class="line">            m_status = true;
+</span><span class="line">        }
+</span><span class="line">
+</span><span class="line">        ~COraclconn ()
+</span><span class="line">        {
+</span><span class="line">            if ( conn &amp;&amp; stmt)
+</span><span class="line">                conn-&gt; terminateStatement( stmt);
+</span><span class="line">            if ( env &amp;&amp; conn)
+</span><span class="line">                env-&gt; terminateConnection( conn);
+</span><span class="line">            if ( env)
+</span><span class="line">                Environment:: terminateEnvironment( env);
+</span><span class="line">        }
+</span><span class="line">        Statement * getstmt( const string&amp; sql)
+</span><span class="line">        {
+</span><span class="line">            if (! m_status)
+</span><span class="line">                return NULL;
+</span><span class="line">            if ( stmt)
+</span><span class="line">            {
+</span><span class="line">                conn-&gt; terminateStatement( stmt);
+</span><span class="line">                stmt = NULL;
+</span><span class="line">
+</span><span class="line">            }
+</span><span class="line">            stmt = conn-&gt; createStatement(sql);
+</span><span class="line">            if (! stmt)
+</span><span class="line">            {
+</span><span class="line">                stmt = NULL;
+</span><span class="line">                m_status = false;
+</span><span class="line">            }
+</span><span class="line">            return stmt;
+</span><span class="line">
+</span><span class="line">        }
+</span><span class="line">    protected :
+</span><span class="line">        bool m_status;
+</span><span class="line">        Environment *env ;
+</span><span class="line">        Connection *conn ;
+</span><span class="line">        Statement *stmt ;
+</span><span class="line">};</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>还好我做的是封装SQL，对于其诡异的语法可以不用涉及到。相信每个热爱技术的人儿碰到写相对非业务的代码会感到充实愉快的吧。</p>
+
+<p>Happy Hacking ：）</p>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1250,52 +1468,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/02/zhe-teng/">折腾</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-04-02T13:53:00+08:00" pubdate data-updated="true">Apr 2<span>nd</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/04/02/zhe-teng/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><img src="/images/2013/panda.jpg" /></p>
-
-<p>这天我被折腾疯了</p>
-
-<p>开始博客迁移，从 <a href="http:innerbrilliant.sinaapp.com">http:innerbrilliant.sinaapp.com</a> 迁移至 <a href="http://zheng-ji.info">zheng-ji.info</a></p>
-
-<p>文档式编程的感觉爽 ：）</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/9/">&larr; Older</a>
@@ -1317,6 +1489,10 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/06/04/mit-6-dot-824-mapreduce/">MIT 6.824 MapReduce</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/05/29/shuang-duan-lian-biao/">双端链表</a>
@@ -1344,10 +1520,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
     
       <li class="post">
         <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/07/23/celeryde-crontabshi-jian/">Celery的Crontab实践</a>
       </li>
     
   </ul>
