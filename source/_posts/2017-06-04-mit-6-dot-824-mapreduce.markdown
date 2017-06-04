@@ -7,7 +7,7 @@ categories: Programe
 description: 分布式，MapReduce
 ---
 
-学习完成 MIT 6.824 [Lab1 MapReduce](http://nil.csail.mit.edu/6.824/2017/labs/lab-1.html)，做下笔记
+学习 MIT 6.824 [Lab1 MapReduce](http://nil.csail.mit.edu/6.824/2017/labs/lab-1.html)，做下笔记
 
 ### MapReduce 的思路
 
