@@ -9,7 +9,8 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="Oracle初印象 曾经阿里的去O化搞得满城风雨，，随后很多企业也开始跟风去除Oracle，让Oracle这样的企业都为之咳嗽了一阵子。有兴趣的朋友可以看看王坚博士的文章。作为一个开源软件热爱者，首先接触到的一定是Mysql， 随后才是MongoDB,Redis,LevelDb。 &hellip;">
+  <meta name="description" content="最近和小伙伴们在做一个游戏。有机会单挑服务端了。被信任是有压力也有动力 ：），可以尝试各种好玩的技术的感觉是很爽。Jerry 和Cat 所主导的客户端，Mzt的美术都很给力。作为云风的忠实粉，可以独立设计游戏服务器后台，我对这样的挑战期待已久。 逻辑架构图 主要由三大逻辑层组成：
++ 连接（接入） &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -68,6 +69,132 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/">MiniGame 服务端设计</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-20T18:54:00+08:00" pubdate data-updated="true">Aug 20<span>th</span>, 2013</time>
+        
+        
+          | <a href="/blog/2013/08/20/minigame-fu-wu-duan-she-ji/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>最近和小伙伴们在做一个游戏。有机会单挑服务端了。被信任是有压力也有动力 ：），可以尝试各种好玩的技术的感觉是很爽。Jerry 和Cat 所主导的客户端，Mzt的美术都很给力。作为云风的忠实粉，可以独立设计游戏服务器后台，我对这样的挑战期待已久。</p>
+
+<h4 id="section">逻辑架构图</h4>
+<p><img src="/images/2013/08/minigame.png" /></p>
+
+<p>主要由三大逻辑层组成：
++ 连接（接入）服务器模块:   ConnServer
++ 游戏服务器模块 ：        GameServer
++ 缓存服务器模块：         CacheServer
+  (附：我们自己编写了静态资源的服务器功能，提供给用户下载Apk的功能)</p>
+
+<ul>
+  <li>
+    <p>接入服务器模块
+服务器Socket建立，建立玩家通讯连接，为每一位连上服务器的玩家建立一个线程。
+服务器维护一个连接列表。采用map 的方式记录每一位玩家的连接信息。</p>
+  </li>
+  <li>
+    <p>游戏服务器模块：
+  这是处理游戏业务逻辑的主要模块。它包括了消息包解析器服务（Parser），游戏大厅服务（GameRoom），账户体系服务（Account）,消息中心服务（MsgCenter）,心跳服务（Heartbeat）.日志功能模块（log）</p>
+  </li>
+  <li>消息包解析器服务（Parser）:主要实现了消息状态机。解析收到的客户端的数据包的协议号，然后将消息路由到不同功能模块去处理。</li>
+  <li>账户体系服务（Account）：提供用户注册和登陆管理的模块</li>
+  <li>游戏大厅服务（GameRoom）：采用Redis 内存数据库，构造消息队列。模拟游戏大厅，并对玩家进行配对筛选，构造set类型的匹配对完成1对1 的对战模式</li>
+  <li>消息中心服务（MsgCenter）:完成游戏过程中玩家信息的交互。</li>
+  <li>心跳服务（Heartbeat）：这是一个相对独立的进程，每7秒遍历用户信息，完成心跳检测，清理无效的过期数据，保持游戏数据的一致性.</li>
+  <li>日志功能：打印程序中的日志。</li>
+  <li>
+    <p>静态资源下载器（downloader）：采用tornado拓展编写web服务，提供Apk静态资源下载的模块</p>
+  </li>
+  <li>缓存服务器模块
+  现阶段游戏对服务的要求不需要做到持久化的保存，于是服务器没有采用mysql之类的范式数据库。我们的数据收发一直处于频繁状态，于是我们采用了Redis这种分布式的内存数据库来实现我们的数据缓存模块，后续会介绍数据的键值设计</li>
+</ul>
+
+<h4 id="section-1">类图</h4>
+<p><img src="/images/2013/08/class.png" /></p>
+
+<ul>
+  <li>cache数据库的设计：
+利用Redis的数据特性,新增一个用户保证用户ID的原子性。</li>
+  <li>counter: 对新用户的注册执行自增操作，从而保证账号Id 唯一</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key value
+</span><span class="line">实例 counter 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>用户账号：
+Key设计为 user：name:用户名’，Value用户ID，
+为保证用户可以同时通过id 查找名字 ，也设计了 ‘user:id:ID值’值为用户名</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key                    value
+</span><span class="line">实例 User:name:zhengji         1
+</span><span class="line">实例 User:id:1                 zhengji</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>玩家通讯缓存设计：
+Key值：user:用户名：msg: Value:‘分数，buff_id,时间戳’</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明 key              value
+</span><span class="line">实例 user:zhengji:msg 100, 2,   1324256778.89</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>玩家匹配对设计
+在游戏大厅的功能里，我们采用了redis的list模拟了玩家等待队列的功能 在真正匹配到玩家对的时候，使用table_xx 来记录玩家匹配信息,它是一个set的类型,在游戏退出的时候会被驱动去清除该表的信息</li>
+</ul>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明   key      value
+</span><span class="line">实例 Table_1 ‘jerry,zhengji’</span></code></pre></td></tr></table></div></figure></notextile></div>
+<pre><code>    为标志每个玩家的table号，我们使用了另外一个键值对 Table:玩家名：tableindex.
+</code></pre>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">说明   key       value
+</span><span class="line">实例 Table:zhengji 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1319,155 +1446,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/">返回值的透彻理解</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-04-20T23:06:00+08:00" pubdate data-updated="true">Apr 20<span>th</span>, 2013</time>
-        
-        
-          | <a href="/blog/2013/04/20/fan-hui-zhi-de-tou-che-li-jie/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>在读《C++编程关键路径》的时候，看到有一章讲的很好。于是分享开来：</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-<span class="line-number">12</span>
-<span class="line-number">13</span>
-<span class="line-number">14</span>
-<span class="line-number">15</span>
-<span class="line-number">16</span>
-<span class="line-number">17</span>
-<span class="line-number">18</span>
-<span class="line-number">19</span>
-<span class="line-number">20</span>
-<span class="line-number">21</span>
-<span class="line-number">22</span>
-<span class="line-number">23</span>
-<span class="line-number">24</span>
-<span class="line-number">25</span>
-<span class="line-number">26</span>
-<span class="line-number">27</span>
-<span class="line-number">28</span>
-<span class="line-number">29</span>
-<span class="line-number">30</span>
-<span class="line-number">31</span>
-<span class="line-number">32</span>
-<span class="line-number">33</span>
-<span class="line-number">34</span>
-<span class="line-number">35</span>
-<span class="line-number">36</span>
-<span class="line-number">37</span>
-<span class="line-number">38</span>
-<span class="line-number">39</span>
-<span class="line-number">40</span>
-<span class="line-number">41</span>
-<span class="line-number">42</span>
-<span class="line-number">43</span>
-<span class="line-number">44</span>
-<span class="line-number">45</span>
-</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="kt">void</span> <span class="nf">swap</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">    <span class="kt">int</span> <span class="n">tmp</span><span class="p">;</span>
-</span><span class="line">    <span class="n">tmp</span> <span class="o">=</span> <span class="n">a</span><span class="p">;</span>
-</span><span class="line">    <span class="n">a</span> <span class="o">=</span> <span class="n">b</span><span class="p">;</span>
-</span><span class="line">    <span class="n">b</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line"><span class="kt">int</span> <span class="nf">get_ini</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
-</span><span class="line">    <span class="kt">int</span>  <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">a</span><span class="p">;</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">i</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory0</span><span class="p">()</span> <span class="p">{</span>
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">char</span> <span class="p">)</span> <span class="o">*</span> <span class="mi">20</span><span class="p">);</span>
-</span><span class="line">    <span class="n">strcpy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="s">&quot;hello world&quot;</span><span class="p">);</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory1</span><span class="p">()</span> <span class="p">{</span>
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="kt">char</span> <span class="o">*</span> <span class="nf">get_memory2</span><span class="p">()</span> <span class="p">{</span>
-</span><span class="line">    <span class="kt">char</span> <span class="n">p</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&quot;hello world&quot;</span><span class="p">;</span>
-</span><span class="line">    <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
-</span><span class="line"><span class="p">}</span>
-</span><span class="line">
-</span><span class="line"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span><span class="kt">char</span> <span class="o">*</span> <span class="n">argv</span><span class="p">[]){</span>
-</span><span class="line">    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
-</span><span class="line">    <span class="n">swap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">);</span>
-</span><span class="line">    <span class="kt">int</span> <span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">;</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题1</span>
-</span><span class="line">
-</span><span class="line">    <span class="n">z</span> <span class="o">=</span> <span class="n">get_ini</span><span class="p">(</span><span class="n">z</span><span class="p">);</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;z = %d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">z</span><span class="p">);</span><span class="c1">//问题2</span>
-</span><span class="line">
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c0</span> <span class="o">=</span> <span class="n">get_memory0</span><span class="p">();</span><span class="c1">//问题3</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c0 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
-</span><span class="line">
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c1</span> <span class="o">=</span> <span class="n">get_memory1</span><span class="p">();</span><span class="c1">//问题4</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c1</span><span class="p">);</span>
-</span><span class="line">
-</span><span class="line">    <span class="kt">char</span> <span class="o">*</span> <span class="n">c2</span> <span class="o">=</span> <span class="n">get_memory2</span><span class="p">();</span><span class="c1">//问题5</span>
-</span><span class="line">    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;c1 = %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="n">c2</span><span class="p">);</span>
-</span><span class="line"><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h4 id="section">问题1：</h4>
-<p>a,b没有发生交换，所有函数会在程序运行的时候程序栈上分配一块存储区，这块栈的函数存储区随函数开始而开始，随着函数结束而结束，函数结束后， 这块存储区自动释放，以供其他用途，栈的默认大小是1M,swap(int a, int b)是一个参数传值的函数，函数内部的a,b是参数int a 和 int b的局部拷贝，所以a，b实际可以看成局部变量，他们的值由int a ,int b实参复制而来，只在函数内部有效，当函数体内的a,b离开函数作用域时候，a,b变量就销毁了.函数实参值没有发生改变。</p>
-
-<h4 id="section-1">问题2：</h4>
-<p>返回值i是一个局部变量，函数的返回参数怎么可能是局部变量？函数的返回值由传值和传址两种，传值会在返回处生成一个临时对象，
-用于存放局部变量i的一份拷贝。临时对象没有名称。虽然i被销毁了，但是他的拷贝仍然存在。并在函数返回处赋值给z.c0 = “hello world”</p>
-
-<h4 id="section-2">问题3：</h4>
-<p>程序运行期间堆的内存一直都在。返回的p是会被销毁，但是在返回处有p的拷贝对象，指向堆的地址。c1 = “hello world”</p>
-
-<h4 id="section-3">问题4:</h4>
-<p>常量存储区：”hello world”在程序运行期间都在</p>
-
-<h4 id="section-4">问题5：</h4>
-<p>p[]不是指针，是一个数组变量，函数返回时左值拷贝只想的是局部变量的p[12]的首地址，当局部数组p[12]离开作用域后会自动销毁，
-这时，函数返回的左值，拷贝指向的是一个被销毁的局部变量地址。所以c2 = 未知</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/9/">&larr; Older</a>
@@ -1489,6 +1467,10 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/07/13/httpserver-graceful-shutdown-in-go/">HTTPServer 优雅关闭</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/06/04/mit-6-dot-824-mapreduce/">MIT 6.824 MapReduce</a>
@@ -1516,10 +1498,6 @@ Github <a href="https://github.com/zheng-ji/ToyCollection/tree/master/Level_memo
     
       <li class="post">
         <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
       </li>
     
   </ul>

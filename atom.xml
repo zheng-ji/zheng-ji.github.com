@@ -4,7 +4,7 @@
   <title><![CDATA[织网]]></title>
   <link href="http://zheng-ji.github.com/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-06-04T13:37:15+08:00</updated>
+  <updated>2017-07-13T09:11:50+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -12,6 +12,190 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[HTTPServer 优雅关闭]]></title>
+    <link href="http://zheng-ji.github.com/blog/2017/07/13/httpserver-graceful-shutdown-in-go/"/>
+    <updated>2017-07-13T09:04:00+08:00</updated>
+    <id>http://zheng-ji.github.com/blog/2017/07/13/httpserver-graceful-shutdown-in-go</id>
+    <content type="html"><![CDATA[<p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
+Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ，</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">// src/net/http/server.go
+</span><span class="line">// Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context's error is returned.
+</span><span class="line">
+</span><span class="line">func (srv *Server) Shutdown(ctx context.Context) error {
+</span><span class="line">    atomic.AddInt32(&amp;srv.inShutdown, 1)
+</span><span class="line">    defer atomic.AddInt32(&amp;srv.inShutdown, -1)
+</span><span class="line">
+</span><span class="line">    srv.mu.Lock()
+</span><span class="line">    lnerr := srv.closeListenersLocked()
+</span><span class="line">    srv.closeDoneChanLocked()
+</span><span class="line">    srv.mu.Unlock()
+</span><span class="line">
+</span><span class="line">    ticker := time.NewTicker(shutdownPollInterval)
+</span><span class="line">    defer ticker.Stop()
+</span><span class="line">    for {
+</span><span class="line">        if srv.closeIdleConns() {
+</span><span class="line">            return lnerr
+</span><span class="line">        }
+</span><span class="line">        select {
+</span><span class="line">        case &lt;-ctx.Done():
+</span><span class="line">            return ctx.Err()
+</span><span class="line">        case &lt;-ticker.C:
+</span><span class="line">        }
+</span><span class="line">    }
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections， 然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
+
+<p>如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
+Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
+一旦超时，Shutdown 将直接返回。对于仍然处理 active 状态的Connection，就无能为力了。
+所以 Shutdown 超时时间尽量要比链接处理的时间长</p>
+
+<p>了解完原理，我们用例子来感受一下这个特性。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+<span class="line-number">26</span>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">package main
+</span><span class="line">
+</span><span class="line">import (
+</span><span class="line">	"context"
+</span><span class="line">	"log"
+</span><span class="line">	"net/http"
+</span><span class="line">	"os"
+</span><span class="line">	"os/signal"
+</span><span class="line">	"time"
+</span><span class="line">	"github.com/gin-gonic/gin"
+</span><span class="line">)
+</span><span class="line">
+</span><span class="line">func main() {
+</span><span class="line">	router := gin.Default()
+</span><span class="line">	router.GET("/", func(c *gin.Context) {
+</span><span class="line">		time.Sleep(3 * time.Second)
+</span><span class="line">		log.Printf(http.StatusOK, "Handle request success")
+</span><span class="line">	})
+</span><span class="line">
+</span><span class="line">	srv := &amp;http.Server{
+</span><span class="line">		Addr:    ":8080",
+</span><span class="line">		Handler: router,
+</span><span class="line">	}
+</span><span class="line">
+</span><span class="line">	go func() {
+</span><span class="line">		if err := srv.ListenAndServe(); err != nil {
+</span><span class="line">			log.Printf("listen: %s\n", err)
+</span><span class="line">		}
+</span><span class="line">	}()
+</span><span class="line">
+</span><span class="line">	quit := make(chan os.Signal)
+</span><span class="line">	signal.Notify(quit, os.Interrupt)
+</span><span class="line">	&lt;-quit
+</span><span class="line">	log.Println("Shutdown Server ...")
+</span><span class="line">
+</span><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+</span><span class="line">	defer cancel()
+</span><span class="line">	if err := srv.Shutdown(ctx); err != nil {
+</span><span class="line">		log.Fatal("Server Shutdown:", err)
+</span><span class="line">	}
+</span><span class="line">	log.Println("Server exist")
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出，退出时，HTTPServer 等待5秒来”善后”。测试中，我发起<code>curl localhost:8080</code>,随即Ctrl+C来退出程序，发现，服务器坚持在处理完这个HTTP请求才退出。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+</span><span class="line"> - using env:	export GIN_MODE=release
+</span><span class="line"> - using code:	gin.SetMode(gin.ReleaseMode)
+</span><span class="line">
+</span><span class="line">[GIN-debug] GET    /                         --&gt; main.main.func1 (3 handlers)
+</span><span class="line">Handle Request success
+</span><span class="line">[GIN] 2017/07/12 - 20:30:47 | 200 |  3.000385597s | 127.0.0.1 |   GET     /
+</span><span class="line">^C  //终端输入Ctrl+C
+</span><span class="line">Shutdown Server ...
+</span><span class="line">listen: http: Server closed
+</span><span class="line">Handle Request success //在接收到关闭信号时，依然保证正在处理的请求正常处理完
+</span><span class="line">[GIN] 2017/07/12 - 20:30:53 | 200 |  3.000360362s | 127.0.0.1 |   GET     /
+</span><span class="line">Server exist</span></code></pre></td></tr></table></div></figure></notextile></div>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[MIT 6.824 MapReduce]]></title>
@@ -2458,74 +2642,6 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 </span><span class="line">    return render_template('login.html', title = 'Sign In',form = form)</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>我们在配置中开启了CSRF(跨站伪造请求)功能，模板参数 form.hidden_tag() 会被替换成一个具有防止CSRF功能的隐藏表单字段。 在开启了CSRF功能后，所有模板的表单中都需要添加这个模板参数</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Python 使用 LDAP]]></title>
-    <link href="http://zheng-ji.github.com/blog/2015/10/01/python-shi-yong-ldap/"/>
-    <updated>2015-10-01T09:49:00+08:00</updated>
-    <id>http://zheng-ji.github.com/blog/2015/10/01/python-shi-yong-ldap</id>
-    <content type="html"><![CDATA[<h2 id="section">写在开头</h2>
-
-<p>过去的两个多星期，几位小伙伴同心协力完成一个自研的，类似<a href="http://pushover.net">pushover</a>的产品。感谢 Leader 的信任，让我在负责开发的同时也兼顾了一把项目经理。谢谢 IOS, Android 客户端的兄弟，设计师的支持，还有一位实习生，开心看到他的点滴成长。</p>
-
-<p>提下背景，我们之前使用 <code>pushover</code> 来做报警推送，但是它对天朝用户不友好，Android 用户需要翻墙才能使用，有时候不稳定，体现为会收不到信息。pushove 需要付费。我们的受众不仅有程序汪，还有运营产品汪，他们需要一款更容易上手的推送软件，至少不需要番羽墙。于是自己开发一个很有必要。</p>
-
-<p>为最大程度降低用户使用门槛，同时保证用户信息的安全，我们用了 LDAP 账户登陆，严格控制权限，以及 HTTPS 协议开发。下面提一提 LDAP 这个东西。</p>
-
-<h2 id="ldap-">LDAP 是什么</h2>
-
-<p><a href="https://zh.wikipedia.org/wiki/%E8%BD%BB%E5%9E%8B%E7%9B%AE%E5%BD%95%E8%AE%BF%E9%97%AE%E5%8D%8F%E8%AE%AE">LDAP维基百科</a></p>
-
-<p>简单地讲，它是以目录树的方式存放账户信息。</p>
-
-<p>这次项目中，我们不希望用户重新注册账户，而是采用原有的用户体系，这样对单点登录以及权限控制的好处不严而喻, LDAP 协议呼之欲出。</p>
-
-<h2 id="virtualenv--python-ldap">virtualenv 下安装 python-ldap</h2>
-
-<p>我们采用 Python 开发，这就需要 python-ldap 的帮助了, 记下安装笔记的好处是下次不用在此纠结太长时间。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
-</span><span class="line">pip install python-ldap</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="section-1">身份验证</h2>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># LDAP 服务的域名和端口
-</span><span class="line">SERVER_NAME = 'xxxx'
-</span><span class="line">SERVER_PORT = xxx
-</span><span class="line">try:
-</span><span class="line">    conn = ldap.open(SERVER_NAME, SERVER_PORT)  
-</span><span class="line">    conn.protocol_version = ldap.VERSION3 #设置ldap协议版本 
-</span><span class="line">    username = "user=xxx,dc=company,dc=com" #身份信息
-</span><span class="line">    password = "xxx" #访问密码
-</span><span class="line">    conn.simple_bind_s(username,password) # 开始绑定，验证成功的话不会抛出异常
-</span><span class="line">except ldap.LDAPError, e: #捕获出错信息
-</span><span class="line">    print e</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="section-2">一点感悟</h2>
-
-<p>鄙人觉得，技术领导要带领项目成长, 除了有责任把控项目风险，推进项目进度。
-还必须要花很多的心血在驾驭技术上,  身先士卒去调研可行性, 以及做技术攻关，
-而非命令式地分配任务，让同事干活, 只问责结果。
-否则很容易导致凝聚力不足,团队技术氛围不足，这样的团队易消极，也易滋生失败的项目。
-然而在天朝, 很多人存在一个潜意识:写好代码是为了以后不写代码，这种阶级思想让我反感。</p>
-
-<p>以前看过一个新闻, 硅谷在面试技术 VP ，仍然要求其在各位工程师面前手写代码，以此作为面试的重要环节, 不得不点赞。</p>
-
 ]]></content>
   </entry>
   

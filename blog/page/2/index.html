@@ -9,15 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="MySQL 建立主从复制后，在 Slave_IO_Running,Slave_SQL_Runing 都是 Yes 的前提下，通过监控 Second_Behind_Master 的数值来判断主从延迟时间，该值为0时是否意味着主从同步是无延迟的呢？ 1
-2
-3
-4
-5
-6
-7
-8
-mysql&gt; &hellip;">
+  <meta name="description" content="四种模式下的环境变量加载 跨机器SSH 传递环境变量 四种模式下的环境变量加载 名词解析 login shell: 指用户以非图形化界面 ssh登陆到机器上时获得的第一个 shell。 interactive: 交互式，有输入提示符，它的标准输入输出和错误输出都会显示在控制台上。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -76,6 +68,157 @@ mysql&gt; &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2016/07/16/bash-jia-zai-shun-xu/">环境变量的那些事</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2016-07-16T11:35:00+08:00" pubdate data-updated="true">Jul 16<span>th</span>, 2016</time>
+        
+        
+          | <a href="/blog/2016/07/16/bash-jia-zai-shun-xu/#comments">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><ul>
+  <li><a href="#第一节">四种模式下的环境变量加载</a></li>
+  <li><a href="#第二节">跨机器SSH 传递环境变量</a></li>
+</ul>
+
+<h3 id="第一节">四种模式下的环境变量加载</h3>
+
+<p>名词解析</p>
+
+<ol>
+  <li>login shell: 指用户以非图形化界面 ssh登陆到机器上时获得的第一个 shell。 </li>
+  <li>interactive: 交互式，有输入提示符，它的标准输入输出和错误输出都会显示在控制台上。</li>
+</ol>
+
+<ul>
+  <li>interactive + login shell</li>
+</ul>
+
+<p>比如登陆机器后的第一个 shell 就是这种场景。它首先加载 /etc/profile，然后再依次去加载下列三个配置文件之一，一旦找到其中一个便不再接着寻找</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">~/.bash_profile
+</span><span class="line">~/.bash_login
+</span><span class="line">~/.profile</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>设计如此多的配置是为了兼容 bourne shell 和 C shell，尽量杜绝使用 .bash_login，如果已创建，需要创建 .bash_profile 覆盖</p>
+
+<ul>
+  <li>noninteractive + login shell</li>
+</ul>
+
+<p>bash -l script.sh 就是这种场景。<code>-l</code> 参数是将shell作为一个login shell启动，配置文件的加载与第一种完全一样。</p>
+
+<ul>
+  <li>interactive + non-login shell</li>
+</ul>
+
+<p>在一个已有shell中运行bash，此时会打开一个交互式的shell，因为不再需要登陆，所以不是login shell。启动 shell 时会去查找并加载</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">/etc/bash.bashrc
+</span><span class="line">~/.bashrc </span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<ul>
+  <li>non-interactive + non-login shell</li>
+</ul>
+
+<p>比如执行脚本 bash script.sh 或者 ssh user@remote command。这两种都是创建一个shell，执行完脚本之后便退出，不再需要与用户交互。它会去寻找环境变量BASH_ENV，将变量的值作为文件名进行查找，如果找到便加载它。</p>
+
+<p>从网上看到一个清晰的图</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|                | login  |interactive|non-interactive|
+</span><span class="line">|                |        |non-login  |non-login      |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|/etc/profile    |   A    |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|/etc/bash.bashrc|        |    A      |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.bashrc       |        |    B      |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.bash_profile |   B1   |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.bash_login   |   B2   |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|~/.profile      |   B3   |           |               |
+</span><span class="line">+----------------+--------+-----------+---------------+
+</span><span class="line">|BASH_ENV        |        |           |       A       |
+</span><span class="line">+----------------+--------+-----------+---------------+</span></code></pre></td></tr></table></div></figure></notextile></div>
+<hr />
+
+<h3 id="第二节">跨机器传递环境变量</h3>
+
+<p>假设要传递的变量叫做 $VARNAME</p>
+
+<p>客户端机器的 <code>/etc/ssh_config</code> 添加 </p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">SendEnv VARNAME</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>服务端机器的 <code>/etc/sshd_config</code> 添加</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">AcceptEnv VARNAME</span></code></pre></td></tr></table></div></figure></notextile></div>
+
+<p>客户端机器的 $VARNAME 就可以通过 ssh 传递到服务端机器，继续使用.</p>
+
+<hr />
+
+<h3 id="section">参考</h3>
+
+<p><a href="http://feihu.me/blog/2014/env-problem-when-ssh-executing-command-on-remote/">ssh连接远程主机执行脚本的环境变量问题</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1508,104 +1651,6 @@ mysql&gt; &hellip;">
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2015/10/01/python-shi-yong-ldap/">Python 使用 LDAP</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-10-01T09:49:00+08:00" pubdate data-updated="true">Oct 1<span>st</span>, 2015</time>
-        
-        
-          | <a href="/blog/2015/10/01/python-shi-yong-ldap/#comments">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2 id="section">写在开头</h2>
-
-<p>过去的两个多星期，几位小伙伴同心协力完成一个自研的，类似<a href="http://pushover.net">pushover</a>的产品。感谢 Leader 的信任，让我在负责开发的同时也兼顾了一把项目经理。谢谢 IOS, Android 客户端的兄弟，设计师的支持，还有一位实习生，开心看到他的点滴成长。</p>
-
-<p>提下背景，我们之前使用 <code>pushover</code> 来做报警推送，但是它对天朝用户不友好，Android 用户需要翻墙才能使用，有时候不稳定，体现为会收不到信息。pushove 需要付费。我们的受众不仅有程序汪，还有运营产品汪，他们需要一款更容易上手的推送软件，至少不需要番羽墙。于是自己开发一个很有必要。</p>
-
-<p>为最大程度降低用户使用门槛，同时保证用户信息的安全，我们用了 LDAP 账户登陆，严格控制权限，以及 HTTPS 协议开发。下面提一提 LDAP 这个东西。</p>
-
-<h2 id="ldap-">LDAP 是什么</h2>
-
-<p><a href="https://zh.wikipedia.org/wiki/%E8%BD%BB%E5%9E%8B%E7%9B%AE%E5%BD%95%E8%AE%BF%E9%97%AE%E5%8D%8F%E8%AE%AE">LDAP维基百科</a></p>
-
-<p>简单地讲，它是以目录树的方式存放账户信息。</p>
-
-<p>这次项目中，我们不希望用户重新注册账户，而是采用原有的用户体系，这样对单点登录以及权限控制的好处不严而喻, LDAP 协议呼之欲出。</p>
-
-<h2 id="virtualenv--python-ldap">virtualenv 下安装 python-ldap</h2>
-
-<p>我们采用 Python 开发，这就需要 python-ldap 的帮助了, 记下安装笔记的好处是下次不用在此纠结太长时间。</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
-</span><span class="line">pip install python-ldap</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="section-1">身份验证</h2>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-<span class="line-number">2</span>
-<span class="line-number">3</span>
-<span class="line-number">4</span>
-<span class="line-number">5</span>
-<span class="line-number">6</span>
-<span class="line-number">7</span>
-<span class="line-number">8</span>
-<span class="line-number">9</span>
-<span class="line-number">10</span>
-<span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line"># LDAP 服务的域名和端口
-</span><span class="line">SERVER_NAME = 'xxxx'
-</span><span class="line">SERVER_PORT = xxx
-</span><span class="line">try:
-</span><span class="line">    conn = ldap.open(SERVER_NAME, SERVER_PORT)  
-</span><span class="line">    conn.protocol_version = ldap.VERSION3 #设置ldap协议版本 
-</span><span class="line">    username = "user=xxx,dc=company,dc=com" #身份信息
-</span><span class="line">    password = "xxx" #访问密码
-</span><span class="line">    conn.simple_bind_s(username,password) # 开始绑定，验证成功的话不会抛出异常
-</span><span class="line">except ldap.LDAPError, e: #捕获出错信息
-</span><span class="line">    print e</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<h2 id="section-2">一点感悟</h2>
-
-<p>鄙人觉得，技术领导要带领项目成长, 除了有责任把控项目风险，推进项目进度。
-还必须要花很多的心血在驾驭技术上,  身先士卒去调研可行性, 以及做技术攻关，
-而非命令式地分配任务，让同事干活, 只问责结果。
-否则很容易导致凝聚力不足,团队技术氛围不足，这样的团队易消极，也易滋生失败的项目。
-然而在天朝, 很多人存在一个潜意识:写好代码是为了以后不写代码，这种阶级思想让我反感。</p>
-
-<p>以前看过一个新闻, 硅谷在面试技术 VP ，仍然要求其在各位工程师面前手写代码，以此作为面试的重要环节, 不得不点赞。</p>
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1627,6 +1672,10 @@ mysql&gt; &hellip;">
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2017/07/13/httpserver-graceful-shutdown-in-go/">HTTPServer 优雅关闭</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2017/06/04/mit-6-dot-824-mapreduce/">MIT 6.824 MapReduce</a>
@@ -1654,10 +1703,6 @@ mysql&gt; &hellip;">
     
       <li class="post">
         <a href="/blog/2016/09/25/gong-xiang-nei-cun-yu-xin-hao-liang/">共享内存与信号量</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2016/08/01/cuckoofilter/">CuckooFilter，BloomFilter的优化</a>
       </li>
     
   </ul>

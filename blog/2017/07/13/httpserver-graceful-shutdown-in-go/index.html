@@ -5,13 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>搭建elasticsearch与kibana - 织网</title>
+  <title>HTTPServer 优雅关闭 - 织网</title>
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
-Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK 下载并安装 elasticsearch-1.4.2.deb &hellip;">
-  <meta name="keywords" content="elasticsearch kibana">
+  <meta name="description" content="graceful shutdown">
+  
 
   <!-- http://t.co/dKP3o1e -->
   <meta name="HandheldFriendly" content="True">
@@ -19,7 +18,7 @@ Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK �
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://zheng-ji.github.com/blog/2015/01/31/da-jian-elasticsearchyu-kibana">
+  <link rel="canonical" href="http://zheng-ji.github.com/blog/2017/07/13/httpserver-graceful-shutdown-in-go">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="织网" type="application/atom+xml">
@@ -72,7 +71,7 @@ Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK �
   
   <header>
     
-      <h1 class="entry-title">搭建elasticsearch与kibana</h1>
+      <h1 class="entry-title">HTTPServer 优雅关闭</h1>
     
     
       <p class="meta">
@@ -88,7 +87,7 @@ Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK �
   
 
 
-<time datetime="2015-01-31T12:52:00+08:00" pubdate data-updated="true">Jan 31<span>st</span>, 2015</time>
+<time datetime="2017-07-13T09:04:00+08:00" pubdate data-updated="true">Jul 13<span>th</span>, 2017</time>
         
         
           | <a href="#comments">Comments</a>
@@ -98,31 +97,8 @@ Kibana 是一个与之配套的 web 界面。 安装所需的： 需要openJDK �
   </header>
 
 
-<div class="entry-content"><p>ElasticSearch是一个基于Lucene构建的开源，分布式，RESTful搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速,
-Kibana 是一个与之配套的 web 界面。</p>
-
-<h3 id="section">安装所需的：</h3>
-
-<ul>
-  <li>需要openJDK</li>
-  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">elasticsearch-1.4.2.deb</a></li>
-  <li>下载并安装 <a href="http://www.elasticsearch.org/overview/elkdownloads/">kibana-4.0.0-beta3.tar.gz</a></li>
-</ul>
-
-<h3 id="section-1">配置相关</h3>
-<p>启动 elasticsearch 方式如下</p>
-
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">sudo service elasticsearch restart</span></code></pre></td></tr></table></div></figure></notextile></div>
-
-<ul>
-  <li>我是使用 <a href="http://wiki.zheng-ji.info/Sys/supervisor.html">supervisor</a> 启动 kibana, </li>
-  <li>同时使用 <a href="http://wiki.zheng-ji.info/Sys/monit.html">monit</a> 监控elasticsearch </li>
-</ul>
-
-<p>在/etc/defaut/elasticsearch 配置数据文件目录的地址，log 地址，调整内存和堆栈大小，个人认为机器配置的50% 就可以了。</p>
-
-<p>Nginx 配置，使得kibanan可以被外部访问，eleasticsearch 默认监听的是5601：</p>
+<div class="entry-content"><p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
+Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ，</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -135,24 +111,54 @@ Kibana 是一个与之配套的 web 界面。</p>
 <span class="line-number">9</span>
 <span class="line-number">10</span>
 <span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">server {
-</span><span class="line">        listen 80;
-</span><span class="line">        #auth_basic_user_file /home/ymserver/auth/kibana-user;
-</span><span class="line">        error_log /home/ymserver/log/nginx/kibana.err.log;
-</span><span class="line">        location / {
-</span><span class="line">            proxy_pass http://127.0.0.1:5601$request_uri;
-</span><span class="line">            proxy_set_header Host $http_host;
-</span><span class="line">            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; 
-</span><span class="line">            proxy_set_header X-Forwarded-Proto $scheme;
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+<span class="line-number">14</span>
+<span class="line-number">15</span>
+<span class="line-number">16</span>
+<span class="line-number">17</span>
+<span class="line-number">18</span>
+<span class="line-number">19</span>
+<span class="line-number">20</span>
+<span class="line-number">21</span>
+<span class="line-number">22</span>
+<span class="line-number">23</span>
+<span class="line-number">24</span>
+<span class="line-number">25</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">// src/net/http/server.go
+</span><span class="line">// Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context's error is returned.
+</span><span class="line">
+</span><span class="line">func (srv *Server) Shutdown(ctx context.Context) error {
+</span><span class="line">    atomic.AddInt32(&amp;srv.inShutdown, 1)
+</span><span class="line">    defer atomic.AddInt32(&amp;srv.inShutdown, -1)
+</span><span class="line">
+</span><span class="line">    srv.mu.Lock()
+</span><span class="line">    lnerr := srv.closeListenersLocked()
+</span><span class="line">    srv.closeDoneChanLocked()
+</span><span class="line">    srv.mu.Unlock()
+</span><span class="line">
+</span><span class="line">    ticker := time.NewTicker(shutdownPollInterval)
+</span><span class="line">    defer ticker.Stop()
+</span><span class="line">    for {
+</span><span class="line">        if srv.closeIdleConns() {
+</span><span class="line">            return lnerr
 </span><span class="line">        }
+</span><span class="line">        select {
+</span><span class="line">        case &lt;-ctx.Done():
+</span><span class="line">            return ctx.Err()
+</span><span class="line">        case &lt;-ticker.C:
+</span><span class="line">        }
+</span><span class="line">    }
 </span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h3 id="section-2">使用过程</h3>
-<p>Python 有支持elasticsearch 的库 <a href="https://github.com/elasticsearch/elasticsearch-py">elasticsearch-py</a>，
-用其导数据进入elasticsearch,需要指定好索引。</p>
+<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections， 然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
 
-<p>使用restful<a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/">查询</a>， 
-如下例子：其中’2014-12-18’是索引名，q后面是查询条件，_all表示全部索引</p>
+<p>如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
+Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
+一旦超时，Shutdown 将直接返回。对于仍然处理 active 状态的Connection，就无能为力了。
+所以 Shutdown 超时时间尽量要比链接处理的时间长</p>
+
+<p>了解完原理，我们用例子来感受一下这个特性。</p>
 
 <div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
@@ -180,35 +186,93 @@ Kibana 是一个与之配套的 web 界面。</p>
 <span class="line-number">24</span>
 <span class="line-number">25</span>
 <span class="line-number">26</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">curl -XGET 'http://localhost:9200/2014-12-18/_search/?q=name:861160022835011'
-</span><span class="line">curl -XGET 'http://localhost:9200/_all/_search/?q=name:861160022835011'
-</span><span class="line">curl -XGET localhost:9200/_search -d '
-</span><span class="line">{
-</span><span class="line">    "query": {
-</span><span class="line">        "bool": {
-</span><span class="line">            "must": [
-</span><span class="line">            {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field1": "X"
-</span><span class="line">                }
-</span><span class="line">            },
-</span><span class="line">            {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field3": "Z"
-</span><span class="line">                }
-</span><span class="line">            }
-</span><span class="line">            ],
-</span><span class="line">            "must_not": {
-</span><span class="line">                "term": {
-</span><span class="line">                    "field2": "Y"
-</span><span class="line">                }
-</span><span class="line">            }
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">}'</span></code></pre></td></tr></table></div></figure></notextile></div>
+<span class="line-number">27</span>
+<span class="line-number">28</span>
+<span class="line-number">29</span>
+<span class="line-number">30</span>
+<span class="line-number">31</span>
+<span class="line-number">32</span>
+<span class="line-number">33</span>
+<span class="line-number">34</span>
+<span class="line-number">35</span>
+<span class="line-number">36</span>
+<span class="line-number">37</span>
+<span class="line-number">38</span>
+<span class="line-number">39</span>
+<span class="line-number">40</span>
+<span class="line-number">41</span>
+<span class="line-number">42</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">package main
+</span><span class="line">
+</span><span class="line">import (
+</span><span class="line">	"context"
+</span><span class="line">	"log"
+</span><span class="line">	"net/http"
+</span><span class="line">	"os"
+</span><span class="line">	"os/signal"
+</span><span class="line">	"time"
+</span><span class="line">	"github.com/gin-gonic/gin"
+</span><span class="line">)
+</span><span class="line">
+</span><span class="line">func main() {
+</span><span class="line">	router := gin.Default()
+</span><span class="line">	router.GET("/", func(c *gin.Context) {
+</span><span class="line">		time.Sleep(3 * time.Second)
+</span><span class="line">		log.Printf(http.StatusOK, "Handle request success")
+</span><span class="line">	})
+</span><span class="line">
+</span><span class="line">	srv := &amp;http.Server{
+</span><span class="line">		Addr:    ":8080",
+</span><span class="line">		Handler: router,
+</span><span class="line">	}
+</span><span class="line">
+</span><span class="line">	go func() {
+</span><span class="line">		if err := srv.ListenAndServe(); err != nil {
+</span><span class="line">			log.Printf("listen: %s\n", err)
+</span><span class="line">		}
+</span><span class="line">	}()
+</span><span class="line">
+</span><span class="line">	quit := make(chan os.Signal)
+</span><span class="line">	signal.Notify(quit, os.Interrupt)
+</span><span class="line">	&lt;-quit
+</span><span class="line">	log.Println("Shutdown Server ...")
+</span><span class="line">
+</span><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+</span><span class="line">	defer cancel()
+</span><span class="line">	if err := srv.Shutdown(ctx); err != nil {
+</span><span class="line">		log.Fatal("Server Shutdown:", err)
+</span><span class="line">	}
+</span><span class="line">	log.Println("Server exist")
+</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<h3 id="section-3">性能概述</h3>
-<p>导入1个月的日志4.2G，31天的文件，每天一个索引，用了6个小时，elasticsearch用了 6.7G 的空间，在海量数据查询1s内响应。</p>
+<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出，退出时，HTTPServer 等待5秒来”善后”。测试中，我发起<code>curl localhost:8080</code>,随即Ctrl+C来退出程序，发现，服务器坚持在处理完这个HTTP请求才退出。</p>
+
+<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<span class="line-number">2</span>
+<span class="line-number">3</span>
+<span class="line-number">4</span>
+<span class="line-number">5</span>
+<span class="line-number">6</span>
+<span class="line-number">7</span>
+<span class="line-number">8</span>
+<span class="line-number">9</span>
+<span class="line-number">10</span>
+<span class="line-number">11</span>
+<span class="line-number">12</span>
+<span class="line-number">13</span>
+</pre></td><td class="code"><pre><code class=""><span class="line">[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+</span><span class="line"> - using env:	export GIN_MODE=release
+</span><span class="line"> - using code:	gin.SetMode(gin.ReleaseMode)
+</span><span class="line">
+</span><span class="line">[GIN-debug] GET    /                         --&gt; main.main.func1 (3 handlers)
+</span><span class="line">Handle Request success
+</span><span class="line">[GIN] 2017/07/12 - 20:30:47 | 200 |  3.000385597s | 127.0.0.1 |   GET     /
+</span><span class="line">^C  //终端输入Ctrl+C
+</span><span class="line">Shutdown Server ...
+</span><span class="line">listen: http: Server closed
+</span><span class="line">Handle Request success //在接收到关闭信号时，依然保证正在处理的请求正常处理完
+</span><span class="line">[GIN] 2017/07/12 - 20:30:53 | 200 |  3.000360362s | 127.0.0.1 |   GET     /
+</span><span class="line">Server exist</span></code></pre></td></tr></table></div></figure></notextile></div>
 </div>
 
 
@@ -231,12 +295,12 @@ Kibana 是一个与之配套的 web 界面。</p>
   
 
 
-<time datetime="2015-01-31T12:52:00+08:00" pubdate data-updated="true">Jan 31<span>st</span>, 2015</time>
+<time datetime="2017-07-13T09:04:00+08:00" pubdate data-updated="true">Jul 13<span>th</span>, 2017</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/database/'>DataBase</a>
+    <a class='category' href='/blog/categories/programe/'>Programe</a>
   
 </span>
 
@@ -252,10 +316,8 @@ Kibana 是一个与之配套的 web 界面。</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2015/01/21/percona-toolkitxiao-xiang-li-di-pt-archiver/" title="Previous Post: Percona 小箱里的pt-archiver">&laquo; Percona 小箱里的pt-archiver</a>
+        <a class="basic-alignment left" href="/blog/2017/06/04/mit-6-dot-824-mapreduce/" title="Previous Post: MIT 6.824 MapReduce">&laquo; MIT 6.824 MapReduce</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2015/02/03/haproxy-plus-mysql/" title="Next Post: haproxy - MySQl 的负载均衡">haproxy - MySQl 的负载均衡 &raquo;</a>
       
     </p>
   </footer>
@@ -265,7 +327,7 @@ Kibana 是一个与之配套的 web 界面。</p>
   <section>
     <h1>Comments</h1>
     <div id="comments" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
-<div class="ds-thread" data-title="搭建elasticsearch与kibana"></div>
+<div class="ds-thread" data-title="HTTPServer 优雅关闭"></div>
 <script type="text/javascript">
     var duoshuoQuery = {short_name:"zhengji"};
 (function() {
