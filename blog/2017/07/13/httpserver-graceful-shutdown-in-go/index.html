@@ -151,7 +151,7 @@
 </span><span class="line"><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections，然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
+<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的 listener，以及所有处于 idle 状态的 Connections，然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
 
 <p>如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
 Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
