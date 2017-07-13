@@ -17,7 +17,7 @@ categories: Programe
 
 我们使用 [go-redis-server](https://github.com/youmi/go-redis-server) 开发具有 redis 协议的服务。 按照文档，我们实现了如下接口，其背后访问的是 AWS 的 Dynamodb，我们的服务也开发了监控接口，以供我们这些程序狗知道它发生了什么。
 
-```
+```go
 func (handler *RedisHandler) Get(key string) (result string, err error)
 func (handler *RedisHandler) Set(key string, val string) (err error)
 func (handler *RedisHandler) Del(key string) (count int, err error)
@@ -34,7 +34,7 @@ func (handler *RedisHandler) Del(key string) (count int, err error)
 
 我们来看看代码
 
-```
+```go
 func (handler *RedisHandler) 
 Set(key string, val string) (err error) {
 	...
@@ -68,7 +68,7 @@ An AttributeValue may not contain an empty string
 空值的测试明显容易制造。我在本地也开启服务，端口是1234，用 pyredis 作为客户端做测试。
 测试脚本
 
-```
+```python
 import redis
 import json
 import random
@@ -105,7 +105,7 @@ recvfrom(3,
 
 难道 go-redis-server 这个框架有猫腻，我就开始了一下午的看源码之旅。不得不说源码写的真好。回头看我们出错的代码片段，我试着修改 err 信息，修改成自己定义的错误字符串。
 
-```
+```go
 func (handler *RedisHandler) Set(key string, val string) (err error) {
 	...
 
@@ -139,7 +139,7 @@ I am a Custom Error
 配合源码，以下是 go-redis-server 最核心的逻辑调度代码。
 
 
-```
+```go
 for {
 	request, err := parseRequest(conn)
 	if err != nil {

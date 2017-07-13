@@ -7,10 +7,9 @@ categories: Programe
 description: graceful shutdown
 ---
 
-和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
-Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ，
+和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性。Go 1.8起新增了优雅退出 HTTPServer 的特性，也就是大家经常提到的 GraceFul ShutDown。
 
-```
+```go
 // src/net/http/server.go
 // Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context's error is returned.
 
@@ -39,16 +38,16 @@ func (srv *Server) Shutdown(ctx context.Context) error {
 ```
 
 
-从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections， 然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。
+从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections，然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。
 
 如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
 Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
 一旦超时，Shutdown 将直接返回。对于仍然处理 active 状态的Connection，就无能为力了。
-所以 Shutdown 超时时间尽量要比链接处理的时间长
+所以 Shutdown 超时时间尽量要比链接处理的时间长。
 
 了解完原理，我们用例子来感受一下这个特性。
 
-```
+```go
 package main
 
 import (
@@ -93,8 +92,7 @@ func main() {
 }
 ```
 
-代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出，退出时，HTTPServer 等待5秒来"善后"。测试中，我发起`curl localhost:8080`,随即Ctrl+C来退出程序，发现，服务器坚持在处理完这个HTTP请求才退出。
-
+代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出。退出时，HTTPServer 等待5秒来"善后"。我发起`curl localhost:8080`来测试，随即按下 Ctrl+C 退出程序，结果显示，服务器坚持在处理完这个 HTTP 请求才退出。
 
 ```
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.

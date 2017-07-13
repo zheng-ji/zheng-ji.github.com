@@ -17,7 +17,7 @@ Nginx, Redis 项目中，均使用上了双链表。
 
 ### 结构定义与初始化
 
-```
+```c
 typedef struct Node {
     int num;
     struct Node * next; //前继指针
@@ -42,7 +42,7 @@ typedef struct dlist {
 
 {% img /images/2017/05/dlist-insert.png %}
 
-```
+```c
 static int insertDlist(dlist **list, int num) {
     Node * head = (*list) -> head;
     Node * tail = (*list) -> tail;
@@ -91,7 +91,7 @@ static int insertDlist(dlist **list, int num) {
 
 {% img /images/2017/05/dlist-delete.png %}
 
-```
+```c
 static int deleteDlist(dlist ** list, int location) {
     Node * head = (*list) -> head;
     Node * now = NULL;

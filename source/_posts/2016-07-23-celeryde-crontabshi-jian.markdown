@@ -13,7 +13,7 @@ description: celery crontab
   
 以下是 `main.py` 的内容
  
-```py
+```python
 from celery import Celery
 from lib import distribute
 from celery.schedules import crontab
@@ -51,7 +51,7 @@ python main.py worker --beat -l info
 
 起初我想把异步队列和定时任务放在一起,就加上了一句 CELERY_QUEUES 的配置
 
-```py
+```python
 app.conf.update(
     // 添加的部分
     CELERY_QUEUES=(
