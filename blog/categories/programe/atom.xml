@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Programe | 织网]]></title>
   <link href="http://zheng-ji.github.com/blog/categories/programe/atom.xml" rel="self"/>
   <link href="http://zheng-ji.github.com/"/>
-  <updated>2017-07-13T09:11:50+08:00</updated>
+  <updated>2017-07-13T09:20:24+08:00</updated>
   <id>http://zheng-ji.github.com/</id>
   <author>
     <name><![CDATA[zheng-ji]]></name>
@@ -18,10 +18,9 @@
     <link href="http://zheng-ji.github.com/blog/2017/07/13/httpserver-graceful-shutdown-in-go/"/>
     <updated>2017-07-13T09:04:00+08:00</updated>
     <id>http://zheng-ji.github.com/blog/2017/07/13/httpserver-graceful-shutdown-in-go</id>
-    <content type="html"><![CDATA[<p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
-Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ，</p>
+    <content type="html"><![CDATA[<p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性。Go 1.8起新增了优雅退出 HTTPServer 的特性，也就是大家经常提到的 GraceFul ShutDown。</p>
 
-<p>```
+<p>```go
 // src/net/http/server.go
 // Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context’s error is returned.</p>
 
@@ -48,16 +47,16 @@ for {
 } } ```
 </code></pre>
 
-<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections， 然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
+<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections，然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
 
 <p>如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
 Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
 一旦超时，Shutdown 将直接返回。对于仍然处理 active 状态的Connection，就无能为力了。
-所以 Shutdown 超时时间尽量要比链接处理的时间长</p>
+所以 Shutdown 超时时间尽量要比链接处理的时间长。</p>
 
 <p>了解完原理，我们用例子来感受一下这个特性。</p>
 
-<p>```
+<p>```go
 package main</p>
 
 <p>import (
@@ -101,7 +100,7 @@ if err := srv.Shutdown(ctx); err != nil {
 log.Println("Server exist") } ```
 </code></pre>
 
-<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出，退出时，HTTPServer 等待5秒来”善后”。测试中，我发起<code>curl localhost:8080</code>,随即Ctrl+C来退出程序，发现，服务器坚持在处理完这个HTTP请求才退出。</p>
+<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出。退出时，HTTPServer 等待5秒来”善后”。我发起<code>curl localhost:8080</code>来测试，随即按下 Ctrl+C 退出程序，结果显示，服务器坚持在处理完这个 HTTP 请求才退出。</p>
 
 <p>```
 [GIN-debug] [WARNING] Running in “debug” mode. Switch to “release” mode in production.
@@ -183,7 +182,7 @@ Server exist
 
 <h3 id="section">结构定义与初始化</h3>
 
-<p>```
+<p>```c
 typedef struct Node {
     int num;
     struct Node * next; //前继指针
@@ -210,7 +209,7 @@ typedef struct Node {
 
 <p><img src="/images/2017/05/dlist-insert.png"></p>
 
-<p>```
+<p>```c
 static int insertDlist(dlist <em>*list, int num) {
     Node * head = (</em>list) -&gt; head;
     Node * tail = (*list) -&gt; tail;</p>
@@ -261,7 +260,7 @@ if (head-&gt;next == NULL) {
 
 <p><img src="/images/2017/05/dlist-delete.png"></p>
 
-<p>```
+<p>```c
 static int deleteDlist(dlist ** list, int location) {
     Node * head = (*list) -&gt; head;
     Node * now = NULL;
@@ -331,7 +330,7 @@ return 0; } ```
 
 <p>我们使用 <a href="https://github.com/youmi/go-redis-server">go-redis-server</a> 开发具有 redis 协议的服务。 按照文档，我们实现了如下接口，其背后访问的是 AWS 的 Dynamodb，我们的服务也开发了监控接口，以供我们这些程序狗知道它发生了什么。</p>
 
-<p><code>
+<p><code>go
 func (handler *RedisHandler) Get(key string) (result string, err error)
 func (handler *RedisHandler) Set(key string, val string) (err error)
 func (handler *RedisHandler) Del(key string) (count int, err error)
@@ -348,7 +347,7 @@ func (handler *RedisHandler) Del(key string) (count int, err error)
 
 <p>我们来看看代码</p>
 
-<p>```
+<p>```go
 func (handler *RedisHandler) 
 Set(key string, val string) (err error) {
 	…</p>
@@ -381,7 +380,7 @@ An AttributeValue may not contain an empty string
 <p>空值的测试明显容易制造。我在本地也开启服务，端口是1234，用 pyredis 作为客户端做测试。
 测试脚本</p>
 
-<p>```
+<p>```python
 import redis
 import json
 import random
@@ -418,7 +417,7 @@ recvfrom(3,
 
 <p>难道 go-redis-server 这个框架有猫腻，我就开始了一下午的看源码之旅。不得不说源码写的真好。回头看我们出错的代码片段，我试着修改 err 信息，修改成自己定义的错误字符串。</p>
 
-<p>```
+<p>```go
 func (handler *RedisHandler) Set(key string, val string) (err error) {
 	…</p>
 
@@ -452,7 +451,7 @@ I am a Custom Error
 
 <p>配合源码，以下是 go-redis-server 最核心的逻辑调度代码。</p>
 
-<p><code>
+<p><code>go
 for {
 	request, err := parseRequest(conn)
 	if err != nil {

@@ -112,7 +112,7 @@
 
 <h3 id="section">结构定义与初始化</h3>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -122,16 +122,17 @@
 <span class="line-number">8</span>
 <span class="line-number">9</span>
 <span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">typedef struct Node {
-</span><span class="line">    int num;
-</span><span class="line">    struct Node * next; //前继指针
-</span><span class="line">    struct Node * pre;  //后继指针
-</span><span class="line">} Node;
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Node</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">num</span><span class="p">;</span>
+</span><span class="line">    <span class="k">struct</span> <span class="n">Node</span> <span class="o">*</span> <span class="n">next</span><span class="p">;</span> <span class="c1">//前继指针</span>
+</span><span class="line">    <span class="k">struct</span> <span class="n">Node</span> <span class="o">*</span> <span class="n">pre</span><span class="p">;</span>  <span class="c1">//后继指针</span>
+</span><span class="line"><span class="p">}</span> <span class="n">Node</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">typedef struct dlist {
-</span><span class="line">    Node * head; //双链表的指向头结点的元素
-</span><span class="line">    Node * tail; //双链表指向尾部节点的元素，方便从后检索
-</span><span class="line">} dlist;</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">dlist</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">head</span><span class="p">;</span> <span class="c1">//双链表的指向头结点的元素</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">tail</span><span class="p">;</span> <span class="c1">//双链表指向尾部节点的元素，方便从后检索</span>
+</span><span class="line"><span class="p">}</span> <span class="n">dlist</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>初始化的双链表，<code>head</code>,<code>tail</code> 均为空。</p>
 
@@ -147,7 +148,7 @@
 
 <p><img src="/images/2017/05/dlist-insert.png" /></p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -182,41 +183,41 @@
 <span class="line-number">33</span>
 <span class="line-number">34</span>
 <span class="line-number">35</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">static int insertDlist(dlist **list, int num) {
-</span><span class="line">    Node * head = (*list) -&gt; head;
-</span><span class="line">    Node * tail = (*list) -&gt; tail;
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">int</span> <span class="nf">insertDlist</span><span class="p">(</span><span class="n">dlist</span> <span class="o">**</span><span class="n">list</span><span class="p">,</span> <span class="kt">int</span> <span class="n">num</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">head</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">tail</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tail</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    if (list == NULL) return -1;
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">list</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    Node * node = initNode(num);
-</span><span class="line">    if (node == NULL) return -1;
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">node</span> <span class="o">=</span> <span class="n">initNode</span><span class="p">(</span><span class="n">num</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">node</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    // empty dlist
-</span><span class="line">    if ((*list) -&gt; head == NULL &amp;&amp; (*list) -&gt; tail == NULL) {
-</span><span class="line">        (*list)-&gt; head = node;
-</span><span class="line">        (*list)-&gt; tail = node;
-</span><span class="line">        return 0;
-</span><span class="line">    }
+</span><span class="line">    <span class="c1">// empty dlist</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">((</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tail</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">head</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
 </span><span class="line">
-</span><span class="line">    while (head -&gt; next &amp;&amp; head -&gt; num &lt; num) {
-</span><span class="line">        head = head -&gt; next;
-</span><span class="line">    }
+</span><span class="line">    <span class="k">while</span> <span class="p">(</span><span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">&amp;&amp;</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">num</span> <span class="o">&lt;</span> <span class="n">num</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
 </span><span class="line">
-</span><span class="line">    // at the end
-</span><span class="line">    if (head-&gt;next == NULL) {
-</span><span class="line">        head -&gt; next = node;
-</span><span class="line">        node -&gt; pre = head;
-</span><span class="line">        tail -&gt; pre = node;
-</span><span class="line">        return 0;
-</span><span class="line">    } else {
-</span><span class="line">        // in the middle
-</span><span class="line">        node-&gt; next = head -&gt; next;
-</span><span class="line">        head -&gt; next -&gt; pre = node;
-</span><span class="line">        node -&gt; pre = head;
-</span><span class="line">        head -&gt; next = node;
-</span><span class="line">        return 0;
-</span><span class="line">    }
-</span><span class="line">}
+</span><span class="line">    <span class="c1">// at the end</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">head</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="n">node</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">        <span class="n">tail</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">        <span class="c1">// in the middle</span>
+</span><span class="line">        <span class="n">node</span><span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="n">node</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <h3 id="section-2">删除操作</h3>
@@ -231,7 +232,7 @@
 
 <p><img src="/images/2017/05/dlist-delete.png" /></p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -276,51 +277,52 @@
 <span class="line-number">43</span>
 <span class="line-number">44</span>
 <span class="line-number">45</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">static int deleteDlist(dlist ** list, int location) {
-</span><span class="line">    Node * head = (*list) -&gt; head;
-</span><span class="line">    Node * now = NULL;
-</span><span class="line">    Node * last = NULL;
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">int</span> <span class="nf">deleteDlist</span><span class="p">(</span><span class="n">dlist</span> <span class="o">**</span> <span class="n">list</span><span class="p">,</span> <span class="kt">int</span> <span class="n">location</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">head</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">now</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">last</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    if (head == NULL)
-</span><span class="line">        return -1;
-</span><span class="line">    if (location &lt;= 0 || location &gt; numOfDlist(*list))
-</span><span class="line">        return -1;
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">head</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">location</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">location</span> <span class="o">&gt;</span> <span class="n">numOfDlist</span><span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    if (location == 1) {
-</span><span class="line">        now = head;
-</span><span class="line">        (*list) -&gt; head = now -&gt;next;
-</span><span class="line">        head -&gt; next -&gt;pre = NULL;
-</span><span class="line">        if (now) {
-</span><span class="line">            free(now);
-</span><span class="line">            now = NULL;
-</span><span class="line">        }
-</span><span class="line">        return 0;
-</span><span class="line">    }
-</span><span class="line">    int num = 0;
-</span><span class="line">    while (head &amp;&amp; num++ &lt; location) {
-</span><span class="line">        head = head -&gt; next;
-</span><span class="line">    }
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">location</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">=</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">        <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">-&gt;</span><span class="n">pre</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="k">if</span> <span class="p">(</span><span class="n">now</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">free</span><span class="p">(</span><span class="n">now</span><span class="p">);</span>
+</span><span class="line">            <span class="n">now</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">num</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="k">while</span> <span class="p">(</span><span class="n">head</span> <span class="o">&amp;&amp;</span> <span class="n">num</span><span class="o">++</span> <span class="o">&lt;</span> <span class="n">location</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
 </span><span class="line">
-</span><span class="line">    if (head -&gt; next == NULL) {
-</span><span class="line">        now = (*list) -&gt; tail;
-</span><span class="line">        head -&gt; pre -&gt; next = NULL;
-</span><span class="line">        now -&gt; pre = head-&gt;pre;
-</span><span class="line">        if (head) {
-</span><span class="line">            free(head);
-</span><span class="line">            head = NULL;
-</span><span class="line">        }
-</span><span class="line">    } else {
-</span><span class="line">        now = head -&gt; next;
-</span><span class="line">        last = head -&gt; pre;
-</span><span class="line">        now -&gt;pre = head -&gt; pre;
-</span><span class="line">        last -&gt; next = head -&gt;next;
-</span><span class="line">        if (head) {
-</span><span class="line">            free(head);
-</span><span class="line">            head = NULL;
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">    return 0;
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tail</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">head</span><span class="o">-&gt;</span><span class="n">pre</span><span class="p">;</span>
+</span><span class="line">        <span class="k">if</span> <span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">free</span><span class="p">(</span><span class="n">head</span><span class="p">);</span>
+</span><span class="line">            <span class="n">head</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="n">last</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">pre</span><span class="p">;</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">-&gt;</span><span class="n">pre</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">pre</span><span class="p">;</span>
+</span><span class="line">        <span class="n">last</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="k">if</span> <span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">free</span><span class="p">(</span><span class="n">head</span><span class="p">);</span>
+</span><span class="line">            <span class="n">head</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>本文所述是 C 语言实现的，<a href="https://github.com/zheng-ji/ToyCollection/blob/master/Dlist/mydlist.c">源码</a>
 在 Go 语言之中, <code>container/list</code> 包实现了双链表，直接引入就可以使用了。</p>

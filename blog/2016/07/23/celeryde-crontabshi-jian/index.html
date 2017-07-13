@@ -120,7 +120,7 @@
 <span class="line-number">15</span>
 <span class="line-number">16</span>
 <span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
 </span><span class="line"><span class="kn">from</span> <span class="nn">lib</span> <span class="kn">import</span> <span class="n">distribute</span>
 </span><span class="line"><span class="kn">from</span> <span class="nn">celery.schedules</span> <span class="kn">import</span> <span class="n">crontab</span>
 </span><span class="line">
@@ -177,7 +177,7 @@
 <span class="line-number">15</span>
 <span class="line-number">16</span>
 <span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
 </span><span class="line">    <span class="o">//</span> <span class="err">添加的部分</span>
 </span><span class="line">    <span class="n">CELERY_QUEUES</span><span class="o">=</span><span class="p">(</span>
 </span><span class="line">        <span class="n">Queue</span><span class="p">(</span>

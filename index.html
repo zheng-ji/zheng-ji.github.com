@@ -9,8 +9,7 @@
   <meta name="author" content="zheng-ji">
 
   
-  <meta name="description" content="和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
-Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ， 1
+  <meta name="description" content="和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性。Go 1.8起新增了优雅退出 HTTPServer 的特性，也就是大家经常提到的 GraceFul ShutDown。 1
 2
 3
 4
@@ -28,8 +27,7 @@ Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的
 16
 17
 18
-19
-20 &hellip;">
+19 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -120,10 +118,9 @@ Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的
   </header>
 
 
-  <div class="entry-content"><p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
-Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ，</p>
+  <div class="entry-content"><p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性。Go 1.8起新增了优雅退出 HTTPServer 的特性，也就是大家经常提到的 GraceFul ShutDown。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -148,42 +145,43 @@ Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的
 <span class="line-number">23</span>
 <span class="line-number">24</span>
 <span class="line-number">25</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">// src/net/http/server.go
-</span><span class="line">// Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context's error is returned.
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="c1">// src/net/http/server.go</span>
+</span><span class="line"><span class="c1">// Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context&#39;s error is returned.</span>
 </span><span class="line">
-</span><span class="line">func (srv *Server) Shutdown(ctx context.Context) error {
-</span><span class="line">    atomic.AddInt32(&amp;srv.inShutdown, 1)
-</span><span class="line">    defer atomic.AddInt32(&amp;srv.inShutdown, -1)
+</span><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">srv</span> <span class="o">*</span><span class="nx">Server</span><span class="p">)</span> <span class="nx">Shutdown</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span><span class="line">    <span class="nx">atomic</span><span class="p">.</span><span class="nx">AddInt32</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">srv</span><span class="p">.</span><span class="nx">inShutdown</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class="line">    <span class="k">defer</span> <span class="nx">atomic</span><span class="p">.</span><span class="nx">AddInt32</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">srv</span><span class="p">.</span><span class="nx">inShutdown</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">    srv.mu.Lock()
-</span><span class="line">    lnerr := srv.closeListenersLocked()
-</span><span class="line">    srv.closeDoneChanLocked()
-</span><span class="line">    srv.mu.Unlock()
+</span><span class="line">    <span class="nx">srv</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nx">Lock</span><span class="p">()</span>
+</span><span class="line">    <span class="nx">lnerr</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">closeListenersLocked</span><span class="p">()</span>
+</span><span class="line">    <span class="nx">srv</span><span class="p">.</span><span class="nx">closeDoneChanLocked</span><span class="p">()</span>
+</span><span class="line">    <span class="nx">srv</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nx">Unlock</span><span class="p">()</span>
 </span><span class="line">
-</span><span class="line">    ticker := time.NewTicker(shutdownPollInterval)
-</span><span class="line">    defer ticker.Stop()
-</span><span class="line">    for {
-</span><span class="line">        if srv.closeIdleConns() {
-</span><span class="line">            return lnerr
-</span><span class="line">        }
-</span><span class="line">        select {
-</span><span class="line">        case &lt;-ctx.Done():
-</span><span class="line">            return ctx.Err()
-</span><span class="line">        case &lt;-ticker.C:
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">    <span class="nx">ticker</span> <span class="o">:=</span> <span class="nx">time</span><span class="p">.</span><span class="nx">NewTicker</span><span class="p">(</span><span class="nx">shutdownPollInterval</span><span class="p">)</span>
+</span><span class="line">    <span class="k">defer</span> <span class="nx">ticker</span><span class="p">.</span><span class="nx">Stop</span><span class="p">()</span>
+</span><span class="line">    <span class="k">for</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">if</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">closeIdleConns</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">            <span class="k">return</span> <span class="nx">lnerr</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">select</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">case</span> <span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">Done</span><span class="p">():</span>
+</span><span class="line">            <span class="k">return</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">Err</span><span class="p">()</span>
+</span><span class="line">        <span class="k">case</span> <span class="o">&lt;-</span><span class="nx">ticker</span><span class="p">.</span><span class="nx">C</span><span class="p">:</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections， 然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
+<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections，然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
 
 <p>如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
 Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
 一旦超时，Shutdown 将直接返回。对于仍然处理 active 状态的Connection，就无能为力了。
-所以 Shutdown 超时时间尽量要比链接处理的时间长</p>
+所以 Shutdown 超时时间尽量要比链接处理的时间长。</p>
 
 <p>了解完原理，我们用例子来感受一下这个特性。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -225,52 +223,53 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">40</span>
 <span class="line-number">41</span>
 <span class="line-number">42</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">package main
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kn">package</span> <span class="nx">main</span>
 </span><span class="line">
-</span><span class="line">import (
-</span><span class="line">	"context"
-</span><span class="line">	"log"
-</span><span class="line">	"net/http"
-</span><span class="line">	"os"
-</span><span class="line">	"os/signal"
-</span><span class="line">	"time"
-</span><span class="line">	"github.com/gin-gonic/gin"
-</span><span class="line">)
+</span><span class="line"><span class="kn">import</span> <span class="p">(</span>
+</span><span class="line">	<span class="s">&quot;context&quot;</span>
+</span><span class="line">	<span class="s">&quot;log&quot;</span>
+</span><span class="line">	<span class="s">&quot;net/http&quot;</span>
+</span><span class="line">	<span class="s">&quot;os&quot;</span>
+</span><span class="line">	<span class="s">&quot;os/signal&quot;</span>
+</span><span class="line">	<span class="s">&quot;time&quot;</span>
+</span><span class="line">	<span class="s">&quot;github.com/gin-gonic/gin&quot;</span>
+</span><span class="line"><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">func main() {
-</span><span class="line">	router := gin.Default()
-</span><span class="line">	router.GET("/", func(c *gin.Context) {
-</span><span class="line">		time.Sleep(3 * time.Second)
-</span><span class="line">		log.Printf(http.StatusOK, "Handle request success")
-</span><span class="line">	})
+</span><span class="line"><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">	<span class="nx">router</span> <span class="o">:=</span> <span class="nx">gin</span><span class="p">.</span><span class="nx">Default</span><span class="p">()</span>
+</span><span class="line">	<span class="nx">router</span><span class="p">.</span><span class="nx">GET</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span> <span class="kd">func</span><span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">gin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+</span><span class="line">		<span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusOK</span><span class="p">,</span> <span class="s">&quot;Handle request success&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">})</span>
 </span><span class="line">
-</span><span class="line">	srv := &amp;http.Server{
-</span><span class="line">		Addr:    ":8080",
-</span><span class="line">		Handler: router,
-</span><span class="line">	}
+</span><span class="line">	<span class="nx">srv</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Server</span><span class="p">{</span>
+</span><span class="line">		<span class="nx">Addr</span><span class="p">:</span>    <span class="s">&quot;:8080&quot;</span><span class="p">,</span>
+</span><span class="line">		<span class="nx">Handler</span><span class="p">:</span> <span class="nx">router</span><span class="p">,</span>
+</span><span class="line">	<span class="p">}</span>
 </span><span class="line">
-</span><span class="line">	go func() {
-</span><span class="line">		if err := srv.ListenAndServe(); err != nil {
-</span><span class="line">			log.Printf("listen: %s\n", err)
-</span><span class="line">		}
-</span><span class="line">	}()
+</span><span class="line">	<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">ListenAndServe</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">			<span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;listen: %s\n&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span><span class="line">		<span class="p">}</span>
+</span><span class="line">	<span class="p">}()</span>
 </span><span class="line">
-</span><span class="line">	quit := make(chan os.Signal)
-</span><span class="line">	signal.Notify(quit, os.Interrupt)
-</span><span class="line">	&lt;-quit
-</span><span class="line">	log.Println("Shutdown Server ...")
+</span><span class="line">	<span class="nx">quit</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Signal</span><span class="p">)</span>
+</span><span class="line">	<span class="nx">signal</span><span class="p">.</span><span class="nx">Notify</span><span class="p">(</span><span class="nx">quit</span><span class="p">,</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Interrupt</span><span class="p">)</span>
+</span><span class="line">	<span class="o">&lt;-</span><span class="nx">quit</span>
+</span><span class="line">	<span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Shutdown Server ...&quot;</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-</span><span class="line">	defer cancel()
-</span><span class="line">	if err := srv.Shutdown(ctx); err != nil {
-</span><span class="line">		log.Fatal("Server Shutdown:", err)
-</span><span class="line">	}
-</span><span class="line">	log.Println("Server exist")
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">	<span class="nx">ctx</span><span class="p">,</span> <span class="nx">cancel</span> <span class="o">:=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">WithTimeout</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="mi">5</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+</span><span class="line">	<span class="k">defer</span> <span class="nx">cancel</span><span class="p">()</span>
+</span><span class="line">	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">Shutdown</span><span class="p">(</span><span class="nx">ctx</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">log</span><span class="p">.</span><span class="nx">Fatal</span><span class="p">(</span><span class="s">&quot;Server Shutdown:&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">	<span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Server exist&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出，退出时，HTTPServer 等待5秒来”善后”。测试中，我发起<code>curl localhost:8080</code>,随即Ctrl+C来退出程序，发现，服务器坚持在处理完这个HTTP请求才退出。</p>
+<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出。退出时，HTTPServer 等待5秒来”善后”。我发起<code>curl localhost:8080</code>来测试，随即按下 Ctrl+C 退出程序，结果显示，服务器坚持在处理完这个 HTTP 请求才退出。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -283,19 +282,20 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">11</span>
 <span class="line-number">12</span>
 <span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
-</span><span class="line"> - using env:	export GIN_MODE=release
-</span><span class="line"> - using code:	gin.SetMode(gin.ReleaseMode)
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="o">-</span><span class="nx">debug</span><span class="p">]</span> <span class="p">[</span><span class="nx">WARNING</span><span class="p">]</span> <span class="nx">Running</span> <span class="nx">in</span> <span class="s">&quot;debug&quot;</span> <span class="nx">mode</span><span class="p">.</span> <span class="nx">Switch</span> <span class="nx">to</span> <span class="s">&quot;release&quot;</span> <span class="nx">mode</span> <span class="nx">in</span> <span class="nx">production</span><span class="p">.</span>
+</span><span class="line"> <span class="o">-</span> <span class="nx">using</span> <span class="nx">env</span><span class="p">:</span>	<span class="nx">export</span> <span class="nx">GIN_MODE</span><span class="p">=</span><span class="nx">release</span>
+</span><span class="line"> <span class="o">-</span> <span class="nx">using</span> <span class="nx">code</span><span class="p">:</span>	<span class="nx">gin</span><span class="p">.</span><span class="nx">SetMode</span><span class="p">(</span><span class="nx">gin</span><span class="p">.</span><span class="nx">ReleaseMode</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">[GIN-debug] GET    /                         --&gt; main.main.func1 (3 handlers)
-</span><span class="line">Handle Request success
-</span><span class="line">[GIN] 2017/07/12 - 20:30:47 | 200 |  3.000385597s | 127.0.0.1 |   GET     /
-</span><span class="line">^C  //终端输入Ctrl+C
-</span><span class="line">Shutdown Server ...
-</span><span class="line">listen: http: Server closed
-</span><span class="line">Handle Request success //在接收到关闭信号时，依然保证正在处理的请求正常处理完
-</span><span class="line">[GIN] 2017/07/12 - 20:30:53 | 200 |  3.000360362s | 127.0.0.1 |   GET     /
-</span><span class="line">Server exist</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="o">-</span><span class="nx">debug</span><span class="p">]</span> <span class="nx">GET</span>    <span class="o">/</span>                         <span class="o">--</span><span class="p">&gt;</span> <span class="nx">main</span><span class="p">.</span><span class="nx">main</span><span class="p">.</span><span class="nx">func1</span> <span class="p">(</span><span class="mi">3</span> <span class="nx">handlers</span><span class="p">)</span>
+</span><span class="line"><span class="nx">Handle</span> <span class="nx">Request</span> <span class="nx">success</span>
+</span><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="p">]</span> <span class="mi">2017</span><span class="o">/</span><span class="mo">07</span><span class="o">/</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">20</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mi">47</span> <span class="p">|</span> <span class="mi">200</span> <span class="p">|</span>  <span class="mf">3.000385597</span><span class="nx">s</span> <span class="p">|</span> <span class="mf">127.0.0.1</span> <span class="p">|</span>   <span class="nx">GET</span>     <span class="o">/</span>
+</span><span class="line"><span class="p">^</span><span class="nx">C</span>  <span class="c1">//终端输入Ctrl+C</span>
+</span><span class="line"><span class="nx">Shutdown</span> <span class="nx">Server</span> <span class="o">...</span>
+</span><span class="line"><span class="nx">listen</span><span class="p">:</span> <span class="nx">http</span><span class="p">:</span> <span class="nx">Server</span> <span class="nx">closed</span>
+</span><span class="line"><span class="nx">Handle</span> <span class="nx">Request</span> <span class="nx">success</span> <span class="c1">//在接收到关闭信号时，依然保证正在处理的请求正常处理完</span>
+</span><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="p">]</span> <span class="mi">2017</span><span class="o">/</span><span class="mo">07</span><span class="o">/</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">20</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mi">53</span> <span class="p">|</span> <span class="mi">200</span> <span class="p">|</span>  <span class="mf">3.000360362</span><span class="nx">s</span> <span class="p">|</span> <span class="mf">127.0.0.1</span> <span class="p">|</span>   <span class="nx">GET</span>     <span class="o">/</span>
+</span><span class="line"><span class="nx">Server</span> <span class="nx">exist</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 </div>
   
   
@@ -421,7 +421,7 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 
 <h3 id="section">结构定义与初始化</h3>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -431,16 +431,17 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">8</span>
 <span class="line-number">9</span>
 <span class="line-number">10</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">typedef struct Node {
-</span><span class="line">    int num;
-</span><span class="line">    struct Node * next; //前继指针
-</span><span class="line">    struct Node * pre;  //后继指针
-</span><span class="line">} Node;
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">Node</span> <span class="p">{</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">num</span><span class="p">;</span>
+</span><span class="line">    <span class="k">struct</span> <span class="n">Node</span> <span class="o">*</span> <span class="n">next</span><span class="p">;</span> <span class="c1">//前继指针</span>
+</span><span class="line">    <span class="k">struct</span> <span class="n">Node</span> <span class="o">*</span> <span class="n">pre</span><span class="p">;</span>  <span class="c1">//后继指针</span>
+</span><span class="line"><span class="p">}</span> <span class="n">Node</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">typedef struct dlist {
-</span><span class="line">    Node * head; //双链表的指向头结点的元素
-</span><span class="line">    Node * tail; //双链表指向尾部节点的元素，方便从后检索
-</span><span class="line">} dlist;</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">dlist</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">head</span><span class="p">;</span> <span class="c1">//双链表的指向头结点的元素</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">tail</span><span class="p">;</span> <span class="c1">//双链表指向尾部节点的元素，方便从后检索</span>
+</span><span class="line"><span class="p">}</span> <span class="n">dlist</span><span class="p">;</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>初始化的双链表，<code>head</code>,<code>tail</code> 均为空。</p>
 
@@ -456,7 +457,7 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 
 <p><img src="/images/2017/05/dlist-insert.png" /></p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -491,41 +492,41 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">33</span>
 <span class="line-number">34</span>
 <span class="line-number">35</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">static int insertDlist(dlist **list, int num) {
-</span><span class="line">    Node * head = (*list) -&gt; head;
-</span><span class="line">    Node * tail = (*list) -&gt; tail;
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">int</span> <span class="nf">insertDlist</span><span class="p">(</span><span class="n">dlist</span> <span class="o">**</span><span class="n">list</span><span class="p">,</span> <span class="kt">int</span> <span class="n">num</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">head</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">tail</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tail</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    if (list == NULL) return -1;
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">list</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    Node * node = initNode(num);
-</span><span class="line">    if (node == NULL) return -1;
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">node</span> <span class="o">=</span> <span class="n">initNode</span><span class="p">(</span><span class="n">num</span><span class="p">);</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">node</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    // empty dlist
-</span><span class="line">    if ((*list) -&gt; head == NULL &amp;&amp; (*list) -&gt; tail == NULL) {
-</span><span class="line">        (*list)-&gt; head = node;
-</span><span class="line">        (*list)-&gt; tail = node;
-</span><span class="line">        return 0;
-</span><span class="line">    }
+</span><span class="line">    <span class="c1">// empty dlist</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">((</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tail</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">head</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span><span class="o">-&gt;</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
 </span><span class="line">
-</span><span class="line">    while (head -&gt; next &amp;&amp; head -&gt; num &lt; num) {
-</span><span class="line">        head = head -&gt; next;
-</span><span class="line">    }
+</span><span class="line">    <span class="k">while</span> <span class="p">(</span><span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">&amp;&amp;</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">num</span> <span class="o">&lt;</span> <span class="n">num</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
 </span><span class="line">
-</span><span class="line">    // at the end
-</span><span class="line">    if (head-&gt;next == NULL) {
-</span><span class="line">        head -&gt; next = node;
-</span><span class="line">        node -&gt; pre = head;
-</span><span class="line">        tail -&gt; pre = node;
-</span><span class="line">        return 0;
-</span><span class="line">    } else {
-</span><span class="line">        // in the middle
-</span><span class="line">        node-&gt; next = head -&gt; next;
-</span><span class="line">        head -&gt; next -&gt; pre = node;
-</span><span class="line">        node -&gt; pre = head;
-</span><span class="line">        head -&gt; next = node;
-</span><span class="line">        return 0;
-</span><span class="line">    }
-</span><span class="line">}
+</span><span class="line">    <span class="c1">// at the end</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">head</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="n">node</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">        <span class="n">tail</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">        <span class="c1">// in the middle</span>
+</span><span class="line">        <span class="n">node</span><span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="n">node</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">node</span><span class="p">;</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <h3 id="section-2">删除操作</h3>
@@ -540,7 +541,7 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 
 <p><img src="/images/2017/05/dlist-delete.png" /></p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -585,51 +586,52 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">43</span>
 <span class="line-number">44</span>
 <span class="line-number">45</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">static int deleteDlist(dlist ** list, int location) {
-</span><span class="line">    Node * head = (*list) -&gt; head;
-</span><span class="line">    Node * now = NULL;
-</span><span class="line">    Node * last = NULL;
+</pre></td><td class="code"><pre><code class="c"><span class="line"><span class="k">static</span> <span class="kt">int</span> <span class="nf">deleteDlist</span><span class="p">(</span><span class="n">dlist</span> <span class="o">**</span> <span class="n">list</span><span class="p">,</span> <span class="kt">int</span> <span class="n">location</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">head</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">now</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">    <span class="n">Node</span> <span class="o">*</span> <span class="n">last</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    if (head == NULL)
-</span><span class="line">        return -1;
-</span><span class="line">    if (location &lt;= 0 || location &gt; numOfDlist(*list))
-</span><span class="line">        return -1;
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">head</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">location</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">location</span> <span class="o">&gt;</span> <span class="n">numOfDlist</span><span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">))</span>
+</span><span class="line">        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span><span class="line">
-</span><span class="line">    if (location == 1) {
-</span><span class="line">        now = head;
-</span><span class="line">        (*list) -&gt; head = now -&gt;next;
-</span><span class="line">        head -&gt; next -&gt;pre = NULL;
-</span><span class="line">        if (now) {
-</span><span class="line">            free(now);
-</span><span class="line">            now = NULL;
-</span><span class="line">        }
-</span><span class="line">        return 0;
-</span><span class="line">    }
-</span><span class="line">    int num = 0;
-</span><span class="line">    while (head &amp;&amp; num++ &lt; location) {
-</span><span class="line">        head = head -&gt; next;
-</span><span class="line">    }
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">location</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">=</span> <span class="n">head</span><span class="p">;</span>
+</span><span class="line">        <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">head</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">-&gt;</span><span class="n">pre</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="k">if</span> <span class="p">(</span><span class="n">now</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">free</span><span class="p">(</span><span class="n">now</span><span class="p">);</span>
+</span><span class="line">            <span class="n">now</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="kt">int</span> <span class="n">num</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line">    <span class="k">while</span> <span class="p">(</span><span class="n">head</span> <span class="o">&amp;&amp;</span> <span class="n">num</span><span class="o">++</span> <span class="o">&lt;</span> <span class="n">location</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">    <span class="p">}</span>
 </span><span class="line">
-</span><span class="line">    if (head -&gt; next == NULL) {
-</span><span class="line">        now = (*list) -&gt; tail;
-</span><span class="line">        head -&gt; pre -&gt; next = NULL;
-</span><span class="line">        now -&gt; pre = head-&gt;pre;
-</span><span class="line">        if (head) {
-</span><span class="line">            free(head);
-</span><span class="line">            head = NULL;
-</span><span class="line">        }
-</span><span class="line">    } else {
-</span><span class="line">        now = head -&gt; next;
-</span><span class="line">        last = head -&gt; pre;
-</span><span class="line">        now -&gt;pre = head -&gt; pre;
-</span><span class="line">        last -&gt; next = head -&gt;next;
-</span><span class="line">        if (head) {
-</span><span class="line">            free(head);
-</span><span class="line">            head = NULL;
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">    return 0;
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">    <span class="k">if</span> <span class="p">(</span><span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tail</span><span class="p">;</span>
+</span><span class="line">        <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">-&gt;</span> <span class="n">pre</span> <span class="o">=</span> <span class="n">head</span><span class="o">-&gt;</span><span class="n">pre</span><span class="p">;</span>
+</span><span class="line">        <span class="k">if</span> <span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">free</span><span class="p">(</span><span class="n">head</span><span class="p">);</span>
+</span><span class="line">            <span class="n">head</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="n">last</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">pre</span><span class="p">;</span>
+</span><span class="line">        <span class="n">now</span> <span class="o">-&gt;</span><span class="n">pre</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span> <span class="n">pre</span><span class="p">;</span>
+</span><span class="line">        <span class="n">last</span> <span class="o">-&gt;</span> <span class="n">next</span> <span class="o">=</span> <span class="n">head</span> <span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+</span><span class="line">        <span class="k">if</span> <span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">            <span class="n">free</span><span class="p">(</span><span class="n">head</span><span class="p">);</span>
+</span><span class="line">            <span class="n">head</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>本文所述是 C 语言实现的，<a href="https://github.com/zheng-ji/ToyCollection/blob/master/Dlist/mydlist.c">源码</a>
 在 Go 语言之中, <code>container/list</code> 包实现了双链表，直接引入就可以使用了。</p>
@@ -1141,12 +1143,13 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 
 <p>我们使用 <a href="https://github.com/youmi/go-redis-server">go-redis-server</a> 开发具有 redis 协议的服务。 按照文档，我们实现了如下接口，其背后访问的是 AWS 的 Dynamodb，我们的服务也开发了监控接口，以供我们这些程序狗知道它发生了什么。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">func (handler *RedisHandler) Get(key string) (result string, err error)
-</span><span class="line">func (handler *RedisHandler) Set(key string, val string) (err error)
-</span><span class="line">func (handler *RedisHandler) Del(key string) (count int, err error)</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">handler</span> <span class="o">*</span><span class="nx">RedisHandler</span><span class="p">)</span> <span class="nx">Get</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">result</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+</span><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">handler</span> <span class="o">*</span><span class="nx">RedisHandler</span><span class="p">)</span> <span class="nx">Set</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">val</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+</span><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">handler</span> <span class="o">*</span><span class="nx">RedisHandler</span><span class="p">)</span> <span class="nx">Del</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">count</span> <span class="kt">int</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>这样，我们就能通过 redis 客户端来执行 Get，Set，Del 操作。</p>
 
@@ -1159,7 +1162,7 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 
 <p>我们来看看代码</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -1174,21 +1177,22 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <span class="line-number">13</span>
 <span class="line-number">14</span>
 <span class="line-number">15</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">func (handler *RedisHandler) 
-</span><span class="line">Set(key string, val string) (err error) {
-</span><span class="line">	...
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">handler</span> <span class="o">*</span><span class="nx">RedisHandler</span><span class="p">)</span>
+</span><span class="line"><span class="nx">Set</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">val</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">err</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">	<span class="o">...</span>
 </span><span class="line">
-</span><span class="line">	m, err := JSONToMap(val)
-</span><span class="line">	_, err = table.PutItem(m)
-</span><span class="line">	if err != nil {
-</span><span class="line">		log.Log.Errorf("PutItem failed, 
-</span><span class="line">		table: %s, primary key: %s, value: %+v, 
-</span><span class="line">		err: %s", 
-</span><span class="line">		tableName, primaryVal, m, err.Error())
-</span><span class="line">		return
-</span><span class="line">	}
-</span><span class="line">	return
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">	<span class="nx">m</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">JSONToMap</span><span class="p">(</span><span class="nx">val</span><span class="p">)</span>
+</span><span class="line">	<span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">table</span><span class="p">.</span><span class="nx">PutItem</span><span class="p">(</span><span class="nx">m</span><span class="p">)</span>
+</span><span class="line">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">log</span><span class="p">.</span><span class="nx">Log</span><span class="p">.</span><span class="nx">Errorf</span><span class="p">(</span><span class="s">&quot;PutItem failed, </span>
+</span><span class="line"><span class="s">		table: %s, primary key: %s, value: %+v, </span>
+</span><span class="line"><span class="s">		err: %s&quot;</span><span class="p">,</span>
+</span><span class="line">		<span class="nx">tableName</span><span class="p">,</span> <span class="nx">primaryVal</span><span class="p">,</span> <span class="nx">m</span><span class="p">,</span> <span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+</span><span class="line">		<span class="k">return</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">	<span class="k">return</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>Set接口，简单的将数据写入 Dynamodb，Dynamodb 如果异常就返回错误，然后通过redis协议返回给客户端。</p>
 
@@ -1197,17 +1201,18 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <p>我想重新触发 AWS Dynamodb 返回写容量超标的错误，测试了一阵子，并不容易重现。有点沮丧，这个时候我回忆起 aws-go-sdk 的特点，如果给Dynamodb 字段 赋予空值，是会有异常返回的，
 类似如下：</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">ValidationException: One or more parameter values were invalid:
-</span><span class="line">An AttributeValue may not contain an empty string
-</span><span class="line">	status code: 400</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="nx">ValidationException</span><span class="p">:</span> <span class="nx">One</span> <span class="nx">or</span> <span class="nx">more</span> <span class="nx">parameter</span> <span class="nx">values</span> <span class="nx">were</span> <span class="nx">invalid</span><span class="p">:</span>
+</span><span class="line"><span class="nx">An</span> <span class="nx">AttributeValue</span> <span class="nx">may</span> <span class="nx">not</span> <span class="nx">contain</span> <span class="nx">an</span> <span class="nx">empty</span> <span class="kt">string</span>
+</span><span class="line">	<span class="nx">status</span> <span class="nx">code</span><span class="p">:</span> <span class="mi">400</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>空值的测试明显容易制造。我在本地也开启服务，端口是1234，用 pyredis 作为客户端做测试。
 测试脚本</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -1227,35 +1232,37 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <span class="line-number">18</span>
 <span class="line-number">19</span>
 <span class="line-number">20</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">import redis
-</span><span class="line">import json
-</span><span class="line">import random
-</span><span class="line">r = redis.Redis(host='localhost',port=1234,db=0)
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">import</span> <span class="nn">redis</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">json</span>
+</span><span class="line"><span class="kn">import</span> <span class="nn">random</span>
+</span><span class="line"><span class="n">r</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s">&#39;localhost&#39;</span><span class="p">,</span><span class="n">port</span><span class="o">=</span><span class="mi">1234</span><span class="p">,</span><span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">table_name = 'test'
-</span><span class="line">primary_key = 'a'
+</span><span class="line"><span class="n">table_name</span> <span class="o">=</span> <span class="s">&#39;test&#39;</span>
+</span><span class="line"><span class="n">primary_key</span> <span class="o">=</span> <span class="s">&#39;a&#39;</span>
 </span><span class="line">
-</span><span class="line">i = 0
-</span><span class="line">while True:
-</span><span class="line">    if i &gt; 2:
-</span><span class="line">        break
-</span><span class="line">    data = {
-</span><span class="line">        'a': str(random.random()),
-</span><span class="line">        'b': ‘’,
-</span><span class="line">    }
-</span><span class="line">    key = '{0}:{1}:{2}'.format(table_name, primary_key, data[primary_key])
-</span><span class="line">    value = json.dumps(data)
-</span><span class="line">    r.set(key, value)
-</span><span class="line">    i = i + 1</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line"><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span class="line"><span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+</span><span class="line">    <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+</span><span class="line">        <span class="k">break</span>
+</span><span class="line">    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+</span><span class="line">        <span class="s">&#39;a&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()),</span>
+</span><span class="line">        <span class="s">&#39;b&#39;</span><span class="p">:</span> <span class="err">‘’</span><span class="p">,</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line">    <span class="n">key</span> <span class="o">=</span> <span class="s">&#39;{0}:{1}:{2}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">primary_key</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">primary_key</span><span class="p">])</span>
+</span><span class="line">    <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span><span class="line">    <span class="n">r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span class="line">    <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>发现测试程序卡在终端，一动不动，strace 测试程序</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">$ sudo strace -p 22404
-</span><span class="line">Process 22404 attached
-</span><span class="line">recvfrom(3,</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="err">$</span> <span class="n">sudo</span> <span class="n">strace</span> <span class="o">-</span><span class="n">p</span> <span class="mi">22404</span>
+</span><span class="line"><span class="n">Process</span> <span class="mi">22404</span> <span class="n">attached</span>
+</span><span class="line"><span class="n">recvfrom</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>感觉像是在等待服务器返回，但是等不到回报的样子。</p>
 
@@ -1263,7 +1270,7 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 
 <p>难道 go-redis-server 这个框架有猫腻，我就开始了一下午的看源码之旅。不得不说源码写的真好。回头看我们出错的代码片段，我试着修改 err 信息，修改成自己定义的错误字符串。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -1274,35 +1281,37 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <span class="line-number">9</span>
 <span class="line-number">10</span>
 <span class="line-number">11</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">func (handler *RedisHandler) Set(key string, val string) (err error) {
-</span><span class="line">	...
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">handler</span> <span class="o">*</span><span class="nx">RedisHandler</span><span class="p">)</span> <span class="nx">Set</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">val</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">err</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">	<span class="o">...</span>
 </span><span class="line">
-</span><span class="line">	m, err := JSONToMap(val)
-</span><span class="line">	_, err = table.PutItem(m)
-</span><span class="line">	if err != nil {
-</span><span class="line">		err = errors.New("I am a Custom Error")
-</span><span class="line">		return
-</span><span class="line">	}
-</span><span class="line">	return
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">	<span class="nx">m</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">JSONToMap</span><span class="p">(</span><span class="nx">val</span><span class="p">)</span>
+</span><span class="line">	<span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">table</span><span class="p">.</span><span class="nx">PutItem</span><span class="p">(</span><span class="nx">m</span><span class="p">)</span>
+</span><span class="line">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">err</span> <span class="p">=</span> <span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;I am a Custom Error&quot;</span><span class="p">)</span>
+</span><span class="line">		<span class="k">return</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">	<span class="k">return</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>再次执行测试脚本，这一次。2条测试数据很快就执行结束，并无阻塞。
 好像看到了一丝曙光：error 内容的不一样，导致不一样的结果。类型一样，那么我能怀疑的就是格式，或者长度了。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
 <span class="line-number">5</span>
 <span class="line-number">6</span>
 <span class="line-number">7</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">AWS 错误信息的格式：
-</span><span class="line">ValidationException: One or more parameter values were invalid:
-</span><span class="line">An AttributeValue may not contain an empty string
-</span><span class="line">	status code: 400
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="nx">AWS</span> <span class="err">错误信息的格式：</span>
+</span><span class="line"><span class="nx">ValidationException</span><span class="p">:</span> <span class="nx">One</span> <span class="nx">or</span> <span class="nx">more</span> <span class="nx">parameter</span> <span class="nx">values</span> <span class="nx">were</span> <span class="nx">invalid</span><span class="p">:</span>
+</span><span class="line"><span class="nx">An</span> <span class="nx">AttributeValue</span> <span class="nx">may</span> <span class="nx">not</span> <span class="nx">contain</span> <span class="nx">an</span> <span class="nx">empty</span> <span class="kt">string</span>
+</span><span class="line">	<span class="nx">status</span> <span class="nx">code</span><span class="p">:</span> <span class="mi">400</span>
 </span><span class="line">
-</span><span class="line">我自定义错误信息的格式：
-</span><span class="line">I am a Custom Error</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line"><span class="err">我自定义错误信息的格式：</span>
+</span><span class="line"><span class="nx">I</span> <span class="nx">am</span> <span class="nx">a</span> <span class="nx">Custom</span> <span class="nx">Error</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>我特意加长了自定义错误的长度，结果也是能顺利执行不阻塞客户端。但是我给自定义错误字符串加入了换行符，果然客户端再次测试会出现阻塞。当出现错误的时候，源码中是调用了 ErrorReply.WriteTo 这个函数，特别的。返回错误的协议格式是</p>
 
@@ -1312,7 +1321,7 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 
 <p>配合源码，以下是 go-redis-server 最核心的逻辑调度代码。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -1333,27 +1342,28 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <span class="line-number">19</span>
 <span class="line-number">20</span>
 <span class="line-number">21</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">for {
-</span><span class="line">	request, err := parseRequest(conn)
-</span><span class="line">	if err != nil {
-</span><span class="line">		return err
-</span><span class="line">	}
-</span><span class="line">		request.Host = clientAddr
-</span><span class="line">		request.ClientChan = clientChan
-</span><span class="line">		reply, err := srv.Apply(request)
-</span><span class="line">		if err != nil {
-</span><span class="line">			return err
-</span><span class="line">		}
-</span><span class="line">		if _, err = reply.WriteTo(conn); err != nil {
-</span><span class="line">			return err
-</span><span class="line">		}
-</span><span class="line">	}
-</span><span class="line">	return nil
-</span><span class="line">}
-</span><span class="line">func (er *ErrorReply) WriteTo(w io.Writer) (int64, error) {
-</span><span class="line">	n, err := w.Write([]byte("-" + er.code + " " + er.message + "\r\n"))
-</span><span class="line">	return int64(n), err
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="k">for</span> <span class="p">{</span>
+</span><span class="line">	<span class="nx">request</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">parseRequest</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
+</span><span class="line">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">		<span class="k">return</span> <span class="nx">err</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">		<span class="nx">request</span><span class="p">.</span><span class="nx">Host</span> <span class="p">=</span> <span class="nx">clientAddr</span>
+</span><span class="line">		<span class="nx">request</span><span class="p">.</span><span class="nx">ClientChan</span> <span class="p">=</span> <span class="nx">clientChan</span>
+</span><span class="line">		<span class="nx">reply</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">Apply</span><span class="p">(</span><span class="nx">request</span><span class="p">)</span>
+</span><span class="line">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">			<span class="k">return</span> <span class="nx">err</span>
+</span><span class="line">		<span class="p">}</span>
+</span><span class="line">		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">reply</span><span class="p">.</span><span class="nx">WriteTo</span><span class="p">(</span><span class="nx">conn</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">			<span class="k">return</span> <span class="nx">err</span>
+</span><span class="line">		<span class="p">}</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">	<span class="k">return</span> <span class="kc">nil</span>
+</span><span class="line"><span class="p">}</span>
+</span><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">er</span> <span class="o">*</span><span class="nx">ErrorReply</span><span class="p">)</span> <span class="nx">WriteTo</span><span class="p">(</span><span class="nx">w</span> <span class="nx">io</span><span class="p">.</span><span class="nx">Writer</span><span class="p">)</span> <span class="p">(</span><span class="kt">int64</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">	<span class="nx">n</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">w</span><span class="p">.</span><span class="nx">Write</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&quot;-&quot;</span> <span class="o">+</span> <span class="nx">er</span><span class="p">.</span><span class="nx">code</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="o">+</span> <span class="nx">er</span><span class="p">.</span><span class="nx">message</span> <span class="o">+</span> <span class="s">&quot;\r\n&quot;</span><span class="p">))</span>
+</span><span class="line">	<span class="k">return</span> <span class="nb">int64</span><span class="p">(</span><span class="nx">n</span><span class="p">),</span> <span class="nx">err</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
 <p>从 <a href="http://redis.cn/topics/protocol.html">Redis协议官方文档</a>，可以确定客户端与服务器端之间传输的每个 Redis 命令或者数据都以 <code>\r\n</code> 结尾。 我们的错误信息中间杀出了 <code>\n</code>，导致协议错乱，redis 客户端不能理解协议，就阻塞了。</p>
 
@@ -1647,7 +1657,7 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <span class="line-number">15</span>
 <span class="line-number">16</span>
 <span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">Celery</span>
 </span><span class="line"><span class="kn">from</span> <span class="nn">lib</span> <span class="kn">import</span> <span class="n">distribute</span>
 </span><span class="line"><span class="kn">from</span> <span class="nn">celery.schedules</span> <span class="kn">import</span> <span class="n">crontab</span>
 </span><span class="line">
@@ -1704,7 +1714,7 @@ Leader 服务器为客户端提供读和写服务，Follower 和 Observer 都能
 <span class="line-number">15</span>
 <span class="line-number">16</span>
 <span class="line-number">17</span>
-</pre></td><td class="code"><pre><code class="py"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</pre></td><td class="code"><pre><code class="python"><span class="line"><span class="n">app</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
 </span><span class="line">    <span class="o">//</span> <span class="err">添加的部分</span>
 </span><span class="line">    <span class="n">CELERY_QUEUES</span><span class="o">=</span><span class="p">(</span>
 </span><span class="line">        <span class="n">Queue</span><span class="p">(</span>

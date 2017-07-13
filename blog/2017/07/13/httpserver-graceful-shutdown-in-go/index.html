@@ -97,10 +97,9 @@
   </header>
 
 
-<div class="entry-content"><p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性
-Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的 GraceFul ShutDown ，</p>
+<div class="entry-content"><p>和同事聊到了服务在需要关闭的时候该如何优雅退出，顺藤摸瓜挖掘了Go1.8的特性。Go 1.8起新增了优雅退出 HTTPServer 的特性，也就是大家经常提到的 GraceFul ShutDown。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -125,42 +124,43 @@ Go 1.8起新增加了一个优雅退出HTTPServer,也就是大家经常提到的
 <span class="line-number">23</span>
 <span class="line-number">24</span>
 <span class="line-number">25</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">// src/net/http/server.go
-</span><span class="line">// Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context's error is returned.
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="c1">// src/net/http/server.go</span>
+</span><span class="line"><span class="c1">// Shutdown gracefully shuts down the server without interrupting any active connections. Shutdown works by first closing all open listeners, then closing all idle connections, and then waiting indefinitely for connections to return to idle and then shut down. If the provided context expires before the shutdown is complete, then the context&#39;s error is returned.</span>
 </span><span class="line">
-</span><span class="line">func (srv *Server) Shutdown(ctx context.Context) error {
-</span><span class="line">    atomic.AddInt32(&amp;srv.inShutdown, 1)
-</span><span class="line">    defer atomic.AddInt32(&amp;srv.inShutdown, -1)
+</span><span class="line"><span class="kd">func</span> <span class="p">(</span><span class="nx">srv</span> <span class="o">*</span><span class="nx">Server</span><span class="p">)</span> <span class="nx">Shutdown</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span><span class="line">    <span class="nx">atomic</span><span class="p">.</span><span class="nx">AddInt32</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">srv</span><span class="p">.</span><span class="nx">inShutdown</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class="line">    <span class="k">defer</span> <span class="nx">atomic</span><span class="p">.</span><span class="nx">AddInt32</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">srv</span><span class="p">.</span><span class="nx">inShutdown</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">    srv.mu.Lock()
-</span><span class="line">    lnerr := srv.closeListenersLocked()
-</span><span class="line">    srv.closeDoneChanLocked()
-</span><span class="line">    srv.mu.Unlock()
+</span><span class="line">    <span class="nx">srv</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nx">Lock</span><span class="p">()</span>
+</span><span class="line">    <span class="nx">lnerr</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">closeListenersLocked</span><span class="p">()</span>
+</span><span class="line">    <span class="nx">srv</span><span class="p">.</span><span class="nx">closeDoneChanLocked</span><span class="p">()</span>
+</span><span class="line">    <span class="nx">srv</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nx">Unlock</span><span class="p">()</span>
 </span><span class="line">
-</span><span class="line">    ticker := time.NewTicker(shutdownPollInterval)
-</span><span class="line">    defer ticker.Stop()
-</span><span class="line">    for {
-</span><span class="line">        if srv.closeIdleConns() {
-</span><span class="line">            return lnerr
-</span><span class="line">        }
-</span><span class="line">        select {
-</span><span class="line">        case &lt;-ctx.Done():
-</span><span class="line">            return ctx.Err()
-</span><span class="line">        case &lt;-ticker.C:
-</span><span class="line">        }
-</span><span class="line">    }
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">    <span class="nx">ticker</span> <span class="o">:=</span> <span class="nx">time</span><span class="p">.</span><span class="nx">NewTicker</span><span class="p">(</span><span class="nx">shutdownPollInterval</span><span class="p">)</span>
+</span><span class="line">    <span class="k">defer</span> <span class="nx">ticker</span><span class="p">.</span><span class="nx">Stop</span><span class="p">()</span>
+</span><span class="line">    <span class="k">for</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">if</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">closeIdleConns</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">            <span class="k">return</span> <span class="nx">lnerr</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">        <span class="k">select</span> <span class="p">{</span>
+</span><span class="line">        <span class="k">case</span> <span class="o">&lt;-</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">Done</span><span class="p">():</span>
+</span><span class="line">            <span class="k">return</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">Err</span><span class="p">()</span>
+</span><span class="line">        <span class="k">case</span> <span class="o">&lt;-</span><span class="nx">ticker</span><span class="p">.</span><span class="nx">C</span><span class="p">:</span>
+</span><span class="line">        <span class="p">}</span>
+</span><span class="line">    <span class="p">}</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections， 然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
+<p>从文档注释得知，server.Shutdown 首先关闭所有 active 的链接，以及所有处于 idle 状态的 Connections，然后无限等待那些处于 active 状态的 connection 变为 idle 状态后，关闭他们，Server退出。</p>
 
 <p>如果有一个 Connection 依然处于 active 状态，那么 server 将一直 block 在那里。
 Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一个等待的超时时间。
 一旦超时，Shutdown 将直接返回。对于仍然处理 active 状态的Connection，就无能为力了。
-所以 Shutdown 超时时间尽量要比链接处理的时间长</p>
+所以 Shutdown 超时时间尽量要比链接处理的时间长。</p>
 
 <p>了解完原理，我们用例子来感受一下这个特性。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -202,52 +202,53 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">40</span>
 <span class="line-number">41</span>
 <span class="line-number">42</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">package main
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="kn">package</span> <span class="nx">main</span>
 </span><span class="line">
-</span><span class="line">import (
-</span><span class="line">	"context"
-</span><span class="line">	"log"
-</span><span class="line">	"net/http"
-</span><span class="line">	"os"
-</span><span class="line">	"os/signal"
-</span><span class="line">	"time"
-</span><span class="line">	"github.com/gin-gonic/gin"
-</span><span class="line">)
+</span><span class="line"><span class="kn">import</span> <span class="p">(</span>
+</span><span class="line">	<span class="s">&quot;context&quot;</span>
+</span><span class="line">	<span class="s">&quot;log&quot;</span>
+</span><span class="line">	<span class="s">&quot;net/http&quot;</span>
+</span><span class="line">	<span class="s">&quot;os&quot;</span>
+</span><span class="line">	<span class="s">&quot;os/signal&quot;</span>
+</span><span class="line">	<span class="s">&quot;time&quot;</span>
+</span><span class="line">	<span class="s">&quot;github.com/gin-gonic/gin&quot;</span>
+</span><span class="line"><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">func main() {
-</span><span class="line">	router := gin.Default()
-</span><span class="line">	router.GET("/", func(c *gin.Context) {
-</span><span class="line">		time.Sleep(3 * time.Second)
-</span><span class="line">		log.Printf(http.StatusOK, "Handle request success")
-</span><span class="line">	})
+</span><span class="line"><span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">	<span class="nx">router</span> <span class="o">:=</span> <span class="nx">gin</span><span class="p">.</span><span class="nx">Default</span><span class="p">()</span>
+</span><span class="line">	<span class="nx">router</span><span class="p">.</span><span class="nx">GET</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span> <span class="kd">func</span><span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">gin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+</span><span class="line">		<span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusOK</span><span class="p">,</span> <span class="s">&quot;Handle request success&quot;</span><span class="p">)</span>
+</span><span class="line">	<span class="p">})</span>
 </span><span class="line">
-</span><span class="line">	srv := &amp;http.Server{
-</span><span class="line">		Addr:    ":8080",
-</span><span class="line">		Handler: router,
-</span><span class="line">	}
+</span><span class="line">	<span class="nx">srv</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Server</span><span class="p">{</span>
+</span><span class="line">		<span class="nx">Addr</span><span class="p">:</span>    <span class="s">&quot;:8080&quot;</span><span class="p">,</span>
+</span><span class="line">		<span class="nx">Handler</span><span class="p">:</span> <span class="nx">router</span><span class="p">,</span>
+</span><span class="line">	<span class="p">}</span>
 </span><span class="line">
-</span><span class="line">	go func() {
-</span><span class="line">		if err := srv.ListenAndServe(); err != nil {
-</span><span class="line">			log.Printf("listen: %s\n", err)
-</span><span class="line">		}
-</span><span class="line">	}()
+</span><span class="line">	<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span><span class="line">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">ListenAndServe</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">			<span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;listen: %s\n&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span><span class="line">		<span class="p">}</span>
+</span><span class="line">	<span class="p">}()</span>
 </span><span class="line">
-</span><span class="line">	quit := make(chan os.Signal)
-</span><span class="line">	signal.Notify(quit, os.Interrupt)
-</span><span class="line">	&lt;-quit
-</span><span class="line">	log.Println("Shutdown Server ...")
+</span><span class="line">	<span class="nx">quit</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Signal</span><span class="p">)</span>
+</span><span class="line">	<span class="nx">signal</span><span class="p">.</span><span class="nx">Notify</span><span class="p">(</span><span class="nx">quit</span><span class="p">,</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Interrupt</span><span class="p">)</span>
+</span><span class="line">	<span class="o">&lt;-</span><span class="nx">quit</span>
+</span><span class="line">	<span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Shutdown Server ...&quot;</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-</span><span class="line">	defer cancel()
-</span><span class="line">	if err := srv.Shutdown(ctx); err != nil {
-</span><span class="line">		log.Fatal("Server Shutdown:", err)
-</span><span class="line">	}
-</span><span class="line">	log.Println("Server exist")
-</span><span class="line">}</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line">	<span class="nx">ctx</span><span class="p">,</span> <span class="nx">cancel</span> <span class="o">:=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">WithTimeout</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="mi">5</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+</span><span class="line">	<span class="k">defer</span> <span class="nx">cancel</span><span class="p">()</span>
+</span><span class="line">	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">srv</span><span class="p">.</span><span class="nx">Shutdown</span><span class="p">(</span><span class="nx">ctx</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span><span class="line">		<span class="nx">log</span><span class="p">.</span><span class="nx">Fatal</span><span class="p">(</span><span class="s">&quot;Server Shutdown:&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span><span class="line">	<span class="p">}</span>
+</span><span class="line">	<span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Server exist&quot;</span><span class="p">)</span>
+</span><span class="line"><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 
-<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出，退出时，HTTPServer 等待5秒来”善后”。测试中，我发起<code>curl localhost:8080</code>,随即Ctrl+C来退出程序，发现，服务器坚持在处理完这个HTTP请求才退出。</p>
+<p>代码中，每个请求都等待3秒才完成，使用信号来捕捉程序退出。退出时，HTTPServer 等待5秒来”善后”。我发起<code>curl localhost:8080</code>来测试，随即按下 Ctrl+C 退出程序，结果显示，服务器坚持在处理完这个 HTTP 请求才退出。</p>
 
-<div class="bogus-wrapper"><notextile><figure class="code"><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
+<div class="bogus-wrapper"><notextile><figure class="code"><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class="line-number">1</span>
 <span class="line-number">2</span>
 <span class="line-number">3</span>
 <span class="line-number">4</span>
@@ -260,19 +261,20 @@ Shutdown 接受一个 Context 参数，调用者可以通过 Context 传入一�
 <span class="line-number">11</span>
 <span class="line-number">12</span>
 <span class="line-number">13</span>
-</pre></td><td class="code"><pre><code class=""><span class="line">[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
-</span><span class="line"> - using env:	export GIN_MODE=release
-</span><span class="line"> - using code:	gin.SetMode(gin.ReleaseMode)
+</pre></td><td class="code"><pre><code class="go"><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="o">-</span><span class="nx">debug</span><span class="p">]</span> <span class="p">[</span><span class="nx">WARNING</span><span class="p">]</span> <span class="nx">Running</span> <span class="nx">in</span> <span class="s">&quot;debug&quot;</span> <span class="nx">mode</span><span class="p">.</span> <span class="nx">Switch</span> <span class="nx">to</span> <span class="s">&quot;release&quot;</span> <span class="nx">mode</span> <span class="nx">in</span> <span class="nx">production</span><span class="p">.</span>
+</span><span class="line"> <span class="o">-</span> <span class="nx">using</span> <span class="nx">env</span><span class="p">:</span>	<span class="nx">export</span> <span class="nx">GIN_MODE</span><span class="p">=</span><span class="nx">release</span>
+</span><span class="line"> <span class="o">-</span> <span class="nx">using</span> <span class="nx">code</span><span class="p">:</span>	<span class="nx">gin</span><span class="p">.</span><span class="nx">SetMode</span><span class="p">(</span><span class="nx">gin</span><span class="p">.</span><span class="nx">ReleaseMode</span><span class="p">)</span>
 </span><span class="line">
-</span><span class="line">[GIN-debug] GET    /                         --&gt; main.main.func1 (3 handlers)
-</span><span class="line">Handle Request success
-</span><span class="line">[GIN] 2017/07/12 - 20:30:47 | 200 |  3.000385597s | 127.0.0.1 |   GET     /
-</span><span class="line">^C  //终端输入Ctrl+C
-</span><span class="line">Shutdown Server ...
-</span><span class="line">listen: http: Server closed
-</span><span class="line">Handle Request success //在接收到关闭信号时，依然保证正在处理的请求正常处理完
-</span><span class="line">[GIN] 2017/07/12 - 20:30:53 | 200 |  3.000360362s | 127.0.0.1 |   GET     /
-</span><span class="line">Server exist</span></code></pre></td></tr></table></div></figure></notextile></div>
+</span><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="o">-</span><span class="nx">debug</span><span class="p">]</span> <span class="nx">GET</span>    <span class="o">/</span>                         <span class="o">--</span><span class="p">&gt;</span> <span class="nx">main</span><span class="p">.</span><span class="nx">main</span><span class="p">.</span><span class="nx">func1</span> <span class="p">(</span><span class="mi">3</span> <span class="nx">handlers</span><span class="p">)</span>
+</span><span class="line"><span class="nx">Handle</span> <span class="nx">Request</span> <span class="nx">success</span>
+</span><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="p">]</span> <span class="mi">2017</span><span class="o">/</span><span class="mo">07</span><span class="o">/</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">20</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mi">47</span> <span class="p">|</span> <span class="mi">200</span> <span class="p">|</span>  <span class="mf">3.000385597</span><span class="nx">s</span> <span class="p">|</span> <span class="mf">127.0.0.1</span> <span class="p">|</span>   <span class="nx">GET</span>     <span class="o">/</span>
+</span><span class="line"><span class="p">^</span><span class="nx">C</span>  <span class="c1">//终端输入Ctrl+C</span>
+</span><span class="line"><span class="nx">Shutdown</span> <span class="nx">Server</span> <span class="o">...</span>
+</span><span class="line"><span class="nx">listen</span><span class="p">:</span> <span class="nx">http</span><span class="p">:</span> <span class="nx">Server</span> <span class="nx">closed</span>
+</span><span class="line"><span class="nx">Handle</span> <span class="nx">Request</span> <span class="nx">success</span> <span class="c1">//在接收到关闭信号时，依然保证正在处理的请求正常处理完</span>
+</span><span class="line"><span class="p">[</span><span class="nx">GIN</span><span class="p">]</span> <span class="mi">2017</span><span class="o">/</span><span class="mo">07</span><span class="o">/</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">20</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mi">53</span> <span class="p">|</span> <span class="mi">200</span> <span class="p">|</span>  <span class="mf">3.000360362</span><span class="nx">s</span> <span class="p">|</span> <span class="mf">127.0.0.1</span> <span class="p">|</span>   <span class="nx">GET</span>     <span class="o">/</span>
+</span><span class="line"><span class="nx">Server</span> <span class="nx">exist</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div>
 </div>
 
 
